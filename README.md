@@ -38,8 +38,18 @@ Expressive look (light and dark).
 
 - **A log without secrets.** Passwords, setup codes and tokens are masked in the in-app log, and a log line that printed Wi-Fi
   passwords is gone.
+- **More buttons on the accessory screen.** The app has one optional "fourth button"; every other command (*Open and Block*,
+  *Release and Close*, ...) sits behind the eye icon. Now you tick as many of them as you like (Settings > your accessory > *Set the
+  optional command*, or the *Choose commands* link on the accessory screen) and each becomes a button under Open, Close and Stop.
+  A button runs its command at once, as the optional button does, and a short message confirms that it was sent.
+
+  ![The accessory screen with two extra buttons, the page where the commands are ticked, the theme row in the settings, and the buttons in dark](docs/screenshots/extras-theme.png)
+
 - **A new look.** Material 3 Expressive in a calm petrol blue: one color family for the surfaces and the buttons, a gate icon that
-  changes shape with its state. Light and dark follow the system. It is a CSS layer; no function of the app changed.
+  changes shape with its state. It has a light and a dark palette; it is a CSS layer, and no function of the app changed.
+- **Light, dark or automatic.** Settings > Appearance > *Theme*. *Auto* uses what the WebView reports as the phone's scheme, which is
+  what the app did before. Android takes that value from the app's own theme, and the theme of the Nice app is a dark base theme, so
+  *Auto* does not necessarily follow your phone (I could not check that on every phone); *Light* and *Dark* always do what they say.
 
 The accessory is what the app calls it ("Add accessory"): the IT4WIFI (or CORE) Wi-Fi module of your gate opener.
 
@@ -69,7 +79,7 @@ This way you don't have to trust a binary from someone else, and the app is sign
 ```
 ./get-tools.sh                               # once: downloads apktool and friends into ./tools, checked on SHA-256
 ./build.sh /path/to/MyNiceWelcome_2.2.0.apk
-# result: out/MyNiceWelcome_2.2.0_nx11.apk
+# result: out/MyNiceWelcome_2.2.0_nx12.apk
 ```
 
 The first build creates **your own signing key** in `keys/` (with a random password in `keys/password.txt`). Keep that folder

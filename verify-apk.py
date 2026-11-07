@@ -141,6 +141,17 @@ with zipfile.ZipFile(path) as z:
     for m in ('.nx-checking', 'nx-checking-text'):
         if m not in css:
             errors.append('nx-expressive.css does not style ' + m)
+    # nx12: the extra command buttons and the theme choice
+    for n, m in (('system/device_detail.html', 'nxExtra'), ('settings/device_4th_button.html', 'nxQuickToggle'), ('settings/settings.html', 'nxSetTheme')):
+        if m not in text('assets/www/templates/' + n):
+            errors.append('templates/%s does not ask %s (patch-12/13)' % (n, m))
+    for m in ('.nx-extra', '.nx-pick', '.nx-seg-btn', 'data-nx-theme'):
+        if m not in css:
+            errors.append('nx-expressive.css does not style ' + m)
+    if 'data-nx-theme' not in text('assets/www/js/nx-theme.js') or 'js/nx-theme.js' not in idx:
+        errors.append('nx-theme.js is missing or index.html does not load it')
+    if 'nxSetTheme' not in js or 'nxQuickToggle' not in js:
+        errors.append('nx-patch.js is missing nxSetTheme or nxQuickToggle')
     dl = text('assets/www/js/debuglog.js')
     for m in ('nx-log-button', '__nxLogShow'):
         if m not in dl:

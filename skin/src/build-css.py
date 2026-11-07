@@ -31,6 +31,8 @@ ICON_PATHS = {  # Material icons, 24x24
  'route': 'M6.99 11 3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4v3H10v2h7.01v3L21 9z',
  'add': 'M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z',
  'expand': 'M16.59 8.59 12 13.17 7.41 8.59 6 10l6 6 6-6z',
+ 'tune': 'M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z',
+ 'done': 'M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z',
 }
 def uri(path):
     svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='%s'/></svg>" % path

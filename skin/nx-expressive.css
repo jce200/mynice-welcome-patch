@@ -49,8 +49,10 @@
   --nx-spring-bouncy: linear(0, 0.0367, 0.1306, 0.2598, 0.4057, 0.5536, 0.6928, 0.8157, 0.9184, 0.999, 1.0579, 1.0969, 1.1186, 1.1262, 1.1229, 1.112, 1.0962, 1.0779, 1.0592, 1.0414, 1.0255, 1.0121, 1.0015, 0.9936, 0.9884, 0.9853, 0.9841, 0.9843, 0.9856, 0.9875, 0.9898, 0.9922, 0.9944, 0.9965, 0.9982, 0.9996, 1.0007, 1.0014, 1.0018, 1.002, 1);   --nx-spring-bouncy-ms: 440ms;
   --nx-effects: linear(0, 0.0202, 0.0703, 0.1379, 0.2144, 0.2936, 0.3718, 0.4462, 0.5154, 0.5786, 0.6356, 0.6863, 0.7311, 0.7703, 0.8044, 0.8339, 0.8594, 0.8812, 0.8999, 0.9158, 0.9292, 0.9407, 0.9503, 0.9585, 0.9653, 0.9711, 0.9759, 0.98, 0.9833, 0.9862, 0.9885, 0.9905, 0.9921, 0.9935, 0.9946, 0.9955, 0.9963, 0.997, 0.9975, 0.9979, 1);   --nx-effects-ms: 240ms;
 }
+/* Dark follows the phone (what the WebView reports as prefers-color-scheme) unless the user chose a theme: nx-theme.js and
+   nx-patch.js put data-nx-theme="light" or "dark" on <html> (Settings > Theme); "auto" sets nothing. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-nx-theme="light"]) {
     --md-sys-color-primary: #8ecff2;
     --md-sys-color-on-primary: #003548;
     --md-sys-color-primary-container: #004d67;
@@ -95,6 +97,51 @@
     --nx-brand: #347999;
     --nx-stage: #1e2529;
   }
+}
+:root[data-nx-theme="dark"] {
+  --md-sys-color-primary: #8ecff2;
+  --md-sys-color-on-primary: #003548;
+  --md-sys-color-primary-container: #004d67;
+  --md-sys-color-on-primary-container: #c2e8ff;
+  --md-sys-color-secondary: #b5c9d7;
+  --md-sys-color-on-secondary: #20333d;
+  --md-sys-color-secondary-container: #364954;
+  --md-sys-color-on-secondary-container: #d1e5f3;
+  --md-sys-color-tertiary: #c9c1ea;
+  --md-sys-color-on-tertiary: #312c4c;
+  --md-sys-color-tertiary-container: #484364;
+  --md-sys-color-on-tertiary-container: #e5deff;
+  --md-sys-color-error: #ffb4ab;
+  --md-sys-color-on-error: #690005;
+  --md-sys-color-error-container: #93000a;
+  --md-sys-color-on-error-container: #ffdad6;
+  --md-sys-color-surface: #0f1417;
+  --md-sys-color-on-surface: #dfe3e7;
+  --md-sys-color-surface-variant: #40484d;
+  --md-sys-color-on-surface-variant: #c0c7cd;
+  --md-sys-color-outline: #8a9297;
+  --md-sys-color-outline-variant: #40484d;
+  --md-sys-color-surface-dim: #0f1417;
+  --md-sys-color-surface-bright: #353a3d;
+  --md-sys-color-surface-container-lowest: #0a0f12;
+  --md-sys-color-surface-container-low: #171c1f;
+  --md-sys-color-surface-container: #1b2023;
+  --md-sys-color-surface-container-high: #262b2e;
+  --md-sys-color-surface-container-highest: #313539;
+  --md-sys-color-inverse-surface: #dfe3e7;
+  --md-sys-color-inverse-on-surface: #2c3134;
+  --md-sys-color-inverse-primary: #196585;
+  --md-sys-color-scrim: #000000;
+  --nx-ok: #8cd5b4;
+  --nx-on-ok: #003827;
+  --nx-ok-container: #005139;
+  --nx-on-ok-container: #a7f2cf;
+  --nx-warn: #e8c26c;
+  --nx-on-warn: #3f2e00;
+  --nx-warn-container: #5b4300;
+  --nx-on-warn-container: #ffdf9d;
+  --nx-brand: #347999;
+  --nx-stage: #1e2529;
 }
 
 
@@ -157,6 +204,8 @@
   --nx-i-route: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%3E%3Cpath%20d='M6.99%2011%203%2015l3.99%204v-3H14v-2H6.99v-3zM21%209l-3.99-4v3H10v2h7.01v3L21%209z'/%3E%3C/svg%3E");
   --nx-i-add: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%3E%3Cpath%20d='M19%2013h-6v6h-2v-6H5v-2h6V5h2v6h6v2z'/%3E%3C/svg%3E");
   --nx-i-expand: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%3E%3Cpath%20d='M16.59%208.59%2012%2013.17%207.41%208.59%206%2010l6%206%206-6z'/%3E%3C/svg%3E");
+  --nx-i-tune: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%3E%3Cpath%20d='M3%2017v2h6v-2H3zM3%205v2h10V5H3zm10%2016v-2h8v-2h-8v-2h-2v6h2zM7%209v2H3v2h4v2h2V9H7zm14%204v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z'/%3E%3C/svg%3E");
+  --nx-i-done: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%3E%3Cpath%20d='M9%2016.2%204.8%2012l-1.4%201.4L9%2019%2021%207l-1.4-1.4z'/%3E%3C/svg%3E");
   --nx-v-circle: polygon(99.00% 50.00%, 98.95% 52.14%, 98.81% 54.27%, 98.58% 56.40%, 98.26% 58.51%, 97.84% 60.61%, 97.33% 62.68%, 96.73% 64.73%, 96.04% 66.76%, 95.27% 68.75%, 94.41% 70.71%, 93.46% 72.63%, 92.44% 74.50%, 91.33% 76.33%, 90.14% 78.11%, 88.87% 79.83%, 87.54% 81.50%, 86.13% 83.10%, 84.65% 84.65%, 83.10% 86.13%, 81.50% 87.54%, 79.83% 88.87%, 78.11% 90.14%, 76.33% 91.33%, 74.50% 92.44%, 72.63% 93.46%, 70.71% 94.41%, 68.75% 95.27%, 66.76% 96.04%, 64.73% 96.73%, 62.68% 97.33%, 60.61% 97.84%, 58.51% 98.26%, 56.40% 98.58%, 54.27% 98.81%, 52.14% 98.95%, 50.00% 99.00%, 47.86% 98.95%, 45.73% 98.81%, 43.60% 98.58%, 41.49% 98.26%, 39.39% 97.84%, 37.32% 97.33%, 35.27% 96.73%, 33.24% 96.04%, 31.25% 95.27%, 29.29% 94.41%, 27.37% 93.46%, 25.50% 92.44%, 23.67% 91.33%, 21.89% 90.14%, 20.17% 88.87%, 18.50% 87.54%, 16.90% 86.13%, 15.35% 84.65%, 13.87% 83.10%, 12.46% 81.50%, 11.13% 79.83%, 9.86% 78.11%, 8.67% 76.33%, 7.56% 74.50%, 6.54% 72.63%, 5.59% 70.71%, 4.73% 68.75%, 3.96% 66.76%, 3.27% 64.73%, 2.67% 62.68%, 2.16% 60.61%, 1.74% 58.51%, 1.42% 56.40%, 1.19% 54.27%, 1.05% 52.14%, 1.00% 50.00%, 1.05% 47.86%, 1.19% 45.73%, 1.42% 43.60%, 1.74% 41.49%, 2.16% 39.39%, 2.67% 37.32%, 3.27% 35.27%, 3.96% 33.24%, 4.73% 31.25%, 5.59% 29.29%, 6.54% 27.37%, 7.56% 25.50%, 8.67% 23.67%, 9.86% 21.89%, 11.13% 20.17%, 12.46% 18.50%, 13.87% 16.90%, 15.35% 15.35%, 16.90% 13.87%, 18.50% 12.46%, 20.17% 11.13%, 21.89% 9.86%, 23.67% 8.67%, 25.50% 7.56%, 27.37% 6.54%, 29.29% 5.59%, 31.25% 4.73%, 33.24% 3.96%, 35.27% 3.27%, 37.32% 2.67%, 39.39% 2.16%, 41.49% 1.74%, 43.60% 1.42%, 45.73% 1.19%, 47.86% 1.05%, 50.00% 1.00%, 52.14% 1.05%, 54.27% 1.19%, 56.40% 1.42%, 58.51% 1.74%, 60.61% 2.16%, 62.68% 2.67%, 64.73% 3.27%, 66.76% 3.96%, 68.75% 4.73%, 70.71% 5.59%, 72.63% 6.54%, 74.50% 7.56%, 76.33% 8.67%, 78.11% 9.86%, 79.83% 11.13%, 81.50% 12.46%, 83.10% 13.87%, 84.65% 15.35%, 86.13% 16.90%, 87.54% 18.50%, 88.87% 20.17%, 90.14% 21.89%, 91.33% 23.67%, 92.44% 25.50%, 93.46% 27.37%, 94.41% 29.29%, 95.27% 31.25%, 96.04% 33.24%, 96.73% 35.27%, 97.33% 37.32%, 97.84% 39.39%, 98.26% 41.49%, 98.58% 43.60%, 98.81% 45.73%, 98.95% 47.86%);
   --nx-v-cookie: polygon(99.00% 50.00%, 98.76% 52.13%, 98.07% 54.21%, 97.02% 56.19%, 95.74% 58.07%, 94.39% 59.84%, 93.12% 61.55%, 92.05% 63.26%, 91.24% 65.01%, 90.73% 66.87%, 90.46% 68.87%, 90.33% 70.99%, 90.22% 73.22%, 90.00% 75.48%, 89.53% 77.68%, 88.72% 79.71%, 87.54% 81.50%, 85.98% 82.97%, 84.12% 84.12%, 82.04% 84.96%, 79.85% 85.58%, 77.68% 86.07%, 75.60% 86.57%, 73.69% 87.18%, 71.95% 88.01%, 70.36% 89.10%, 68.87% 90.46%, 67.40% 92.01%, 65.89% 93.64%, 64.26% 95.23%, 62.49% 96.61%, 60.56% 97.65%, 58.51% 98.26%, 56.37% 98.39%, 54.21% 98.07%, 52.07% 97.38%, 50.00% 96.45%, 48.02% 95.42%, 46.11% 94.47%, 44.25% 93.71%, 42.38% 93.22%, 40.46% 93.04%, 38.45% 93.12%, 36.33% 93.36%, 34.11% 93.64%, 31.85% 93.81%, 29.61% 93.73%, 27.46% 93.29%, 25.50% 92.44%, 23.78% 91.16%, 22.32% 89.53%, 21.13% 87.62%, 20.15% 85.58%, 19.28% 83.52%, 18.44% 81.56%, 17.50% 79.78%, 16.38% 78.21%, 15.02% 76.84%, 13.43% 75.60%, 11.65% 74.43%, 9.78% 73.22%, 7.94% 71.90%, 6.27% 70.39%, 4.91% 68.68%, 3.96% 66.76%, 3.45% 64.68%, 3.39% 62.49%, 3.70% 60.26%, 4.26% 58.07%, 4.92% 55.93%, 5.53% 53.89%, 5.96% 51.92%, 6.11% 50.00%, 5.96% 48.08%, 5.53% 46.11%, 4.92% 44.07%, 4.26% 41.93%, 3.70% 39.74%, 3.39% 37.51%, 3.45% 35.32%, 3.96% 33.24%, 4.91% 31.32%, 6.27% 29.61%, 7.94% 28.10%, 9.78% 26.78%, 11.65% 25.57%, 13.43% 24.40%, 15.02% 23.16%, 16.38% 21.79%, 17.50% 20.22%, 18.44% 18.44%, 19.28% 16.48%, 20.15% 14.42%, 21.13% 12.38%, 22.32% 10.47%, 23.78% 8.84%, 25.50% 7.56%, 27.46% 6.71%, 29.61% 6.27%, 31.85% 6.19%, 34.11% 6.36%, 36.33% 6.64%, 38.45% 6.88%, 40.46% 6.96%, 42.38% 6.78%, 44.25% 6.29%, 46.11% 5.53%, 48.02% 4.58%, 50.00% 3.55%, 52.07% 2.62%, 54.21% 1.93%, 56.37% 1.61%, 58.51% 1.74%, 60.56% 2.35%, 62.49% 3.39%, 64.26% 4.77%, 65.89% 6.36%, 67.40% 7.99%, 68.87% 9.54%, 70.36% 10.90%, 71.95% 11.99%, 73.69% 12.82%, 75.60% 13.43%, 77.68% 13.93%, 79.85% 14.42%, 82.04% 15.04%, 84.12% 15.88%, 85.98% 17.03%, 87.54% 18.50%, 88.72% 20.29%, 89.53% 22.32%, 90.00% 24.52%, 90.22% 26.78%, 90.33% 29.01%, 90.46% 31.13%, 90.73% 33.13%, 91.24% 34.99%, 92.05% 36.74%, 93.12% 38.45%, 94.39% 40.16%, 95.74% 41.93%, 97.02% 43.81%, 98.07% 45.79%, 98.76% 47.87%);
   --nx-v-flower: polygon(99.00% 50.00%, 98.68% 52.13%, 97.78% 54.18%, 96.37% 56.11%, 94.63% 57.87%, 92.73% 59.47%, 90.88% 60.95%, 89.23% 62.37%, 87.93% 63.80%, 87.04% 65.34%, 86.58% 67.06%, 86.49% 68.99%, 86.65% 71.16%, 86.92% 73.52%, 87.12% 75.99%, 87.11% 78.47%, 86.74% 80.83%, 85.93% 82.92%, 84.65% 84.65%, 82.92% 85.93%, 80.83% 86.74%, 78.47% 87.11%, 75.99% 87.12%, 73.52% 86.92%, 71.16% 86.65%, 68.99% 86.49%, 67.06% 86.58%, 65.34% 87.04%, 63.80% 87.93%, 62.37% 89.23%, 60.95% 90.88%, 59.47% 92.73%, 57.87% 94.63%, 56.11% 96.37%, 54.18% 97.78%, 52.13% 98.68%, 50.00% 99.00%, 47.87% 98.68%, 45.82% 97.78%, 43.89% 96.37%, 42.13% 94.63%, 40.53% 92.73%, 39.05% 90.88%, 37.63% 89.23%, 36.20% 87.93%, 34.66% 87.04%, 32.94% 86.58%, 31.01% 86.49%, 28.84% 86.65%, 26.48% 86.92%, 24.01% 87.12%, 21.53% 87.11%, 19.17% 86.74%, 17.08% 85.93%, 15.35% 84.65%, 14.07% 82.92%, 13.26% 80.83%, 12.89% 78.47%, 12.88% 75.99%, 13.08% 73.52%, 13.35% 71.16%, 13.51% 68.99%, 13.42% 67.06%, 12.96% 65.34%, 12.07% 63.80%, 10.77% 62.37%, 9.12% 60.95%, 7.27% 59.47%, 5.37% 57.87%, 3.63% 56.11%, 2.22% 54.18%, 1.32% 52.13%, 1.00% 50.00%, 1.32% 47.87%, 2.22% 45.82%, 3.63% 43.89%, 5.37% 42.13%, 7.27% 40.53%, 9.12% 39.05%, 10.77% 37.63%, 12.07% 36.20%, 12.96% 34.66%, 13.42% 32.94%, 13.51% 31.01%, 13.35% 28.84%, 13.08% 26.48%, 12.88% 24.01%, 12.89% 21.53%, 13.26% 19.17%, 14.07% 17.08%, 15.35% 15.35%, 17.08% 14.07%, 19.17% 13.26%, 21.53% 12.89%, 24.01% 12.88%, 26.48% 13.08%, 28.84% 13.35%, 31.01% 13.51%, 32.94% 13.42%, 34.66% 12.96%, 36.20% 12.07%, 37.63% 10.77%, 39.05% 9.12%, 40.53% 7.27%, 42.13% 5.37%, 43.89% 3.63%, 45.82% 2.22%, 47.87% 1.32%, 50.00% 1.00%, 52.13% 1.32%, 54.18% 2.22%, 56.11% 3.63%, 57.87% 5.37%, 59.47% 7.27%, 60.95% 9.12%, 62.37% 10.77%, 63.80% 12.07%, 65.34% 12.96%, 67.06% 13.42%, 68.99% 13.51%, 71.16% 13.35%, 73.52% 13.08%, 75.99% 12.88%, 78.47% 12.89%, 80.83% 13.26%, 82.92% 14.07%, 84.65% 15.35%, 85.93% 17.08%, 86.74% 19.17%, 87.11% 21.53%, 87.12% 24.01%, 86.92% 26.48%, 86.65% 28.84%, 86.49% 31.01%, 86.58% 32.94%, 87.04% 34.66%, 87.93% 36.20%, 89.23% 37.63%, 90.88% 39.05%, 92.73% 40.53%, 94.63% 42.13%, 96.37% 43.89%, 97.78% 45.82%, 98.68% 47.87%);
@@ -473,8 +522,8 @@ html:root body[data-ng-app] .device-info .device-row:not(:first-child) > span { 
 
 /* ============================================================ accessory detail: the buttons (Open | Close, Stop below) */
 html:root body[data-ng-app] .device-commands {
-  display: grid !important; grid-template-columns: 1fr 1fr; grid-template-rows: minmax(0, 1fr) auto; grid-auto-rows: auto; gap: 10px;
-  padding: 8px 16px 18px; width: 100%; min-height: 0; box-sizing: border-box; flex: 1 1 auto;
+  display: grid !important; grid-template-columns: 1fr 1fr; grid-template-rows: minmax(88px, 1fr) auto; grid-auto-rows: auto; gap: 10px;
+  padding: 8px 16px 18px; width: 100%; min-height: 0; box-sizing: border-box; flex: 1 1 auto; overflow-y: auto; overscroll-behavior: contain;
 }
 html:root body[data-ng-app] .device-commands .command, html:root body[data-ng-app] .device-commands a.command {
   display: grid !important; place-items: center; position: relative; overflow: hidden;
@@ -504,6 +553,50 @@ html:root body[data-ng-app] .device-commands .command [translate$="_close"]:befo
 html:root body[data-ng-app] .device-commands .command [translate$="_stop"]:before { -webkit-mask-image: var(--nx-i-stop); mask-image: var(--nx-i-stop); }
 /* a single button, or an additional (fourth) button: full width */
 html:root body[data-ng-app] .device-commands .command:only-child, html:root body[data-ng-app] .device-commands .command.bg-blue-4 { grid-column: 1 / -1; grid-row: auto; }
+/* extra buttons (patch-12): the commands the user ticked, as compact tonal buttons under Open, Close and Stop; an odd one out spans the row */
+html:root body[data-ng-app] .device-commands .nx-extras { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 2px; }
+html:root body[data-ng-app] .device-commands .nx-extras .command.nx-extra {
+  grid-column: auto; grid-row: auto; height: auto; min-height: 56px; padding: 8px 12px !important; border-radius: 20px;
+  background: var(--md-sys-color-surface-container-high) !important; color: var(--md-sys-color-on-surface) !important;
+  font-size: 15px; font-weight: 600; letter-spacing: 0; line-height: 1.2; text-align: center;
+}
+html:root body[data-ng-app] .device-commands .nx-extras .command.nx-extra span { display: block !important; }
+html:root body[data-ng-app] .device-commands .nx-extras .command.nx-extra span:before { display: none; }
+html:root body[data-ng-app] .device-commands .nx-extras .command.nx-extra:last-child:nth-child(odd) { grid-column: 1 / -1; }
+html:root body[data-ng-app] .device-commands .nx-extras .command.nx-extra:active, html:root body[data-ng-app] .device-commands .nx-extras .command.nx-extra.activated {
+  border-radius: 14px; transform: scale(0.97); background: var(--md-sys-color-secondary-container) !important;
+}
+html:root body[data-ng-app] .device-commands .nx-extra-edit {
+  grid-column: 1 / -1; justify-self: center; display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 16px;
+  color: var(--md-sys-color-primary) !important; font-size: 14px; font-weight: 600; line-height: 20px; cursor: pointer;
+}
+html:root body[data-ng-app] .device-commands .nx-extra-edit:before {
+  content: ''; flex: 0 0 auto; width: 18px; height: 18px; background: currentColor;
+  -webkit-mask: var(--nx-i-tune) center / contain no-repeat; mask: var(--nx-i-tune) center / contain no-repeat;
+}
+html:root body[data-ng-app] .device-commands .nx-extra-edit:active { background: var(--md-sys-color-secondary-container); }
+/* page "Optional command" (patch-12): any number of commands can be ticked */
+html:root body[data-ng-app] .nx-pick-hint { padding: 4px 24px 10px; color: var(--md-sys-color-on-surface-variant); font-size: 14px; line-height: 20px; }
+html:root body[data-ng-app] .item.nx-pick { position: relative; padding-right: 64px !important; cursor: pointer; }
+html:root body[data-ng-app] .item.nx-pick.nx-picked { background: var(--md-sys-color-secondary-container) !important; color: var(--md-sys-color-on-secondary-container); }
+html:root body[data-ng-app] .item.nx-pick .nx-tick {
+  position: absolute; right: 20px; top: 50%; width: 24px; height: 24px; margin-top: -12px; border-radius: 50%; box-sizing: border-box;
+  border: 2px solid var(--md-sys-color-outline);
+}
+html:root body[data-ng-app] .item.nx-pick.nx-picked .nx-tick { border: 0; background: var(--md-sys-color-primary); }
+html:root body[data-ng-app] .item.nx-pick.nx-picked .nx-tick:after {
+  content: ''; position: absolute; inset: 0; background: var(--md-sys-color-on-primary);
+  -webkit-mask: var(--nx-i-done) center / 70% no-repeat; mask: var(--nx-i-done) center / 70% no-repeat;
+}
+/* theme choice (patch-13): Auto | Light | Dark as a segmented button in the settings */
+html:root body[data-ng-app] .item.nx-theme-row { display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; }
+html:root body[data-ng-app] .nx-seg { display: inline-flex; flex: 0 0 auto; border: 1px solid var(--md-sys-color-outline); border-radius: 20px; overflow: hidden; }
+html:root body[data-ng-app] .nx-seg-btn {
+  padding: 7px 14px; border-left: 1px solid var(--md-sys-color-outline); cursor: pointer;
+  color: var(--md-sys-color-on-surface) !important; font-size: 14px; font-weight: 600; line-height: 20px;
+}
+html:root body[data-ng-app] .nx-seg-btn:first-child { border-left: 0; }
+html:root body[data-ng-app] .nx-seg-btn.nx-on { background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container) !important; }
 
 /* ============================================================ wizard: stage with the light-gray icon, text below it, large button at the bottom */
 html:root body[data-ng-app] .setup-wifi-bridge { background: var(--md-sys-color-surface); }

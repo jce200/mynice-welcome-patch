@@ -46,6 +46,27 @@
     } catch (e) {}
   }
 
+  // ------------------------------------------------------------------ theme (nx12)
+  // Settings > Theme: 'auto' (the WebView's prefers-color-scheme decides, as before), 'light' or 'dark'. The choice is in
+  // localStorage ('nxTheme') and on <html> as data-nx-theme; nx-theme.js puts it there before the first paint, the color tokens of
+  // nx-expressive.css answer to it. (Android's WebView takes prefers-color-scheme from the Android theme of the app, and the app's is
+  // a dark base theme, so "auto" is not guaranteed to follow the phone: this is why there is a choice.)
+  var THEME_KEY = 'nxTheme';
+  function readTheme() {
+    try { var t = window.localStorage.getItem(THEME_KEY); return (t === 'light' || t === 'dark') ? t : 'auto'; } catch (e) { return 'auto'; }
+  }
+  function applyTheme(mode) {
+    var r = document.documentElement;
+    if (mode === 'light' || mode === 'dark') r.setAttribute('data-nx-theme', mode); else r.removeAttribute('data-nx-theme');
+  }
+  // dark right now? What the user chose, else what the WebView reports
+  function isDarkNow() {
+    var a = document.documentElement.getAttribute('data-nx-theme');
+    if (a === 'dark') return true;
+    if (a === 'light') return false;
+    return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  }
+
   // ------------------------------------------------------------------ 1. error messages
   window.__nxMsg = function (e, fallback) {
     try {
@@ -292,6 +313,103 @@
       } catch (e) { log('verify-wrapper failed', String(e)); return false; }
     };
     installVerify($rootScope);
+
+    // -------------------------------------------------------------- 8. extra buttons next to Open, Close and Stop (nx12)
+    // The app has ONE optional "fourth button". Here the user ticks as many of the accessory's secondary commands as wanted (say
+    // "Open and Block" and "Release and Close") and each becomes a button under Open, Close and Stop. The choice is kept per
+    // accessory in localStorage ('nxQuick': { "<mac>": ["<code>", ...] }, in the order in which the commands were ticked), apart
+    // from the app's own data, so that none of the app's flows (discovery, updating the accessory) can lose it. Until the list has
+    // been touched, the app's own optional command counts as the first choice. patch-12-extra-commands.py makes the accessory screen
+    // and the "optional command" page ask for this; without it they behave as before. The commands run through the app's own
+    // runCommand (executeSecondaryCommand), exactly like the optional command does.
+    var QUICK_KEY = 'nxQuick';
+    function readQuick() {
+      try {
+        var o = JSON.parse(window.localStorage.getItem(QUICK_KEY) || '{}');
+        return (o && typeof o === 'object' && !Array.isArray(o)) ? o : {};
+      } catch (e) { return {}; }
+    }
+    function writeQuick(o) {
+      try { window.localStorage.setItem(QUICK_KEY, JSON.stringify(o)); } catch (e) { log('extra buttons: not saved', String(e)); }
+    }
+    function automationOf(device) { return (device && device.automations && device.automations[0]) || null; }
+    // the codes ticked for this accessory, in the order in which they were ticked
+    function quickCodes(device) {
+      var mac = device && device.mac;
+      if (!mac) return [];
+      var list = readQuick()[mac];
+      if (Array.isArray(list)) return list.filter(function (c) { return typeof c === 'string' && c; });
+      var a = automationOf(device);
+      return (a && a.fourthButton && a.fourthButton.code) ? [String(a.fourthButton.code)] : [];
+    }
+    // what the accessory screen shows: the ticked commands, as long as the app's switch "enable the optional command" is on
+    // (an array of strings: an array of new objects on every call would make ng-repeat re-render on every digest)
+    function extraCodes(device) {
+      var a = automationOf(device);
+      return (a && a.fourthButtonEnabled) ? quickCodes(device) : [];
+    }
+    function quickToggle(device, item) {
+      try {
+        var code = item && (typeof item === 'string' ? item : item.code);
+        var mac = device && device.mac;
+        if (!code || !mac) return;
+        var list = quickCodes(device).slice();     // the old optional command becomes part of the list here
+        var i = list.indexOf(code);
+        if (i >= 0) list.splice(i, 1); else list.push(code);
+        var all = readQuick();
+        all[mac] = list;
+        writeQuick(all);
+        // the app's own optional command follows the first choice, so that its own check ("select an optional command") still holds
+        var a = automationOf(device);
+        if (a) {
+          if (!list.length) delete a.fourthButton;
+          else if (!(a.fourthButton && a.fourthButton.code === list[0])) a.fourthButton = (item && item.code === list[0]) ? item : { code: list[0] };
+          HS.updateDevice(device.homeId, device);
+        }
+      } catch (e) { log('extra buttons', String(e)); }
+    }
+    // is there anything to choose from? (an administrator has the full list; a user the list that was fetched and cached)
+    function canQuick(device) {
+      var a = automationOf(device);
+      if (!a) return false;
+      return !!((Array.isArray(a.secondaryCommands) && a.secondaryCommands.length) || a.enabledSecondaryCommands === true ||
+        (Array.isArray(a.enabledSecondaryCommands) && a.enabledSecondaryCommands.length));
+    }
+    // shortcut from the accessory screen to the page where the commands are ticked; the switch goes on, so that the list is there
+    function editQuick(device) {
+      try {
+        var a = automationOf(device);
+        if (a && !a.fourthButtonEnabled) { a.fourthButtonEnabled = true; HS.updateDevice(device.homeId, device); }
+        if (inj.has('$state') && typeof $rootScope.go === 'function') $rootScope.go(inj.get('$state'), '4th-button', { homeId: device.homeId, mac: device.mac });
+      } catch (e) { log('extra buttons: choose', String(e)); }
+    }
+    // the commands give no sign of their own (a block or a release does not change the state shown), so a short confirmation
+    function quickSent(code) {
+      try {
+        var name = inj.has('$translate') ? inj.get('$translate').instant('DEVICE_COMMAND_' + code) : '';
+        toast((!name || name === 'DEVICE_COMMAND_' + code ? code : name) + ': sent');
+      } catch (e) {}
+    }
+    // theme: what the settings page shows and does (patch-13); the status bar follows at once
+    var themeNow = readTheme();
+    applyTheme(themeNow);        // nx-theme.js did this already; here in case that script is not there
+    $rootScope.nxTheme = function () { return themeNow; };
+    $rootScope.nxSetTheme = function (mode) {
+      try {
+        if (mode !== 'auto' && mode !== 'light' && mode !== 'dark') return;
+        themeNow = mode;
+        try { if (mode === 'auto') window.localStorage.removeItem(THEME_KEY); else window.localStorage.setItem(THEME_KEY, mode); } catch (e) { log('theme: not saved', String(e)); }
+        applyTheme(mode);
+        tuneStatusBar();
+        log('theme', mode);
+      } catch (e) { log('theme', String(e)); }
+    };
+    $rootScope.nxExtra = extraCodes;
+    $rootScope.nxQuickHas = function (device, code) { return quickCodes(device).indexOf(code) >= 0; };
+    $rootScope.nxQuickToggle = quickToggle;
+    $rootScope.nxCanQuick = canQuick;
+    $rootScope.nxEditQuick = editQuick;
+    $rootScope.nxSent = quickSent;
 
     // -------------------------------------------------------------- navigation
     $rootScope.$on('$stateChangeSuccess', function (ev, toState) {
@@ -913,7 +1031,7 @@
         var sb = window.StatusBar;
         if (!sb) return;
         var color = String(getComputedStyle(document.documentElement).getPropertyValue('--md-sys-color-surface') || '').trim();
-        var dark = !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        var dark = isDarkNow();
         if (/^#[0-9a-f]{6}$/i.test(color) && sb.__nxColor) sb.__nxColor(color);
         var style = dark ? sb.__nxLight : sb.__nxDark;
         if (style) style();
@@ -1069,7 +1187,8 @@
     window.addEventListener('online', function () { setTimeout(refreshPill, 1500); });
     window.addEventListener('offline', function () { setTimeout(refreshPill, 1500); });
 
-    window.NX = { diagnose: diagnose, reconnect: reconnect, checkWaitingUsers: checkWaitingUsers, refresh: refreshPill, open: openSheet, close: closeSheet };
+    window.NX = { diagnose: diagnose, reconnect: reconnect, checkWaitingUsers: checkWaitingUsers, refresh: refreshPill, open: openSheet, close: closeSheet,
+      theme: function (mode) { if (mode) $rootScope.nxSetTheme(mode); return themeNow; } };
     log('nx-patch active');
   }
 })();

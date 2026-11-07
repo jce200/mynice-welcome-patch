@@ -1,4 +1,4 @@
-// Usage: node screens.cjs <folder> [list of routes]  (takes screenshots of the real app)
+// Usage: node screens.cjs <folder> [list of routes]  (takes screenshots of the real app; SCRIPT=steps.cjs runs your own steps afterwards)
 const { chromium } = require('playwright');
 const http = require('http'), fs = require('fs'), path = require('path');
 const WWW = path.join(__dirname, process.env.WWW || 'www');
@@ -16,7 +16,7 @@ const server = http.createServer((req, res) => {
   const outDir = path.join(__dirname, 'shots', process.argv[2] || 'base'); fs.mkdirSync(outDir, { recursive: true });
   const cfg = JSON.parse(process.env.CFG || '{}');
   const browser = await chromium.launch();
-  const ctx = await browser.newContext({ viewport: { width: 412, height: 915 }, deviceScaleFactor: Number(process.env.DSF || 2), isMobile: true, hasTouch: true,
+  const ctx = await browser.newContext({ viewport: { width: Number((process.env.VIEW || '412x915').split('x')[0]), height: Number((process.env.VIEW || '412x915').split('x')[1]) }, deviceScaleFactor: Number(process.env.DSF || 2), isMobile: true, hasTouch: true,
     colorScheme: process.env.COLOR_SCHEME || 'light',
     userAgent: 'Mozilla/5.0 (Linux; Android 14; Pixel 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36' });
   await ctx.addInitScript('window.__CFG=' + JSON.stringify(cfg) + ';');
@@ -35,6 +35,14 @@ const server = http.createServer((req, res) => {
     const name = r.replace(/[^a-z0-9]+/gi, '_').replace(/^_|_$/g, '') || 'start';
     await page.screenshot({ path: path.join(outDir, name + '.png') });
     console.log('screenshot', name, '->', await page.evaluate(() => location.hash));
+  }
+  if (process.env.SCRIPT) {   // a script with its own steps:  module.exports = async (page, { goto, wait, shot }) => { ... }
+    const steps = require(path.resolve(process.env.SCRIPT));
+    await steps(page, {
+      goto: async (h, ms) => { await page.evaluate((x) => { location.hash = x; }, h); await page.waitForTimeout(ms || 1500); },
+      wait: (ms) => page.waitForTimeout(ms),
+      shot: (name) => page.screenshot({ path: path.join(outDir, name + '.png') }),
+    });
   }
   if (process.env.JS) { console.log('JS:', JSON.stringify(await page.evaluate(process.env.JS))); }
   console.log('problems (' + problems.length + '):'); problems.slice(0, 15).forEach((m) => console.log('  ' + m));

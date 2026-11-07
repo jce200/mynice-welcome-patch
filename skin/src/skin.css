@@ -346,8 +346,8 @@ html[data-nx-status="info"]:root body[data-ng-app] .bar .title::after { backgrou
 
 /* ============================================================ accessory detail: the buttons (Open | Close, Stop below) */
 {{P}} .device-commands {
-  display: grid !important; grid-template-columns: 1fr 1fr; grid-template-rows: minmax(0, 1fr) auto; grid-auto-rows: auto; gap: 10px;
-  padding: 8px 16px 18px; width: 100%; min-height: 0; box-sizing: border-box; flex: 1 1 auto;
+  display: grid !important; grid-template-columns: 1fr 1fr; grid-template-rows: minmax(88px, 1fr) auto; grid-auto-rows: auto; gap: 10px;
+  padding: 8px 16px 18px; width: 100%; min-height: 0; box-sizing: border-box; flex: 1 1 auto; overflow-y: auto; overscroll-behavior: contain;
 }
 {{P}} .device-commands .command, {{P}} .device-commands a.command {
   display: grid !important; place-items: center; position: relative; overflow: hidden;
@@ -377,6 +377,50 @@ html[data-nx-status="info"]:root body[data-ng-app] .bar .title::after { backgrou
 {{P}} .device-commands .command [translate$="_stop"]:before { -webkit-mask-image: var(--nx-i-stop); mask-image: var(--nx-i-stop); }
 /* a single button, or an additional (fourth) button: full width */
 {{P}} .device-commands .command:only-child, {{P}} .device-commands .command.bg-blue-4 { grid-column: 1 / -1; grid-row: auto; }
+/* extra buttons (patch-12): the commands the user ticked, as compact tonal buttons under Open, Close and Stop; an odd one out spans the row */
+{{P}} .device-commands .nx-extras { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 2px; }
+{{P}} .device-commands .nx-extras .command.nx-extra {
+  grid-column: auto; grid-row: auto; height: auto; min-height: 56px; padding: 8px 12px !important; border-radius: 20px;
+  background: var(--md-sys-color-surface-container-high) !important; color: var(--md-sys-color-on-surface) !important;
+  font-size: 15px; font-weight: 600; letter-spacing: 0; line-height: 1.2; text-align: center;
+}
+{{P}} .device-commands .nx-extras .command.nx-extra span { display: block !important; }
+{{P}} .device-commands .nx-extras .command.nx-extra span:before { display: none; }
+{{P}} .device-commands .nx-extras .command.nx-extra:last-child:nth-child(odd) { grid-column: 1 / -1; }
+{{P}} .device-commands .nx-extras .command.nx-extra:active, {{P}} .device-commands .nx-extras .command.nx-extra.activated {
+  border-radius: 14px; transform: scale(0.97); background: var(--md-sys-color-secondary-container) !important;
+}
+{{P}} .device-commands .nx-extra-edit {
+  grid-column: 1 / -1; justify-self: center; display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 16px;
+  color: var(--md-sys-color-primary) !important; font-size: 14px; font-weight: 600; line-height: 20px; cursor: pointer;
+}
+{{P}} .device-commands .nx-extra-edit:before {
+  content: ''; flex: 0 0 auto; width: 18px; height: 18px; background: currentColor;
+  -webkit-mask: var(--nx-i-tune) center / contain no-repeat; mask: var(--nx-i-tune) center / contain no-repeat;
+}
+{{P}} .device-commands .nx-extra-edit:active { background: var(--md-sys-color-secondary-container); }
+/* page "Optional command" (patch-12): any number of commands can be ticked */
+{{P}} .nx-pick-hint { padding: 4px 24px 10px; color: var(--md-sys-color-on-surface-variant); font-size: 14px; line-height: 20px; }
+{{P}} .item.nx-pick { position: relative; padding-right: 64px !important; cursor: pointer; }
+{{P}} .item.nx-pick.nx-picked { background: var(--md-sys-color-secondary-container) !important; color: var(--md-sys-color-on-secondary-container); }
+{{P}} .item.nx-pick .nx-tick {
+  position: absolute; right: 20px; top: 50%; width: 24px; height: 24px; margin-top: -12px; border-radius: 50%; box-sizing: border-box;
+  border: 2px solid var(--md-sys-color-outline);
+}
+{{P}} .item.nx-pick.nx-picked .nx-tick { border: 0; background: var(--md-sys-color-primary); }
+{{P}} .item.nx-pick.nx-picked .nx-tick:after {
+  content: ''; position: absolute; inset: 0; background: var(--md-sys-color-on-primary);
+  -webkit-mask: var(--nx-i-done) center / 70% no-repeat; mask: var(--nx-i-done) center / 70% no-repeat;
+}
+/* theme choice (patch-13): Auto | Light | Dark as a segmented button in the settings */
+{{P}} .item.nx-theme-row { display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; }
+{{P}} .nx-seg { display: inline-flex; flex: 0 0 auto; border: 1px solid var(--md-sys-color-outline); border-radius: 20px; overflow: hidden; }
+{{P}} .nx-seg-btn {
+  padding: 7px 14px; border-left: 1px solid var(--md-sys-color-outline); cursor: pointer;
+  color: var(--md-sys-color-on-surface) !important; font-size: 14px; font-weight: 600; line-height: 20px;
+}
+{{P}} .nx-seg-btn:first-child { border-left: 0; }
+{{P}} .nx-seg-btn.nx-on { background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container) !important; }
 
 /* ============================================================ wizard: stage with the light-gray icon, text below it, large button at the bottom */
 {{P}} .setup-wifi-bridge { background: var(--md-sys-color-surface); }

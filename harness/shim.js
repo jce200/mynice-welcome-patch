@@ -4,6 +4,8 @@
   var HOME = 1, MAC = '00:0B:6C:AA:BB:CC';
   // CFG.favorite: false -> the accessory is not a favorite (it shows up in the "add favorites" list)
   // CFG.reachable: false -> the stored flag of the last session says "not reachable" (the state in which the app shows "Not usable")
+  // CFG.secondary: the codes of the secondary commands of the accessory ("Open and Block" is MDBk, "Release and Close" MDFh); CFG.fourth: the code of the app's own optional command
+  var SECONDARY = CFG.secondary || [];
   function seed() {
     try {
       if (localStorage.getItem('keyHomes')) return;
@@ -11,12 +13,14 @@
         mac: MAC, name: 'NiceIT4WIFIAABBCC', description: 'AABBCC', address: '192.168.1.72', homeId: HOME,
         pairingUsername: 'homeuser', pairingPassword: 'x', reachable: CFG.reachable !== false, favorites: CFG.favorite !== false, paired: true, permissions: { isAdmin: true, isUser: true },
         properties: [{ value: CFG.state || 'closed' }, { value: CFG.obstruct || '0' }],
-        automations: [{ id: '1', type: 'sliding', primaryCommands: ['open', 'stop', 'close'], fourthButtonEnabled: false,
-          secondaryCommands: [], enabledSecondaryCommands: [], properties: [] }]
+        automations: [{ id: '1', type: 'sliding', primaryCommands: ['open', 'stop', 'close'],
+          fourthButtonEnabled: !!CFG.fourth, fourthButton: CFG.fourth ? { code: CFG.fourth } : undefined,
+          secondaryCommands: SECONDARY.map(function (c) { return { code: c }; }), enabledSecondaryCommands: SECONDARY.length ? true : [], properties: [] }]
       };
       var homes = [{ homeId: HOME, name: 'Home', phoneName: 'Pixel', userName: 'homeuser', networkSsid: 'HomeWifi', networkPassword: 'x', devices: [device] }];
       localStorage.setItem('keyHomes', JSON.stringify(homes));
       localStorage.setItem('keyIsFirstSetupCompleted', 'true');
+      if (CFG.quick) localStorage.setItem('nxQuick', JSON.stringify({ [MAC]: CFG.quick }));   // CFG.quick: the codes ticked as extra buttons
       localStorage.setItem('keyDefaultHome', String(HOME));
       localStorage.setItem('keyConnectionMode', JSON.stringify('local'));
     } catch (e) {}
@@ -44,6 +48,9 @@
     'nhk.connect': function () { return CFG.verifyFail ? { fail: 'timeout' } : {}; },
     'nhk.status': status,
     'nhk.discoverConfiguredDevices': function () { return []; },
+    'nhk.getUsersPermissions': function () { return { devices: [{ secondaryCommands: SECONDARY.map(function (c) { return { code: c }; }) }] }; },
+    'nhk.executePrimaryCommand': function () { return {}; },
+    'nhk.executeSecondaryCommand': function () { return {}; },
     'nhk.enableEvents': function () { return { keep: true, none: true }; },
     'WifiWizard.enableEvents': function () { return { none: true }; },
     'CoreAndroid.messageChannel': function () { return { none: true }; },
@@ -65,14 +72,14 @@
     'NetworkStatus.getConnectionInfo': function () { return 'wifi'; },
     'Globalization.getPreferredLanguage': function () { return { value: CFG.lang || 'en-US' }; },
     'Globalization.getLocaleName': function () { return { value: CFG.lang || 'en-US' }; },
-    'Nx.version': function () { return 'nx-11'; },
+    'Nx.version': function () { return 'nx-12'; },
     'Nx.logStream': function () { return { keep: true, none: true }; },
     'Nx.setHints': function () { return {}; },
     'Nx.release': function () { return {}; },
     'Nx.reconnect': function () { return {}; },
     'Nx.checkSucceeded': function () { return {}; },
     'Nx.checkFailed': function () { return {}; },
-    'Nx.netState': function () { return CFG.net || { version: 'nx-11', sdk: 37, wifi: true, ssid: 'HomeWifi', ip: '192.168.1.172', validated: true, cellular: false, vpn: false, module: false, defaultType: 'wifi', route: 'local', routeAgeSeconds: 4 }; },
+    'Nx.netState': function () { return CFG.net || { version: 'nx-12', sdk: 37, wifi: true, ssid: 'HomeWifi', ip: '192.168.1.172', validated: true, cellular: false, vpn: false, module: false, defaultType: 'wifi', route: 'local', routeAgeSeconds: 4 }; },
     'Nx.probe': function () { return CFG.probe || { ok: true, tcpMs: 14, tlsMs: 380, bound: true, cloud: { ok: true, dns: '63.182.6.157', dnsMs: 12, tcpMs: 20 } }; }
   };
   function answer(callbackId, r) {
@@ -87,6 +94,7 @@
       var key = service + '.' + action, args = [];
       try { args = JSON.parse(argsJson); } catch (e) {}
       log.push(key);
+      (window.__calls = window.__calls || []).push({ key: key, args: args });
       var h = NATIVE[key];
       setTimeout(function () {
         try {

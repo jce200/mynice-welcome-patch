@@ -22,7 +22,8 @@ function home(devices) {
 }
 
 // scen: { homes, net, probe, reachable: [sequence], reachableDefault, waiting, approveOk, loadCloud,
-//         graceMs (auto-recovery; off by default), lateVerify (verify only exists later), verifyMs, preXhr(w) }
+//         graceMs (auto-recovery; off by default), lateVerify (verify only exists later), verifyMs, preXhr(w),
+//         names ({ DEVICE_COMMAND_x: 'text' } for $translate), withGo ($state and $rootScope.go) }
 async function environment(scen) {
   const dom = new JSDOM('<!doctype html><html><body></body></html>', { url: 'http://localhost/', runScripts: 'outside-only', pretendToBeVisual: true });
   const w = dom.window;
@@ -81,6 +82,9 @@ async function environment(scen) {
   const $timeout = (fn, ms) => setTimeout(fn, Math.min(ms || 0, 30));
   const $ionicPopup = { confirm(opts) { popups.push(opts); return Promise.resolve(scen.popupAnswer !== false); } };
   const services = { $rootScope, $q, $timeout, NHKPluginService: NHK, HomeService: HS, $ionicPopup };
+  const goCalls = [];
+  if (scen.names) services.$translate = { instant: (k) => scen.names[k] || k };            // nx12: names of the commands
+  if (scen.withGo) { services.$state = { current: {} }; $rootScope.go = (st, name, params) => goCalls.push({ name, params }); }
   const injector = { has: (n) => n in services, get: (n) => services[n] };
   w.angular = { element: () => ({ injector: () => injector }) };
 
@@ -90,7 +94,7 @@ async function environment(scen) {
   if (scen.preXhr) scen.preXhr(w);
   w.eval(SRC);
   await sleep(800);   // on startup it checks every 500 ms whether Angular is there
-  return { w, logs, native, handlers, $rootScope, NHK, HS, popups, approvals, verifyLog, document: w.document,
+  return { w, logs, native, handlers, $rootScope, NHK, HS, popups, approvals, verifyLog, goCalls, document: w.document,
     defineVerify() { $rootScope.verifyDeviceRecheability = verifyReal; } };
 }
 
@@ -313,6 +317,156 @@ function sheet(env) { return env.document.getElementById('nx-sheet'); }
     // ... but not while the phone is on the accessory's own Wi-Fi (setup)
     const env = await environment({ homes: [home([device()])], net: { wifi: true, ssid: 'NiceIT4WIFIAABBCC', module: true }, reachableDefault: true, kickoffMs: 100 });
     ok('nx11 kick-off: not on the accessory Wi-Fi', env.verifyLog.length === 0, env.verifyLog.join(','));
+  }
+
+  // ---------------------------------------------------------------- nx12: extra buttons next to Open, Close and Stop
+  // The user ticks secondary commands per accessory ($rootScope.nxQuickToggle); the accessory screen shows $rootScope.nxExtra(device)
+  // as buttons. The choice lives in localStorage ('nxQuick'), apart from the app's own data; the app's optional "fourth button"
+  // is the first choice until the list has been touched and follows the first choice afterwards.
+  const MAC2 = '00:0B:6C:DD:EE:FF';
+  const auto = (extra) => [Object.assign({ id: '1', type: 'sliding', primaryCommands: ['open', 'stop', 'close'], fourthButtonEnabled: true,
+    secondaryCommands: [{ code: 'MDBk' }, { code: 'MDFh' }, { code: 'MDEw' }] }, extra || {})];
+  {
+    const dev = device({ automations: auto({ fourthButton: { code: 'MDBk' } }) });
+    const env = await environment({ homes: [home([dev])], net: { wifi: true, ssid: 'HomeWifi' } });
+    const live = env.HS.homes[0].devices[0], r = env.$rootScope;
+    ok('nx12 hook: the lists get their functions', ['nxExtra', 'nxQuickHas', 'nxQuickToggle', 'nxCanQuick', 'nxEditQuick', 'nxSent'].every((k) => typeof r[k] === 'function'));
+    ok('nx12: the old optional command is the first choice', JSON.stringify(r.nxExtra(live)) === '["MDBk"]', JSON.stringify(r.nxExtra(live)));
+    ok('nx12: nxQuickHas follows it', r.nxQuickHas(live, 'MDBk') === true && r.nxQuickHas(live, 'MDFh') === false);
+    r.nxQuickToggle(live, { code: 'MDFh' });
+    ok('nx12: ticking another one adds it behind the first', JSON.stringify(r.nxExtra(live)) === '["MDBk","MDFh"]', JSON.stringify(r.nxExtra(live)));
+    ok('nx12: the choice is saved per accessory in localStorage', JSON.parse(env.w.localStorage.getItem('nxQuick'))[live.mac].join() === 'MDBk,MDFh', env.w.localStorage.getItem('nxQuick'));
+    r.nxQuickToggle(live, 'MDEw');                      // a plain code works too
+    ok('nx12: the order is the order of ticking', JSON.stringify(r.nxExtra(live)) === '["MDBk","MDFh","MDEw"]');
+    ok('nx12: nxExtra gives strings (new objects on every call would make ng-repeat spin)', r.nxExtra(live).every((c) => typeof c === 'string') && JSON.stringify(r.nxExtra(live)) === JSON.stringify(r.nxExtra(live)));
+    r.nxQuickToggle(live, { code: 'MDBk' });             // unticking the first one: the next one becomes the app's optional command
+    ok('nx12: unticking removes it', JSON.stringify(r.nxExtra(live)) === '["MDFh","MDEw"]', JSON.stringify(r.nxExtra(live)));
+    ok('nx12: the app\'s optional command follows the first choice', live.automations[0].fourthButton.code === 'MDFh', JSON.stringify(live.automations[0].fourthButton));
+    ok('nx12: ... and that is saved in the app\'s own storage', JSON.parse(env.w.localStorage.getItem('keyHomes'))[0].devices[0].automations[0].fourthButton.code === 'MDFh');
+    r.nxQuickToggle(live, 'MDFh'); r.nxQuickToggle(live, 'MDEw');
+    ok('nx12: nothing ticked -> no buttons, and the app\'s optional command is gone (its own check asks for a choice)', r.nxExtra(live).length === 0 && live.automations[0].fourthButton === undefined);
+    r.nxQuickToggle(live, 'MDEw');
+    ok('nx12: ticking again after an empty list starts a new list (no old optional command comes back)', JSON.stringify(r.nxExtra(live)) === '["MDEw"]', JSON.stringify(r.nxExtra(live)));
+    ok('nx12: nothing to tick for null or junk', (r.nxQuickToggle(live, null), r.nxQuickToggle(live, {}), r.nxQuickToggle(null, 'MDBk'), JSON.stringify(r.nxExtra(live)) === '["MDEw"]'));
+  }
+  {
+    // the app's switch "enable the optional command" is the master switch; every accessory has its own list
+    const a = device({ automations: auto({ fourthButtonEnabled: false }) }), b = device({ mac: MAC2, automations: auto() });
+    const env = await environment({ homes: [home([a, b])], net: { wifi: true, ssid: 'HomeWifi' } });
+    const [da, db] = env.HS.homes[0].devices, r = env.$rootScope;
+    r.nxQuickToggle(da, 'MDBk'); r.nxQuickToggle(db, 'MDFh');
+    ok('nx12: switch off -> no buttons, although a list exists', r.nxExtra(da).length === 0 && r.nxQuickHas(da, 'MDBk') === true);
+    ok('nx12: each accessory has its own list', JSON.stringify(r.nxExtra(db)) === '["MDFh"]' && !r.nxQuickHas(db, 'MDBk'));
+    da.automations[0].fourthButtonEnabled = true;
+    ok('nx12: switch on -> the buttons are there', JSON.stringify(r.nxExtra(da)) === '["MDBk"]');
+    ok('nx12: an accessory without automations has nothing', r.nxExtra({ mac: 'x' }).length === 0 && r.nxQuickHas({ mac: 'x' }, 'a') === false && r.nxExtra(undefined).length === 0);
+  }
+  {
+    // damaged storage never throws
+    const dev = device({ automations: auto({ fourthButton: { code: 'MDBk' } }) });
+    const env = await environment({ homes: [home([dev])], net: { wifi: true, ssid: 'HomeWifi' }, preXhr: (w) => w.localStorage.setItem('nxQuick', '{broken') });
+    const live = env.HS.homes[0].devices[0], r = env.$rootScope;
+    ok('nx12 robust: broken JSON -> the old optional command', JSON.stringify(r.nxExtra(live)) === '["MDBk"]', JSON.stringify(r.nxExtra(live)));
+    env.w.localStorage.setItem('nxQuick', '[1,2]');
+    ok('nx12 robust: an array instead of an object is ignored', JSON.stringify(r.nxExtra(live)) === '["MDBk"]');
+    env.w.localStorage.setItem('nxQuick', JSON.stringify({ [live.mac]: [1, null, 'MDFh', '', 'MDBk'] }));
+    ok('nx12 robust: junk entries in a list are dropped', JSON.stringify(r.nxExtra(live)) === '["MDFh","MDBk"]', JSON.stringify(r.nxExtra(live)));
+    env.w.localStorage.setItem('nxQuick', '{broken');
+    r.nxQuickToggle(live, 'MDEw');
+    ok('nx12 robust: ticking after broken storage writes valid JSON again', (() => { try { return JSON.parse(env.w.localStorage.getItem('nxQuick'))[live.mac].indexOf('MDEw') >= 0; } catch (e) { return false; } })());
+  }
+  {
+    const r1 = (await environment({ homes: [home([device({ automations: auto() })])], net: { wifi: true } })).$rootScope;
+    ok('nx12: something to choose from (an administrator\'s list)', r1.nxCanQuick({ automations: auto() }) === true);
+    ok('nx12: something to choose from (the cached list of a user)', r1.nxCanQuick({ automations: auto({ secondaryCommands: undefined, enabledSecondaryCommands: [{ code: 'MDBk' }] }) }) === true && r1.nxCanQuick({ automations: auto({ secondaryCommands: undefined, enabledSecondaryCommands: true }) }) === true);
+    ok('nx12: nothing to choose from', r1.nxCanQuick({ automations: auto({ secondaryCommands: [], enabledSecondaryCommands: [] }) }) === false && r1.nxCanQuick({}) === false && r1.nxCanQuick(null) === false);
+  }
+  {
+    // the confirmation of a tap, and the shortcut to the page where the commands are ticked
+    const dev = device({ automations: auto({ fourthButtonEnabled: false }) });
+    const env = await environment({ homes: [home([dev])], net: { wifi: true, ssid: 'HomeWifi' }, names: { DEVICE_COMMAND_MDBk: 'Open and Block' }, withGo: true });
+    const live = env.HS.homes[0].devices[0], r = env.$rootScope;
+    r.nxSent('MDBk');
+    const snack = () => Array.from(env.document.querySelectorAll('.nx-snack')).map((e) => e.textContent);
+    ok('nx12: a tap is confirmed with the name of the command', snack().indexOf('Open and Block: sent') >= 0, snack().join('|'));
+    r.nxSent('MDXX');
+    ok('nx12: an unknown command is confirmed with its code', snack().indexOf('MDXX: sent') >= 0, snack().join('|'));
+    r.nxEditQuick(live);
+    ok('nx12: the shortcut opens the page "4th-button" of this accessory', env.goCalls.length === 1 && env.goCalls[0].name === '4th-button' && env.goCalls[0].params.mac === live.mac && env.goCalls[0].params.homeId === live.homeId, JSON.stringify(env.goCalls));
+    ok('nx12: ... and switches the optional command on, so that the list is there', live.automations[0].fourthButtonEnabled === true && JSON.parse(env.w.localStorage.getItem('keyHomes'))[0].devices[0].automations[0].fourthButtonEnabled === true);
+  }
+  {
+    // without the app's $translate and $state the helpers still work
+    const dev = device({ automations: auto() });
+    const env = await environment({ homes: [home([dev])], net: { wifi: true, ssid: 'HomeWifi' } });
+    env.$rootScope.nxSent('MDBk');
+    ok('nx12: no $translate -> the code is shown', Array.from(env.document.querySelectorAll('.nx-snack')).some((e) => e.textContent === 'MDBk: sent'));
+    let threw = false;
+    try { env.$rootScope.nxEditQuick(env.HS.homes[0].devices[0]); } catch (e) { threw = true; }
+    ok('nx12: no $state -> the shortcut does nothing and throws nothing', !threw);
+  }
+
+  // ---------------------------------------------------------------- nx12: theme (Settings > Theme)
+  // 'auto' (nothing saved, nothing on <html>: the WebView's prefers-color-scheme decides), 'light' or 'dark' (localStorage 'nxTheme'
+  // and data-nx-theme on <html>); the status bar follows at once.
+  {
+    const env = await environment({ homes: [home([device()])], net: { wifi: true, ssid: 'HomeWifi' } });
+    const r = env.$rootScope, root = env.document.documentElement;
+    ok('nx12 theme: functions for the settings page', typeof r.nxTheme === 'function' && typeof r.nxSetTheme === 'function');
+    ok('nx12 theme: nothing chosen -> auto, nothing on <html>', r.nxTheme() === 'auto' && !root.hasAttribute('data-nx-theme') && env.w.localStorage.getItem('nxTheme') === null);
+    r.nxSetTheme('dark');
+    ok('nx12 theme: dark -> saved and on <html>', r.nxTheme() === 'dark' && root.getAttribute('data-nx-theme') === 'dark' && env.w.localStorage.getItem('nxTheme') === 'dark');
+    r.nxSetTheme('light');
+    ok('nx12 theme: light -> saved and on <html>', r.nxTheme() === 'light' && root.getAttribute('data-nx-theme') === 'light' && env.w.localStorage.getItem('nxTheme') === 'light');
+    r.nxSetTheme('purple'); r.nxSetTheme(undefined); r.nxSetTheme({});
+    ok('nx12 theme: something else changes nothing', r.nxTheme() === 'light' && root.getAttribute('data-nx-theme') === 'light' && env.w.localStorage.getItem('nxTheme') === 'light');
+    r.nxSetTheme('auto');
+    ok('nx12 theme: auto -> nothing saved and nothing on <html> again', r.nxTheme() === 'auto' && !root.hasAttribute('data-nx-theme') && env.w.localStorage.getItem('nxTheme') === null);
+    ok('nx12 theme: NX.theme() reads and sets', (env.w.NX.theme('dark'), env.w.NX.theme() === 'dark' && root.getAttribute('data-nx-theme') === 'dark'));
+  }
+  {
+    // a choice from an earlier session is there from the start, junk is ignored
+    const env = await environment({ homes: [home([device()])], net: { wifi: true } }, undefined);
+    ok('nx12 theme: storage is empty in a new environment', env.$rootScope.nxTheme() === 'auto');
+    const env2 = await environment({ homes: [home([device()])], net: { wifi: true }, preXhr: (w) => w.localStorage.setItem('nxTheme', 'dark') });
+    ok('nx12 theme: a saved choice is applied when the patch starts', env2.$rootScope.nxTheme() === 'dark' && env2.document.documentElement.getAttribute('data-nx-theme') === 'dark');
+    const env3 = await environment({ homes: [home([device()])], net: { wifi: true }, preXhr: (w) => w.localStorage.setItem('nxTheme', 'blue') });
+    ok('nx12 theme: a junk value counts as auto', env3.$rootScope.nxTheme() === 'auto' && !env3.document.documentElement.hasAttribute('data-nx-theme'));
+  }
+  {
+    // the status bar: icons and color follow the chosen theme, whatever the WebView reports
+    const calls = [];
+    const env = await environment({ homes: [home([device()])], net: { wifi: true }, preXhr: (w) => {
+      w.StatusBar = { backgroundColorByHexString: (c) => calls.push('color ' + c), styleLightContent: () => calls.push('light'), styleDefault: () => calls.push('dark') };
+      w.matchMedia = () => ({ matches: false, addEventListener() {} });       // the WebView says: light
+    } });
+    await sleep(100);
+    calls.length = 0;
+    env.document.documentElement.style.setProperty('--md-sys-color-surface', '#0f1417');
+    env.$rootScope.nxSetTheme('dark');
+    ok('nx12 theme: dark chosen on a light WebView -> light icons on the status bar', calls.indexOf('light') >= 0 && calls.indexOf('dark') < 0, calls.join(','));
+    calls.length = 0;
+    env.$rootScope.nxSetTheme('light');
+    ok('nx12 theme: light chosen -> dark icons', calls.indexOf('dark') >= 0 && calls.indexOf('light') < 0, calls.join(','));
+  }
+  {
+    // nx-theme.js: the early script (in <head>, before the first paint)
+    const THEME_SRC = fs.readFileSync(path.join(__dirname, '..', 'nx-theme.js'), 'utf8');
+    const run = (stored, brokenStorage) => {
+      const dom = new JSDOM('<!doctype html><html><head></head><body></body></html>', { url: 'http://localhost/', runScripts: 'outside-only' });
+      const w = dom.window;
+      if (stored !== undefined) w.localStorage.setItem('nxTheme', stored);
+      if (brokenStorage) Object.defineProperty(w, 'localStorage', { get() { throw new Error('denied'); } });
+      let threw = false;
+      try { w.eval(THEME_SRC); } catch (e) { threw = true; }
+      return { attr: w.document.documentElement.getAttribute('data-nx-theme'), threw };
+    };
+    ok('nx12 theme.js: dark', run('dark').attr === 'dark');
+    ok('nx12 theme.js: light', run('light').attr === 'light');
+    ok('nx12 theme.js: nothing saved -> nothing set', run(undefined).attr === null);
+    ok('nx12 theme.js: auto or junk -> nothing set', run('auto').attr === null && run('blue').attr === null && run('').attr === null);
+    const b = run(undefined, true);
+    ok('nx12 theme.js: storage that cannot be read throws nothing and sets nothing', b.threw === false && b.attr === null);
   }
 
   // ---------------------------------------------------------------- new user

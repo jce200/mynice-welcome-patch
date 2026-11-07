@@ -1,8 +1,48 @@
 # Details and history
 
 This is the technical background to the [README.md](../README.md): why every change exists, with the diagnoses that led to them
-(nx3 through nx11: the project's build numbers). The example values (Wi-Fi `HomeWifi`, accessory `NiceIT4WIFIAABBCC`, user
+(nx3 through nx12: the project's build numbers). The example values (Wi-Fi `HomeWifi`, accessory `NiceIT4WIFIAABBCC`, user
 `homeuser`) stand in for whatever is different in your case. The data in this document comes from one phone and one IT4WIFI module.
+
+## What is new in nx12 (more buttons on the accessory screen, and a choice of theme)
+
+nx12 has version code 20201110 and installs over nx11 when it is signed with the same key. Nothing changed in the network layer
+(the native layer only reports `nx-12` as its version).
+
+**More than one optional command.** The accessory screen of the original app has Open, Close and Stop, and one optional "fourth button"
+(page *Optional command*: a radio list of the accessory's secondary commands, one choice). All other secondary commands (*Open and Block*,
+*Release and Close*, ...) are behind the eye icon. Now any number of them can be ticked, and each becomes a button under Open, Close and
+Stop:
+- `nx-patch.js` (section 8) keeps the choice per accessory in `localStorage` under `nxQuick`: `{ "<mac>": ["<code>", ...] }`, in the
+  order in which the commands were ticked. It is kept apart from the app's own data on purpose: no flow of the app (discovery, updating
+  the accessory from the module) can overwrite it. Until the list has been touched, the app's own optional command counts as the first
+  choice, so an accessory that was set up with nx11 or earlier keeps its button. The first ticked command is also written to the app's own
+  optional command (`fourthButton`), so that the app's own check ("select an optional command") still holds; the other ones live only in
+  `nxQuick`.
+- The buttons only show while the app's own switch "enable the optional command" is on, so that switch keeps its meaning. The *Choose
+  commands* link on the accessory screen turns it on and goes to the page where the commands are ticked.
+- `patch-12-extra-commands.py` changes two templates: `system/device_detail.html` (the buttons, run by the app's own `runCommand`, so they use
+  the same `executeSecondaryCommand` as the old optional button; the link) and `settings/device_4th_button.html` (the radio list becomes a
+  list with a tick per command). Where `nxExtra` / `nxQuickToggle` do not exist (when `nx-patch.js` did not load), the old fourth button
+  stays visible and the radio list stays in place.
+- Lists the templates get must be arrays of strings: `ng-repeat` over fresh objects on every call would re-render on every digest, and
+  Ionic ignores clicks that are not real taps (a synthetic `click()` in a test does nothing; the harness uses `tap()`).
+- Limits: the buttons run the command at once, without a confirmation, as the optional button always did; many buttons make the commands
+  area of the screen scroll on a small phone (checked with 8 buttons at 360x640); the order is the order of ticking.
+
+**Theme.** The skin has a light and a dark palette (`tokens.css`) and picked one with the WebView's `prefers-color-scheme`. Android derives
+that value from the Android theme of the app, and the theme of the Nice app is `Theme.DeviceDefault.NoActionBar`, a dark base theme. So the
+app does not necessarily follow the phone's setting (it could not be verified on the phone this was developed on), and there was no setting
+to choose. The earlier statement "light and dark follow the system" was an assumption, not something that was measured. Now:
+- `nx-theme.js` (new, loaded in `<head>` before the stylesheets) puts `data-nx-theme="light"` or `"dark"` on `<html>` from
+  `localStorage.nxTheme` before the first paint; with nothing saved (Auto) it sets nothing and the WebView decides, as before. An unreadable
+  storage also means Auto.
+- The color tokens answer to the attribute (`:root[data-nx-theme="dark"]`, and the media query for a dark WebView is switched off by
+  `data-nx-theme="light"`), and the whole file still has one set of properties for each palette (a test checks that both dark blocks define
+  the same ones).
+- `patch-13-theme.py` adds the script to `index.html` and a row *Appearance > Theme* (Auto | Light | Dark) to `settings/settings.html`.
+  `nx-patch.js` saves the choice, applies it at once and gives the status bar icons the matching color.
+- `NX.theme('light' | 'dark' | 'auto')` sets the theme from a script and `NX.theme()` returns the current choice (for tests and the harness, for example `PRE="NX.theme('dark')"`).
 
 ## What is new in nx11 (no status before it is confirmed, and a calmer palette)
 
@@ -45,7 +85,7 @@ too (for example the plugin action `versie` is `version` now, the JSON key `gebo
 find in older notes or logs may differ.
 nx10 has version code 20201108 and installs over nx9 when it is signed with the same key.
 
-## Where does the app work? (nx11)
+## Where does the app work? (nx12)
 
 The app talks to the accessory in two ways: directly at its address on your home network (discovery via mDNS, then TLS on port 443;
 if mDNS fails, the IP safety net tries the saved address), and through the Nice cloud (`it4wifi.cloud.nice.niceappdomain.com`, port 7890)
@@ -89,7 +129,7 @@ Only the look and the way the connection is shown; no function of the app and no
 (the native layer only reports `nx-9` as its version).
 
 **Look (Material 3 Expressive).** The same design language everywhere: color roles from the Material "vibrant" scheme with seed
-color #3A6FF7 (replaced in nx11 by a calmer petrol palette; light and dark, following the system; Android's status bar gets the same color as the header), the Roboto Flex
+color #3A6FF7 (replaced in nx11 by a calmer petrol palette; light and dark, with the choice in the settings since nx12; Android's status bar gets the same color as the header), the Roboto Flex
 typeface (OFL, bundled), lists as cards with large corner radii at the ends, a navigation bar with a pill indicator, tonal round
 buttons in the header, popups as dialogs, and on the accessory screen a large shape that changes with the state (closed, open, moving,
 stopped, obstruction), with Open and Close side by side below it and Stop beneath them. The wizard screens keep their light-gray icons
@@ -230,7 +270,7 @@ is a reset of the accessory.
 ## Building and the files
 
 See [README.md](../README.md) for the steps (`./get-tools.sh`, then `./build.sh <original.apk>`). The script unpacks the original APK,
-applies `patch-01-wifi-binding.py` through `patch-11-checking-state.py`, builds the Java layer (`java/src/com/nice/patch`) into `classes2.dex`,
+applies `patch-01-wifi-binding.py` through `patch-13-theme.py`, builds the Java layer (`java/src/com/nice/patch`) into `classes2.dex`,
 adds it, aligns, signs with your key in `keys/` and checks the result (`verify-apk.py`, if `androguard` and `loguru` are installed).
 Every patch checks that its anchor text occurs exactly once, so a different APK version is not silently patched wrongly.
 
@@ -242,16 +282,18 @@ Every patch checks that its anchor text occurs exactly once, so a different APK 
 | `patch-06-js-layer.py` | `nx-patch.js` in the app and the patch points in `app.min.js` |
 | `patch-10-skin.py` | nx9: the skin (`skin/nx-expressive.css`), the font (`skin/fonts-nx`) and the `<link>` in `index.html` |
 | `patch-11-checking-state.py` | nx11: "Checking…" instead of a premature "Not usable" in the app's lists (six templates; they ask `nxCheck` from `nx-patch.js`) |
+| `patch-12-extra-commands.py` | nx12: the ticked commands as buttons on the accessory screen and a list with ticks instead of the radio list (two templates; they ask `nxExtra` and `nxQuickToggle` from `nx-patch.js`) |
+| `patch-13-theme.py` | nx12: `nx-theme.js` in `index.html` and the row *Appearance > Theme* in the settings (Auto, Light, Dark) |
 | `patch-09-socket-fallback.py` | nx7: `socketFor` in `_openSocket` (EPERM fallback) and the VPN guard in both `bindNiceWifi` copies |
 | `patch-08-route-choice.py` | nx6: hooks in `ConnectionsManager`: `vetLocal` (vetting the local address), `noteRoute` (remembering the chosen route), `socketAddress` (name resolution with a fallback) |
 | `patch-07-vpn-binding.py` | nx4: skipping VPN networks in the bind loop, `Nx.wifiType`/`Nx.ctx` in the Wi-Fi receiver, the `__nxWrapVerify` hook in `app.min.js` |
 | `java/src/com/nice/patch` | `Nx` (helper functions), `NxWifi` (connecting via WifiNetworkSpecifier), `NxPlugin` (bridge to the JS) |
 | `java/stubs` | only signatures of app and Cordova classes that the code is compiled against; they do not end up in the dex |
-| `nx-patch.js`, `debuglog.js` | the JS improvements (nx9: also the status chip and the status sheet) and the LOG panel |
+| `nx-patch.js`, `nx-theme.js`, `debuglog.js` | the JS improvements (nx9: also the status chip and the status sheet; nx12: the extra buttons and the theme) with the early theme script, and the LOG panel |
 | `skin/` | `nx-expressive.css` (the result that goes into the app) and `fonts-nx/`; the source is in `skin/src/`: `skin.css` (the app), `status.css` (the status sheet), `tokens.css` (colors and spring curves, generated by `src/tools/build-tokens.mjs`), `shapes.json` (the polygons for the shapes, all 144 points), `build-css.py` assembles them. Edit the source and run `python3 skin/src/build-css.py`, never edit the result |
 | `harness/` | `screens.cjs` runs the real app (unpacked from the APK: `unzip -o <apk> "assets/www/*"`, next to the script as a folder `www`) in headless Chromium with a simulated Cordova bridge (`shim.js`) and takes screenshots of every page (light, and with `COLOR_SCHEME=dark` also dark, `PRE=` for an action such as `NX.diagnose()`, `CFG=` for a different network state); `sweep.sh` does 25 screens and makes a contact sheet; `make-screenshots.py` redoes the pictures in `docs/screenshots`. Requires Node with `playwright` and Python with PIL |
 | `get-tools.sh`, `test-all.sh` | downloading the tools with a SHA-256 check, and all tests in one go |
-| `test/` and `java/test/` | the tests (jsdom: `NODE_PATH=<folder with node_modules/jsdom> node test/nxpatch.test.js`, 183 checks; `node test/masker.test.js`; `node test/skin.test.js` checks the CSS itself: no placeholders, braces, every variable defined, all shapes with the same number of points, icons, font and prefix) |
+| `test/` and `java/test/` | the tests (jsdom: `NODE_PATH=<folder with node_modules/jsdom> node test/nxpatch.test.js`, 230 checks; `node test/masker.test.js`; `node test/skin.test.js` checks the CSS itself: no placeholders, braces, every variable defined, all shapes with the same number of points, icons, font and prefix) |
 
 ## Signing key
 

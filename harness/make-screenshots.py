@@ -4,8 +4,9 @@
 Usage (from this folder, with the app unpacked into ./www, see README.md):
     python3 make-screenshots.py [output-folder]        # default: ../docs/screenshots
 
-Writes overview.png (favorites, device page and status sheet, light above dark) and status-states.png (the status sheet in five
-situations). Everything on them is made up (accessory AABBCC, Wi-Fi HomeWifi); there is nothing of a real installation in them.
+Writes overview.png (favorites, device page and status sheet, light above dark), status-states.png (the status sheet in five
+situations) and extras-theme.png (the extra buttons, the page where they are ticked, the theme row, and the buttons in dark).
+Everything on them is made up (accessory AABBCC, Wi-Fi HomeWifi); there is nothing of a real installation in them.
 Needs Node with `playwright` (screens.cjs) and Python with PIL."""
 import json
 import os
@@ -22,7 +23,7 @@ MAC = '00:0B:6C:AA:BB:CC'
 DETAIL = f'#/tabs/favorites-device-detail/1/{MAC}'
 
 # the shapes that the native layer (Nx.netState / Nx.probe) returns; shim.js has the same defaults
-NET = {'version': 'nx-11', 'sdk': 37, 'wifi': True, 'ssid': 'HomeWifi', 'ip': '192.168.1.172', 'validated': True, 'cellular': False,
+NET = {'version': 'nx-12', 'sdk': 37, 'wifi': True, 'ssid': 'HomeWifi', 'ip': '192.168.1.172', 'validated': True, 'cellular': False,
        'vpn': False, 'module': False, 'defaultType': 'wifi', 'route': 'local', 'routeAgeSeconds': 4}
 CLOUD_OK = {'ok': True, 'dns': '63.182.6.157', 'dnsMs': 12, 'tcpMs': 60}
 STATES = {
@@ -76,5 +77,15 @@ for name in ('checking', 'online', 'cloud', 'guest', 'setup'):
     states.append(shot.crop((0, int(h * 0.20), w, h)))   # the sheet is the subject; drop most of the dimmed page above it
 strip = grid([states], 0.5)
 strip.save(os.path.join(OUT, 'status-states.png'), optimize=True)
-print('overview.png', overview.size, os.path.getsize(os.path.join(OUT, 'overview.png')) // 1024, 'KB;',
-      'status-states.png', strip.size, os.path.getsize(os.path.join(OUT, 'status-states.png')) // 1024, 'KB')
+
+# nx12: an administrator's accessory offers all its secondary commands; "Open and Block" and "Release and Close" are ticked
+CMDS = ['MDBk', 'MDBl', 'MDBm', 'MDEw', 'MDE5', 'MDFh']   # Open and Block, Close and Block, Block, Release, Release and Open, Release and Close
+QUICK = {'secondary': CMDS, 'fourth': 'MDBk', 'quick': ['MDBk', 'MDFh']}
+TICK = f'#/tabs/settings-4th-button/1/{MAC}'
+light = shoot('ov-extras-light', [DETAIL, TICK, '#/tabs/settings/false'], cfg=QUICK)
+dark = shoot('ov-extras-dark', [DETAIL], cfg=QUICK, scheme='dark')
+extras = grid([light + dark], 0.5)
+extras.save(os.path.join(OUT, 'extras-theme.png'), optimize=True)
+
+for name, im in (('overview.png', overview), ('status-states.png', strip), ('extras-theme.png', extras)):
+    print(name, im.size, os.path.getsize(os.path.join(OUT, name)) // 1024, 'KB')

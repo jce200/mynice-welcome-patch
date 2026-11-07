@@ -84,7 +84,8 @@ ok('no placeholders ({{...}}) left', !/\{\{|\}\}/.test(css));
   // top-level rules and rules inside @media
   rest = rest.replace(/@media[^{]*\{/g, '').replace(/\}\s*\}/g, '}');
   for (const m of rest.matchAll(/([^{}]+)\{[^{}]*\}/g)) selectors.push(...m[1].split(',').map((s) => s.trim()).filter(Boolean));
-  const without = selectors.filter((s) => !/^(html:root|html\[data-nx-status)/.test(s) && s !== ':root');
+  // (the token blocks of the two dark variants are :root as well, with the theme attribute)
+  const without = selectors.filter((s) => !/^(html:root|html\[data-nx-status)/.test(s) && s !== ':root' && !/^:root(:not\(\[data-nx-theme="light"\]\)|\[data-nx-theme="dark"\])$/.test(s));
   ok('every selector starts with html:root (or is :root itself)', without.length === 0, without.slice(0, 5).join(' | '));
 }
 {
@@ -96,21 +97,36 @@ ok('no placeholders ({{...}}) left', !/\{\{|\}\}/.test(css));
   const classes = new Set();
   for (const m of js.matchAll(/(?<![-\w])nx-[a-z]+(?:-[a-z]+)*-?/g)) classes.add(m[0]);
   // not styling classes: file names, a dummy URL path, element ids (nx-sheet-*) and the state marker nx-via-local (only nx-via-cloud has a rule)
-  const notStyleClasses = new Set(['nx-patch', 'nx-expressive', 'nx-cloud-skipped', 'nx-via-local', 'nx-sheet-title', 'nx-sheet-explanation', 'nx-sheet-route', 'nx-sheet-facts', 'nx-sheet-text']);
+  const notStyleClasses = new Set(['nx-patch', 'nx-theme', 'nx-expressive', 'nx-cloud-skipped', 'nx-via-local', 'nx-sheet-title', 'nx-sheet-explanation', 'nx-sheet-route', 'nx-sheet-facts', 'nx-sheet-text']);
   // a name that ends in a hyphen in the JS is a prefix with a value appended to it: then at least one class starting with it must exist
   const withoutRule = Array.from(classes).filter((k) => !notStyleClasses.has(k) && !new RegExp('[.#]' + k + (k.endsWith('-') ? '' : '(?![\\w-])')).test(css));
   ok('every nx class from the JS appears in the CSS', withoutRule.length === 0, withoutRule.join(', '));
 }
 
 {
-  // nx11: the labels that patch-11 puts in the app's lists ("Checking...") have a rule, and the JS offers what the lists ask
-  const patch = fs.readFileSync(path.join(__dirname, '..', 'patch-11-checking-state.py'), 'utf8');
+  // the classes that the template patches (patch-11 "Checking...", patch-12 extra buttons, patch-13 theme) put in the app have a rule,
+  // and nx-patch.js offers every function that those templates ask for
   const js = fs.readFileSync(path.join(__dirname, '..', 'nx-patch.js'), 'utf8');
-  const classes = Array.from(new Set(Array.from(patch.matchAll(/class="([^"]*nx-[^"]*)"/g)).flatMap((m) => m[1].split(/\s+/)).filter((k) => /^nx-/.test(k))));
+  const patches = ['patch-11-checking-state.py', 'patch-12-extra-commands.py', 'patch-13-theme.py'].map((f) => fs.readFileSync(path.join(__dirname, '..', f), 'utf8'));
+  const classes = Array.from(new Set(patches.flatMap((t) => Array.from(t.matchAll(/class=\\?"([^"\\]*nx-[^"\\]*)\\?"/g)).flatMap((m) => m[1].split(/\s+/)).filter((k) => /^nx-[a-z-]+$/.test(k)))));
   const without = classes.filter((k) => !new RegExp('\\.' + k + '(?![\\w-])').test(css));
-  ok('the classes of the "Checking..." labels have a rule (' + classes.join(', ') + ')', classes.length >= 2 && without.length === 0, without.join(', '));
-  ok('the lists ask nxCheck and nx-patch.js offers it', /\$rs\.nxCheck\s*=\s*nxCheck/.test(js) && /nxCheck\(/.test(patch));
+  ok('the classes of the template patches have a rule (' + classes.join(', ') + ')', classes.length >= 8 && without.length === 0, without.join(', '));
+  const asked = Array.from(new Set(patches.flatMap((t) => Array.from(t.matchAll(/\b(nx[A-Z][A-Za-z]*)\b/g)).map((m) => m[1]))));
+  const offered = asked.filter((n) => !new RegExp('\\$(?:rootScope|rs)\\.' + n + '\\s*=').test(js));
+  ok('nx-patch.js offers what the patched templates ask (' + asked.join(', ') + ')', asked.length >= 9 && offered.length === 0, offered.join(', '));
   ok('the "Checking..." animations stand still with reduced motion', /prefers-reduced-motion[^{]*\{[^}]*nx-checking:before[^}]*animation:\s*none/.test(css) && /prefers-reduced-motion[^{]*\{[^}]*nx-checking-text[^}]*animation:\s*none/.test(css));
+}
+{
+  // the theme: the dark tokens exist twice (what the WebView reports, unless light was chosen; and dark chosen) and are the same
+  const props = (block) => new Set((block.match(/--[a-z0-9-]+(?=\s*:)/g) || []));
+  const iLight = bare.indexOf(':root {'), iMedia = bare.indexOf('@media (prefers-color-scheme: dark)'), iForced = bare.indexOf(':root[data-nx-theme="dark"]');
+  ok('the tokens have a light block, a media block and a block for dark chosen', iLight >= 0 && iMedia > iLight && iForced > iMedia);
+  ok('the media block steps aside when light was chosen', /@media \(prefers-color-scheme: dark\)\s*\{\s*:root:not\(\[data-nx-theme="light"\]\)\s*\{/.test(bare));
+  const media = bare.slice(iMedia, iForced), forced = bare.slice(iForced, bare.indexOf('\n}\n', iForced) + 3);
+  const a = props(media), b = props(forced);
+  const onlyA = Array.from(a).filter((k) => !b.has(k)), onlyB = Array.from(b).filter((k) => !a.has(k));
+  ok('both dark blocks define the same properties (' + a.size + ')', a.size > 30 && onlyA.length === 0 && onlyB.length === 0, onlyA.concat(onlyB).join(', '));
+  ok('the WebView is never told that the page is light only (that would invite it to darken the page by itself)', !/color-scheme:\s*light\s*;/.test(bare));
 }
 
 console.log(failures ? failures + ' of ' + total + ' FAILED' : 'ALL OK (' + total + ' checks)');

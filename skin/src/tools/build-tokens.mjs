@@ -60,10 +60,15 @@ ${colorBlock(false)}
   --nx-spring-bouncy: ${bouncy.linear};   --nx-spring-bouncy-ms: ${bouncy.ms}ms;
   --nx-effects: ${effects.linear};   --nx-effects-ms: ${effects.ms}ms;
 }
+/* Dark follows the phone (what the WebView reports as prefers-color-scheme) unless the user chose a theme: nx-theme.js and
+   nx-patch.js put data-nx-theme="light" or "dark" on <html> (Settings > Theme); "auto" sets nothing. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-nx-theme="light"]) {
 ${colorBlock(true).replace(/^/gm, '  ')}
   }
+}
+:root[data-nx-theme="dark"] {
+${colorBlock(true)}
 }
 `;
 console.log(css);
