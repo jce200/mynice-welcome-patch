@@ -29,15 +29,17 @@ Expressive look (light and dark).
   `Network.bindSocket` call (`EPERM`), and the original app does that on every connection, so everything failed with the VPN on.
   The patched app falls back to a normal socket. It also chooses between the local connection and the Nice cloud on what actually
   works, so it works away from home too (through the cloud).
-- **Approve new users.** A popup "X requests access" for pairing requests, for example from a Home Assistant integration.
+- **Approve new users.** A popup "X requests access" for pairing requests, for example from a Home Assistant integration. It says that
+  it is working, and when it fails it says why (the app's own explanation of the error code), also in the log.
 - **A connection status you can read.** A chip under the page title ("Accessory online · cloud", "Accessory not reachable · no
   Wi-Fi, VPN, mobile"), and a sheet behind it with the route (phone, cloud, accessory), the measurements (TCP and TLS times),
   plain-language advice and buttons for *Reconnect*, *New users*, *Copy* and *Log*.
 
   ![The status sheet: checking, online over Wi-Fi, online through the Nice cloud with a VPN, not reachable, and the accessory's own Wi-Fi](docs/screenshots/status-states.png)
 
-- **A log without secrets.** Passwords, setup codes and tokens are masked in the in-app log, and a log line that printed Wi-Fi
-  passwords is gone.
+- **A log without secrets, and without noise.** Passwords, setup codes and tokens are masked in the in-app log, and a log line that
+  printed Wi-Fi passwords is gone. The Nice app's own repetitive debug lines (some 180 every time the accessory screen is opened, each
+  with the whole home as JSON) are left out, so the lines that matter are still there when you copy the log.
 - **More buttons on the accessory screen.** The app has one optional "fourth button"; every other command (*Open and Block*,
   *Release and Close*, ...) sits behind the eye icon. Now you tick as many of them as you like (Settings > your accessory > *Set the
   optional command*, or the *Choose commands* link on the accessory screen) and each becomes a button under Open, Close and Stop.
@@ -79,7 +81,7 @@ This way you don't have to trust a binary from someone else, and the app is sign
 ```
 ./get-tools.sh                               # once: downloads apktool and friends into ./tools, checked on SHA-256
 ./build.sh /path/to/MyNiceWelcome_2.2.0.apk
-# result: out/MyNiceWelcome_2.2.0_nx12.apk
+# result: out/MyNiceWelcome_2.2.0_nx13.apk
 ```
 
 The first build creates **your own signing key** in `keys/` (with a random password in `keys/password.txt`). Keep that folder

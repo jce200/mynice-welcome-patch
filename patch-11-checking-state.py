@@ -17,6 +17,9 @@ Changed templates (assets/www/templates):
       the label under an accessory in a list
   system/controls_home.html: the label in the list of accessories of a home (it has its own "Connecting..." label already)
   system/device_detail.html: the state line at the top of the accessory screen
+In that line nxCheck comes first in both expressions: isDeviceReachable(device) looks the accessory up in the app's home service and
+writes some ten debug lines every time it is evaluated, so it must run once per digest and not twice (nx11 had it twice, which made the
+accessory screen about 40% more talkative than the original app).
 """
 import os
 import re
@@ -88,8 +91,8 @@ for rel, kind, expected in WORK:
     else:
         def detail(m):
             i = m.group(1)
-            return ('%s<strong class="nx-checking-text" data-ng-show="!isDeviceReachable(data.device) && nxCheck(data.device)">%s</strong>\n'
-                    '%s<strong data-ng-show="!isDeviceReachable(data.device) && !nxCheck(data.device)">' % (i, CHECKING, i))
+            return ('%s<strong class="nx-checking-text" data-ng-show="nxCheck(data.device) && !isDeviceReachable(data.device)">%s</strong>\n'
+                    '%s<strong data-ng-show="!nxCheck(data.device) && !isDeviceReachable(data.device)">' % (i, CHECKING, i))
         t, n = RE_DETAIL.subn(detail, t)
     if n != expected:
         sys.exit("%s: expected %d occurrence(s), found %d" % (rel, expected, n))

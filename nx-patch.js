@@ -35,6 +35,8 @@
   }
   function toast(msg) {
     try {
+      // one at a time: a message about work in progress must not stay underneath the result
+      Array.prototype.slice.call(document.querySelectorAll('.nx-snack')).forEach(function (o) { if (o.parentNode) o.parentNode.removeChild(o); });
       var t = document.createElement('div');
       t.className = 'nx-snack';
       t.setAttribute('role', 'status');
@@ -421,11 +423,29 @@
     });
 
     // -------------------------------------------------------------- 4. new users
+    // the app's own explanation of an error ("Sign not valid", "The connection with the Accessory is not valid", ...)
+    function errorText(err) {
+      try {
+        if (err == null) return '';
+        if (typeof err === 'string') return err;
+        var key = 'NHK_ERROR-' + err.code;
+        var text = (err.code != null && inj.has('$translate')) ? inj.get('$translate').instant(key) : '';
+        return (text && text !== key) ? text : (err.message ? String(err.message) : '');
+      } catch (e) { return ''; }
+    }
+    // "<what>: <the app's explanation> (<code>)."; the fallback when there is neither an explanation nor a code
+    function failedText(what, err, fallback) {
+      var why = errorText(err);
+      var code = (err && typeof err === 'object' && err.code != null) ? String(err.code) : '';
+      if (!why && !code && fallback) return what + ' (' + fallback + ').';
+      return what + (why ? ': ' + why : '') + (code ? ' (' + code + ')' : '') + '.';
+    }
     function promptUser(device, u) {
       var key = device.mac + '#' + (u.id != null ? u.id : u.username);
       if (prompted[key] || popupOpen) return;
       prompted[key] = true;
       popupOpen = true;
+      log('new user: asking whether to allow', u.username);
       $timeout(function () {
         var pop = $ionicPopup.confirm({
           title: 'New user',
@@ -436,12 +456,19 @@
         });
         pop.then(function (ok) {
           popupOpen = false;
-          if (!ok) { delete prompted[key]; return; }
+          if (!ok) { log('new user: later', u.username); delete prompted[key]; return; }
+          // the accessory can take a while (or not answer at all): say that something is happening
+          log('new user: allowing', u.username);
+          toast('Allowing "' + u.username + '"\u2026');
+          var slow = setTimeout(function () { toast('Still waiting for the accessory\u2026'); }, 15000);
           NHK.userApproved(device, u.id, u.username).then(function () {
+            clearTimeout(slow);
+            log('new user: allowed', u.username);
             toast('"' + u.username + '" has been allowed.');
           }, function (err) {
-            var code = err && err.code;
-            toast(code == 11 ? 'Maximum number of users reached.' : 'Could not allow the user' + (code ? ' (' + code + ')' : '') + '.');
+            clearTimeout(slow);
+            log('new user: could not allow', u.username, JSON.stringify(err));
+            toast(err && err.code == 11 ? 'Maximum number of users reached.' : failedText('Could not allow the user', err));
             delete prompted[key];
           });
         });
@@ -456,12 +483,13 @@
         var d = liveDevice(x.home.homeId, x.device.mac) || x.device;
         NHK.pairings(d).then(function (res) {
           var w = (res && res.waitingUsers) || [];
+          log('waiting users', d.mac, w.length);
           found += w.length;
           w.forEach(function (u) { promptUser(d, u); });
           if (++done === devs.length && manual && !found) toast('No users waiting.');
         }, function (err) {
           log('pairings failed', JSON.stringify(err));
-          if (++done === devs.length && manual) toast('Check failed (' + ((err && err.code) || 'no connection') + ').');
+          if (++done === devs.length && manual) toast(failedText('Check failed', err, 'no connection'));
         });
       });
     }

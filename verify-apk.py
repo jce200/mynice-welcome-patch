@@ -141,6 +141,10 @@ with zipfile.ZipFile(path) as z:
     for m in ('.nx-checking', 'nx-checking-text'):
         if m not in css:
             errors.append('nx-expressive.css does not style ' + m)
+    # isDeviceReachable writes ten debug lines per call: in the state line it must be evaluated once per digest, after nxCheck
+    detail = text('assets/www/templates/system/device_detail.html')
+    if 'nxCheck(data.device) && !isDeviceReachable(data.device)' not in detail or '!isDeviceReachable(data.device) && ' in detail:
+        errors.append('device_detail.html: isDeviceReachable must come after nxCheck in the state line (patch-11)')
     # nx12: the extra command buttons and the theme choice
     for n, m in (('system/device_detail.html', 'nxExtra'), ('settings/device_4th_button.html', 'nxQuickToggle'), ('settings/settings.html', 'nxSetTheme')):
         if m not in text('assets/www/templates/' + n):
@@ -153,7 +157,7 @@ with zipfile.ZipFile(path) as z:
     if 'nxSetTheme' not in js or 'nxQuickToggle' not in js:
         errors.append('nx-patch.js is missing nxSetTheme or nxQuickToggle')
     dl = text('assets/www/js/debuglog.js')
-    for m in ('nx-log-button', '__nxLogShow'):
+    for m in ('nx-log-button', '__nxLogShow', 'NOISE', '__nxLogAll'):
         if m not in dl:
             errors.append('debuglog.js is missing ' + m)
     print('skin        : css %d bytes, font %s, hooks in index.html/nx-patch.js/debuglog.js %s' % (

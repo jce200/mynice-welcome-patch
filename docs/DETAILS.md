@@ -1,8 +1,51 @@
 # Details and history
 
 This is the technical background to the [README.md](../README.md): why every change exists, with the diagnoses that led to them
-(nx3 through nx12: the project's build numbers). The example values (Wi-Fi `HomeWifi`, accessory `NiceIT4WIFIAABBCC`, user
+(nx3 through nx13: the project's build numbers). The example values (Wi-Fi `HomeWifi`, accessory `NiceIT4WIFIAABBCC`, user
 `homeuser`) stand in for whatever is different in your case. The data in this document comes from one phone and one IT4WIFI module.
+
+## What is new in nx13 (a log that keeps the lines that matter, and clearer messages when approving a user)
+
+nx13 has version code 20201111 and installs over nx12 when it is signed with the same key. Nothing changed in the network layer
+(the native layer only reports `nx-13` as its version).
+
+**The log was full of the Nice app's own noise.** Someone who could not approve a user pasted the log, and all of it was the same four
+lines over and over (`scene getHome`, `devices.forEach`, `getDevice scene home.device`, `scene getDevice`, with `ICONA` and the
+`updateDevice`/`updateHome` lines in between), each with the whole home and accessory as JSON, all from the same second. The cause is in
+the original app: `HomeService.getDevice` and `getHome` write debug lines on every call, `retrieveIconClass` writes `ICONA` on every call,
+and the accessory screen calls them in every Angular digest (`isDeviceReachable` looks the accessory up in the home service). Opening
+the accessory screen once writes about 180 lines in the original app, and the log panel kept 500 lines, so one visit to that screen pushed
+out everything else. Measured in the harness (the real app with a simulated Cordova bridge), in the 6 seconds after opening the accessory
+screen (the log panel also holds the lines from startup):
+
+| Build | Console lines | Lines in the log panel |
+|---|---|---|
+| original app | 294 | |
+| nx10 | 303 | |
+| nx11, nx12 | 423 | 495 (of 500) |
+| nx13 | 20 | 75 |
+
+- `debuglog.js` no longer stores or passes on lines whose text starts with one of those labels (`NOISE`). It counts them and ends the log
+  with "(N repetitive debug lines of the Nice app left out)". `window.__nxLogAll = true` brings them back for debugging the app itself.
+  The log keeps 1500 lines instead of 500 and redraws at most four times a second, however many lines come in. The masking is unchanged
+  and now runs only on lines that are kept (the noise lines were the biggest strings, run through four regular expressions each).
+- **A mistake of mine in nx11.** The state line at the top of the accessory screen evaluated `isDeviceReachable` twice (for "Checking…" and
+  for "Not usable"), next to the original's own use for "usable": three times instead of two per digest, so that screen wrote about 40% more
+  lines (91 lookups instead of 61 in the table above). `patch-11-checking-state.py` now puts `nxCheck` first in both expressions, so
+  `isDeviceReachable` runs once in each state and at most as often as in the original app. `verify-apk.py` checks the order.
+
+**Approving a user.** The popup itself did not change (it worked in the harness in all cases: allow, "maximum number of users" and another
+error, with real taps). What changed is what you see and what is logged:
+- Tapping *Allow* shows "Allowing "X"…" at once (and "Still waiting for the accessory…" after 15 seconds), because the accessory can take
+  its time or not answer. Only one message is on screen at a time now, so the progress message does not stay under the result.
+- When it fails the message carries the app's own explanation of the error code (`NHK_ERROR-n` in the app's translations), for example
+  "Could not allow the user: Sign not valid (4)." or "The connection with the Accessory is not valid (3)." Before it said "(4)" only. The
+  same goes for a failed check in the status sheet's *New users* button ("Check failed: ... (code).").
+- The log has the steps: `newUser`, `waiting users <mac> <number>`, `new user: asking whether to allow X`, `new user: allowing X`, then
+  `new user: allowed X` or `new user: could not allow X {"code":4}`. The app's own screen for approving (*Users*) logs its failures too
+  (`userApproved ERROR ...`, `pairings ERROR ...`), and those lines are not noise, so they survive.
+- The harness can simulate a waiting user (`CFG.waiting`) and a failing approval (`CFG.approveError`); `harness/steps-approve.cjs` taps through
+  it. The native action behind the app's `userApproved` is called `userNew`.
 
 ## What is new in nx12 (more buttons on the accessory screen, and a choice of theme)
 
@@ -85,7 +128,7 @@ too (for example the plugin action `versie` is `version` now, the JSON key `gebo
 find in older notes or logs may differ.
 nx10 has version code 20201108 and installs over nx9 when it is signed with the same key.
 
-## Where does the app work? (nx12)
+## Where does the app work? (nx13)
 
 The app talks to the accessory in two ways: directly at its address on your home network (discovery via mDNS, then TLS on port 443;
 if mDNS fails, the IP safety net tries the saved address), and through the Nice cloud (`it4wifi.cloud.nice.niceappdomain.com`, port 7890)

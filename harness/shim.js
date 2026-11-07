@@ -58,7 +58,10 @@
     'SQLitePlugin.backgroundExecuteSqlBatch': function (a) { var ex = (a[0] && a[0].executes) || []; return ex.map(function (e) { return { qid: e.qid, type: 'success', result: { rows: [], rowsAffected: 0, insertId: null } }; }); },
     'nhk.executePrimaryCommand': function () { return {}; },
     'nhk.closeConnection': function () { return {}; },
-    'nhk.pairings': function () { return { activeUsers: [], waitingUsers: [] }; },
+    // CFG.waiting: users that wait for approval, as the accessory lists them (for example [{ id: 2, username: 'Home assistant' }]);
+    // CFG.approveError: the code that approving fails with (11 = the maximum number of users is reached)
+    'nhk.pairings': function () { return { activeUsers: [], waitingUsers: CFG.waiting || [] }; },
+    'nhk.userNew': function () { return CFG.approveError ? { fail: { code: CFG.approveError } } : {}; },   // what the app calls "userApproved"
     'nhk.getCurrentSSID': function () { return 'HomeWifi'; },
     'WifiWizard.isLocalizationEnabled': function () { return true; },
     'WifiWizard.getScanResults': function () { return [{ SSID: 'HomeWifi', level: -48, BSSID: 'aa:bb:cc:00:11:22', capabilities: '[WPA2-PSK-CCMP]' }, { SSID: 'NiceIT4WIFIAABBCC', level: -60, BSSID: 'aa:bb:cc:00:11:23', capabilities: '[WPA2-PSK-CCMP]' }]; },
@@ -72,14 +75,14 @@
     'NetworkStatus.getConnectionInfo': function () { return 'wifi'; },
     'Globalization.getPreferredLanguage': function () { return { value: CFG.lang || 'en-US' }; },
     'Globalization.getLocaleName': function () { return { value: CFG.lang || 'en-US' }; },
-    'Nx.version': function () { return 'nx-12'; },
+    'Nx.version': function () { return 'nx-13'; },
     'Nx.logStream': function () { return { keep: true, none: true }; },
     'Nx.setHints': function () { return {}; },
     'Nx.release': function () { return {}; },
     'Nx.reconnect': function () { return {}; },
     'Nx.checkSucceeded': function () { return {}; },
     'Nx.checkFailed': function () { return {}; },
-    'Nx.netState': function () { return CFG.net || { version: 'nx-12', sdk: 37, wifi: true, ssid: 'HomeWifi', ip: '192.168.1.172', validated: true, cellular: false, vpn: false, module: false, defaultType: 'wifi', route: 'local', routeAgeSeconds: 4 }; },
+    'Nx.netState': function () { return CFG.net || { version: 'nx-13', sdk: 37, wifi: true, ssid: 'HomeWifi', ip: '192.168.1.172', validated: true, cellular: false, vpn: false, module: false, defaultType: 'wifi', route: 'local', routeAgeSeconds: 4 }; },
     'Nx.probe': function () { return CFG.probe || { ok: true, tcpMs: 14, tlsMs: 380, bound: true, cloud: { ok: true, dns: '63.182.6.157', dnsMs: 12, tcpMs: 20 } }; }
   };
   function answer(callbackId, r) {

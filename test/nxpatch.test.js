@@ -23,7 +23,8 @@ function home(devices) {
 
 // scen: { homes, net, probe, reachable: [sequence], reachableDefault, waiting, approveOk, loadCloud,
 //         graceMs (auto-recovery; off by default), lateVerify (verify only exists later), verifyMs, preXhr(w),
-//         names ({ DEVICE_COMMAND_x: 'text' } for $translate), withGo ($state and $rootScope.go) }
+//         names ({ DEVICE_COMMAND_x: 'text' } for $translate), withGo ($state and $rootScope.go),
+//         approveErr (what approving a user fails with), pairingsErr (what looking for waiting users fails with) }
 async function environment(scen) {
   const dom = new JSDOM('<!doctype html><html><body></body></html>', { url: 'http://localhost/', runScripts: 'outside-only', pretendToBeVisual: true });
   const w = dom.window;
@@ -72,9 +73,10 @@ async function environment(scen) {
   const approvals = [];
   const NHK = {
     config() { return Promise.reject({ code: 'X' }); },
-    pairings(dev) { return Promise.resolve({ activeUsers: [], waitingUsers: scen.waiting || [] }); },
+    pairings(dev) { return scen.pairingsErr !== undefined ? Promise.reject(scen.pairingsErr) : Promise.resolve({ activeUsers: [], waitingUsers: scen.waiting || [] }); },
     userApproved(dev, id, name) {
       approvals.push({ mac: dev.mac, id, name });
+      if (scen.approveErr !== undefined) return Promise.reject(scen.approveErr);          // any failure: { code: 6 }, 'timeout', ...
       return scen.approveOk === false ? Promise.reject({ code: 11 }) : Promise.resolve();
     }
   };
@@ -503,6 +505,61 @@ function sheet(env) { return env.document.getElementById('nx-sheet'); }
     env.w.NX.checkWaitingUsers(true); await sleep(300);
     const toasts = Array.from(env.document.body.children).map((e) => e.textContent).join('|');
     ok('manual: "no users waiting"', /No users waiting/.test(toasts), toasts);
+  }
+  // nx13: approving a user says what is happening, what went wrong in the app's own words, and leaves lines in the LOG
+  const snacks = (env) => Array.from(env.document.querySelectorAll('.nx-snack')).map((e) => e.textContent);
+  {
+    const env = await environment({ homes: [home([device()])], net: { wifi: true, ssid: 'HomeWifi' }, waiting: [{ id: 2, username: 'Home assistant' }] });
+    env.w.dispatchEvent(Object.assign(new env.w.Event('newUser'), { username: 'Home assistant' }));
+    await sleep(1500);
+    ok('nx13 approve: only the result is left on screen (one message at a time)', snacks(env).length === 1 && /"Home assistant" has been allowed/.test(snacks(env)[0]), JSON.stringify(snacks(env)));
+    ok('nx13 approve: the LOG has what happened', ['asking whether to allow', 'allowing', 'allowed'].every((m) => env.logs.some((l) => l.indexOf('[NX] new user: ' + m + ' Home assistant') === 0)) &&
+      env.logs.some((l) => /^\[NX\] waiting users 00:0B:6C:AA:BB:CC 1$/.test(l)), env.logs.filter((l) => /new user|waiting users/.test(l)).join('|'));
+  }
+  {
+    const env = await environment({ homes: [home([device()])], net: { wifi: true, ssid: 'HomeWifi' }, waiting: [{ id: 2, username: 'X' }],
+      approveErr: { code: 6 }, names: { 'NHK_ERROR-6': 'Value not valid' } });
+    env.w.dispatchEvent(new env.w.Event('newUser'));
+    await sleep(1500);
+    ok('nx13 approve fails with a code the app explains', snacks(env).join('|') === 'Could not allow the user: Value not valid (6).', JSON.stringify(snacks(env)));
+    ok('nx13 approve fails: the LOG has the error', env.logs.some((l) => l.indexOf('[NX] new user: could not allow X {"code":6}') === 0), env.logs.filter((l) => /new user/.test(l)).join('|'));
+    env.w.dispatchEvent(new env.w.Event('newUser'));
+    await sleep(1500);
+    ok('nx13 approve fails: the user is offered again at the next check', env.popups.length === 2, String(env.popups.length));
+  }
+  {
+    const env = await environment({ homes: [home([device()])], net: { wifi: true, ssid: 'HomeWifi' }, waiting: [{ id: 2, username: 'X' }], approveErr: { code: 7 } });
+    env.w.dispatchEvent(new env.w.Event('newUser'));
+    await sleep(1500);
+    ok('nx13 approve fails with a code the app does not explain', snacks(env).join('|') === 'Could not allow the user (7).', JSON.stringify(snacks(env)));
+  }
+  {
+    const env = await environment({ homes: [home([device()])], net: { wifi: true, ssid: 'HomeWifi' }, waiting: [{ id: 2, username: 'X' }], approveErr: 'timeout' });
+    env.w.dispatchEvent(new env.w.Event('newUser'));
+    await sleep(1500);
+    ok('nx13 approve fails with plain text', snacks(env).join('|') === 'Could not allow the user: timeout.', JSON.stringify(snacks(env)));
+  }
+  {
+    const env = await environment({ homes: [home([device()])], net: { wifi: true, ssid: 'HomeWifi' }, waiting: [{ id: 2, username: 'X' }], approveErr: undefined });
+    env.w.dispatchEvent(new env.w.Event('newUser'));
+    await sleep(1500);
+    ok('nx13 approve works when nothing is configured to fail', /has been allowed/.test(snacks(env).join('|')), JSON.stringify(snacks(env)));
+  }
+  {
+    const env = await environment({ homes: [home([device()])], net: { wifi: true, ssid: 'HomeWifi' }, pairingsErr: { code: 4 }, names: { 'NHK_ERROR-4': 'Sign not valid' } });
+    env.w.NX.checkWaitingUsers(true); await sleep(300);
+    ok('nx13 manual check fails with a code the app explains', snacks(env).join('|') === 'Check failed: Sign not valid (4).', JSON.stringify(snacks(env)));
+  }
+  {
+    const env = await environment({ homes: [home([device()])], net: { wifi: true, ssid: 'HomeWifi' }, pairingsErr: {} });
+    env.w.NX.checkWaitingUsers(true); await sleep(300);
+    ok('nx13 manual check fails without any detail', snacks(env).join('|') === 'Check failed (no connection).', JSON.stringify(snacks(env)));
+  }
+  {
+    const env = await environment({ homes: [home([device()])], net: { wifi: true, ssid: 'HomeWifi' }, waiting: [] });
+    env.w.NX.checkWaitingUsers(true); await sleep(100);
+    env.w.NX.checkWaitingUsers(true); await sleep(300);
+    ok('nx13 toast: two in a row leave one on screen', snacks(env).length === 1, JSON.stringify(snacks(env)));
   }
 
   // ---------------------------------------------------------------- double Next

@@ -35,5 +35,27 @@ cases.forEach(function (g) {
   console.log((problems.length ? 'FAIL  ' : 'ok    ') + g[0] + (problems.length ? '  ' + problems.join(' | ') + '\n        -> ' + m : ''));
   if (problems.length) failures++;
 });
+
+// The Nice app's repetitive debug lines are left out of the log (they push out the lines that matter); everything else stays.
+var isNoise = require('../debuglog.js').isNoise;
+var NOISY = ['scene getHome: ', 'scene getDevice: ', 'devices.forEach: ', 'getDevice scene home.device: ', 'ICONA: ', 'updateDevice scene ',
+  ' - updateHome -  >>> homes-home: ', 'this.homes[index] ,  home >>> ', 'updateHome forEach home[0].devices.length'];
+var STAYS = ['updateDevice', 'pairings ERROR ', 'userApproved ERROR ', 'getUsersPermissions ERROR ', 'verify ERROR ', '[NX] new user: allowed', '[NX] waiting users',
+  'newUser', 'getHomeList: ', '[PISTO] updateDeviceData', 'scene device.automations[0] ', 'connect ERROR ', 'Error: '];
+NOISY.forEach(function (t) {
+  var drops = isNoise([t, { homeId: 1 }, 'x']);
+  console.log((drops ? 'ok    ' : 'FAIL  ') + 'noise is left out: ' + t.trim());
+  if (!drops) failures++;
+});
+STAYS.forEach(function (t) {
+  var keeps = !isNoise([t, { homeId: 1 }]);
+  console.log((keeps ? 'ok    ' : 'FAIL  ') + 'stays in the log: ' + t.trim());
+  if (!keeps) failures++;
+});
+[[{ a: 1 }], [], undefined, [null], [42, 'scene getHome: ']].forEach(function (a, i) {
+  var keeps = !isNoise(a);
+  console.log((keeps ? 'ok    ' : 'FAIL  ') + 'not a text first argument stays #' + i);
+  if (!keeps) failures++;
+});
 console.log(failures ? failures + ' FAILED' : 'ALL OK');
 process.exit(failures ? 1 : 0);
