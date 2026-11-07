@@ -23,4 +23,5 @@ and the accessory's serial number if you don't want them public.
 paste here
 ```
 
-Please don't attach the APK or the original app: they can't be shared here (see NOTICE.md).
+Please don't attach APKs or the original app (see NOTICE.md). Say which release or build you use: the last line of the copied text
+shows it (for example `native layer nx-10`).

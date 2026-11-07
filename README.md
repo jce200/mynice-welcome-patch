@@ -5,8 +5,10 @@ modern Android (10 and newer) with **Nice IT4WIFI** modules (Robus and other gat
 app's trouble with VPNs and mobile data, adds a connection-status sheet with a real diagnosis, and gives the app a Material 3
 Expressive look (light and dark).
 
-> **Unofficial, and not affiliated with Nice S.p.A.** This repository contains **no Nice binaries**: no original APK and no
-> patched APK. You build the patched app yourself, from an APK you obtained yourself. See [NOTICE.md](NOTICE.md).
+> **Unofficial, and not affiliated with Nice S.p.A.** The source tree of this repository contains **no Nice binaries**: you can
+> build the patched app yourself, from an APK you obtained yourself, or take the prebuilt APK from the
+> [Releases](../../releases) page. That one *is* Nice's app with the patches applied, so it contains Nice's code. See
+> [Download or build](#download-or-build) and [NOTICE.md](NOTICE.md).
 >
 > **Gates and garage doors can hurt people.** This changes only the phone app; it does not touch the module or the motor
 > controller. Use it at your own risk, with the gate in sight, and see the [license](LICENSE) (no warranty).
@@ -38,15 +40,28 @@ Expressive look (light and dark).
 
 The accessory is what the app calls it ("Add accessory"): the IT4WIFI (or CORE) Wi-Fi module of your gate opener.
 
-## What you need
+## Download or build
+
+### Prebuilt APK
+
+The [Releases](../../releases) page has `MyNiceWelcome_2.2.0_nx10.apk`, built with `./build.sh` from this repository (the release notes name the
+commit) and signed with the maintainer's key. It is Nice's app with the patches applied, so it contains Nice's code: it is unofficial,
+comes without warranty and can be removed at any time (see [NOTICE.md](NOTICE.md)). Compare what you downloaded with the SHA-256
+values in the release notes. Then go to [Install](#install).
+
+### Build it yourself
+
+This way you don't have to trust a binary from someone else, and the app is signed with your own key.
+
+#### What you need
 
 - JDK 17 or newer (`javac` and `keytool`), Python 3, bash (Linux, macOS, WSL, or Git Bash on Windows) and `curl`.
 - The original app: **MyNice Welcome 2.2.0 (build 90)**, package `com.nice.nhk`. The patches were written against the file with
   SHA-256 `115b403234f49726005905f52bcc4c8fbacc4f78e1f0c1d8adf3e28990f058ef`. Get it yourself: from your own phone if it is still
-  installed (`adb shell pm path com.nice.nhk`, then `adb pull <path>`) or from an APK mirror. I don't host it. Every patch checks
+  installed (`adb shell pm path com.nice.nhk`, then `adb pull <path>`) or from an APK mirror. I don't host the original app. Every patch checks
   that its anchor text occurs exactly once, so a different build fails loudly instead of being patched wrongly.
 
-## Build
+#### Build
 
 ```
 ./get-tools.sh                               # once: downloads apktool and friends into ./tools, checked on SHA-256
@@ -61,10 +76,12 @@ otherwise Android refuses to update the app and its data (the pairing with your 
 
 ## Install
 
-The patched app is signed with your key, not Nice's, so Android won't install it over the official app: **uninstall the official
-MyNice Welcome first**. The accessory stays paired and online, but the app's own data goes with it, so you pair again with the
-setup code on the back of the accessory (use the same user name as before, otherwise the accessory asks the administrator for
-permission). Later builds made with the same key install over the previous one without losing anything.
+The patched app is signed with a key that is not Nice's (the maintainer's for the prebuilt APK, yours when you build it yourself), so
+Android won't install it over the official app: **uninstall the official MyNice Welcome first**. The accessory stays paired and
+online, but the app's own data goes with it, so you pair again with the setup code on the back of the accessory (use the same user
+name as before, otherwise the accessory asks the administrator for permission). Later builds signed with the same key install over
+the previous one without losing anything. A prebuilt APK and a build of your own use different keys: switching from one to the
+other means uninstalling and pairing again.
 
 ## Tests
 
