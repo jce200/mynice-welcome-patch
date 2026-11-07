@@ -2,12 +2,14 @@
 (function () {
   var CFG = window.__CFG || {};
   var HOME = 1, MAC = '00:0B:6C:AA:BB:CC';
+  // CFG.favorite: false -> the accessory is not a favorite (it shows up in the "add favorites" list)
+  // CFG.reachable: false -> the stored flag of the last session says "not reachable" (the state in which the app shows "Not usable")
   function seed() {
     try {
       if (localStorage.getItem('keyHomes')) return;
       var device = {
         mac: MAC, name: 'NiceIT4WIFIAABBCC', description: 'AABBCC', address: '192.168.1.72', homeId: HOME,
-        pairingUsername: 'homeuser', pairingPassword: 'x', reachable: true, favorites: true, paired: true, permissions: { isAdmin: true, isUser: true },
+        pairingUsername: 'homeuser', pairingPassword: 'x', reachable: CFG.reachable !== false, favorites: CFG.favorite !== false, paired: true, permissions: { isAdmin: true, isUser: true },
         properties: [{ value: CFG.state || 'closed' }, { value: CFG.obstruct || '0' }],
         automations: [{ id: '1', type: 'sliding', primaryCommands: ['open', 'stop', 'close'], fourthButtonEnabled: false,
           secondaryCommands: [], enabledSecondaryCommands: [], properties: [] }]
@@ -28,9 +30,17 @@
     return { interface: { settings: [{ value: 'AABBCC' }] },
       devices: [{ properties: [{ value: CFG.state || 'closed' }, { value: CFG.obstruct || '0' }] }] };
   }
+  var verifyCount = 0;
   var NATIVE = {
     'Device.getDeviceInfo': function () { return { platform: 'Android', version: '14', uuid: 'design-uuid', model: 'Pixel 9', manufacturer: 'Google', isVirtual: true, serial: 'x', sdkVersion: '34' }; },
-    'nhk.verify': function () { return CFG.verifyFail ? { fail: 'timeout' } : { isAdmin: true, isUser: true }; },   // the permissions of a paired, reachable accessory: the list shows no "Not usable" badge
+    // The check of the accessory. The answer of a paired, reachable accessory has its permissions: the list shows no "Not usable".
+    // CFG.verifyFail: it always fails. CFG.verifyScript: the outcomes of the successive checks ('fail' or 'ok'; the last one repeats).
+    // CFG.verifyDelay: how many milliseconds a check takes (to look at the "Checking..." state).
+    'nhk.verify': function () {
+      var step = CFG.verifyScript ? CFG.verifyScript[Math.min(verifyCount++, CFG.verifyScript.length - 1)] : (CFG.verifyFail ? 'fail' : 'ok');
+      var answer = step === 'fail' ? { fail: 'timeout' } : { isAdmin: true, isUser: true };
+      return CFG.verifyDelay ? { delay: CFG.verifyDelay, then: answer } : answer;
+    },
     'nhk.connect': function () { return CFG.verifyFail ? { fail: 'timeout' } : {}; },
     'nhk.status': status,
     'nhk.discoverConfiguredDevices': function () { return []; },
@@ -55,16 +65,23 @@
     'NetworkStatus.getConnectionInfo': function () { return 'wifi'; },
     'Globalization.getPreferredLanguage': function () { return { value: CFG.lang || 'en-US' }; },
     'Globalization.getLocaleName': function () { return { value: CFG.lang || 'en-US' }; },
-    'Nx.version': function () { return 'nx-10'; },
+    'Nx.version': function () { return 'nx-11'; },
     'Nx.logStream': function () { return { keep: true, none: true }; },
     'Nx.setHints': function () { return {}; },
     'Nx.release': function () { return {}; },
     'Nx.reconnect': function () { return {}; },
     'Nx.checkSucceeded': function () { return {}; },
     'Nx.checkFailed': function () { return {}; },
-    'Nx.netState': function () { return CFG.net || { version: 'nx-10', sdk: 37, wifi: true, ssid: 'HomeWifi', ip: '192.168.1.172', validated: true, cellular: false, vpn: false, module: false, defaultType: 'wifi', route: 'local', routeAgeSeconds: 4 }; },
+    'Nx.netState': function () { return CFG.net || { version: 'nx-11', sdk: 37, wifi: true, ssid: 'HomeWifi', ip: '192.168.1.172', validated: true, cellular: false, vpn: false, module: false, defaultType: 'wifi', route: 'local', routeAgeSeconds: 4 }; },
     'Nx.probe': function () { return CFG.probe || { ok: true, tcpMs: 14, tlsMs: 380, bound: true, cloud: { ok: true, dns: '63.182.6.157', dnsMs: 12, tcpMs: 20 } }; }
   };
+  function answer(callbackId, r) {
+    try {
+      if (r && r.none) return;               // stays open (events)
+      if (r && r.fail) { cordova.callbackFromNative(callbackId, false, 2, [r.fail], false); return; }
+      cordova.callbackFromNative(callbackId, true, 1, [r], false);
+    } catch (e) { console.log('shim-error answer ' + e); }
+  }
   window._cordovaNative = {
     exec: function (secret, service, action, callbackId, argsJson) {
       var key = service + '.' + action, args = [];
@@ -75,9 +92,8 @@
         try {
           if (!h) { if (window.cordova) cordova.callbackFromNative(callbackId, true, 1, [], false); return; }
           var r = h(args);
-          if (r && r.none) return;               // stays open (events)
-          if (r && r.fail) { cordova.callbackFromNative(callbackId, false, 2, [r.fail], false); return; }
-          cordova.callbackFromNative(callbackId, true, 1, [r], false);
+          if (r && r.delay) { setTimeout(function () { answer(callbackId, r.then); }, r.delay); return; }   // answers later
+          answer(callbackId, r);
         } catch (e) { console.log('shim-error ' + key + ' ' + e); }
       }, 0);
       return '';

@@ -22,6 +22,9 @@ Expressive look (light and dark).
   no longer lists known networks.
 - **"Not usable" while the accessory is online.** When mDNS finds nothing, the app now tries the accessory's saved IP address,
   retries the reachability check, and rebuilds a stuck connection by itself.
+- **No status before it is confirmed.** The app says "Not usable" as soon as the first attempt of a check fails, and right after startup
+  it shows what the last session left behind. Now the lists and the status chip say "Checking…" until the result of the check (and its
+  new attempts) is in, so a healthy accessory no longer flashes red.
 - **VPN (Tailscale, WireGuard, ...) and mobile data.** A VPN that apps cannot bypass makes Android refuse the app's
   `Network.bindSocket` call (`EPERM`), and the original app does that on every connection, so everything failed with the VPN on.
   The patched app falls back to a normal socket. It also chooses between the local connection and the Nice cloud on what actually
@@ -31,12 +34,12 @@ Expressive look (light and dark).
   Wi-Fi, VPN, mobile"), and a sheet behind it with the route (phone, cloud, accessory), the measurements (TCP and TLS times),
   plain-language advice and buttons for *Reconnect*, *New users*, *Copy* and *Log*.
 
-  ![The status sheet: online over Wi-Fi, online through the Nice cloud with a VPN, not reachable, and the accessory's own Wi-Fi](docs/screenshots/status-states.png)
+  ![The status sheet: checking, online over Wi-Fi, online through the Nice cloud with a VPN, not reachable, and the accessory's own Wi-Fi](docs/screenshots/status-states.png)
 
 - **A log without secrets.** Passwords, setup codes and tokens are masked in the in-app log, and a log line that printed Wi-Fi
   passwords is gone.
-- **A new look.** Material 3 Expressive: colors, shapes, a gate icon that changes shape with its state. Light and dark follow the
-  system. It is a CSS layer; no function of the app changed.
+- **A new look.** Material 3 Expressive in a calm petrol blue: one color family for the surfaces and the buttons, a gate icon that
+  changes shape with its state. Light and dark follow the system. It is a CSS layer; no function of the app changed.
 
 The accessory is what the app calls it ("Add accessory"): the IT4WIFI (or CORE) Wi-Fi module of your gate opener.
 
@@ -44,7 +47,7 @@ The accessory is what the app calls it ("Add accessory"): the IT4WIFI (or CORE) 
 
 ### Prebuilt APK
 
-The [Releases](../../releases) page has `MyNiceWelcome_2.2.0_nx10.apk`, built with `./build.sh` from this repository (the release notes name the
+The [Releases](../../releases) page has the prebuilt APK (`MyNiceWelcome_2.2.0_nx<number>.apk`), built with `./build.sh` from this repository (the release notes name the
 commit) and signed with the maintainer's key. It is Nice's app with the patches applied, so it contains Nice's code: it is unofficial,
 comes without warranty and can be removed at any time (see [NOTICE.md](NOTICE.md)). Compare what you downloaded with the SHA-256
 values in the release notes. Then go to [Install](#install).
@@ -66,7 +69,7 @@ This way you don't have to trust a binary from someone else, and the app is sign
 ```
 ./get-tools.sh                               # once: downloads apktool and friends into ./tools, checked on SHA-256
 ./build.sh /path/to/MyNiceWelcome_2.2.0.apk
-# result: out/MyNiceWelcome_2.2.0_nx10.apk
+# result: out/MyNiceWelcome_2.2.0_nx11.apk
 ```
 
 The first build creates **your own signing key** in `keys/` (with a random password in `keys/password.txt`). Keep that folder

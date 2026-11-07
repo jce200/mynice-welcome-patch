@@ -63,7 +63,7 @@
 {{P}} .nx-l-bad .nx-shape { --nx-shape-bg: var(--md-sys-color-error-container); --nx-shape-fg: var(--md-sys-color-on-error-container); }
 {{P}} .nx-l-bad .nx-shape:before { clip-path: var(--nx-v-star); animation-duration: 14s; }
 {{P}} .nx-l-bad .nx-glyph { -webkit-mask-image: var(--nx-i-wifi-off); mask-image: var(--nx-i-wifi-off); }
-{{P}} .nx-l-unknown .nx-shape, {{P}} .nx-l-busy .nx-shape { --nx-shape-bg: var(--md-sys-color-tertiary-container); --nx-shape-fg: var(--md-sys-color-on-tertiary-container); }
+{{P}} .nx-l-unknown .nx-shape, {{P}} .nx-l-busy .nx-shape { --nx-shape-bg: var(--md-sys-color-secondary-container); --nx-shape-fg: var(--md-sys-color-on-secondary-container); }
 {{P}} .nx-l-unknown .nx-shape:before, {{P}} .nx-l-busy .nx-shape:before { clip-path: var(--nx-v-sun); }
 {{P}} .nx-l-unknown .nx-glyph, {{P}} .nx-l-busy .nx-glyph { -webkit-mask-image: var(--nx-i-refresh); mask-image: var(--nx-i-refresh); }
 {{P}} .nx-l-busy .nx-shape:before { animation-duration: 4s; }

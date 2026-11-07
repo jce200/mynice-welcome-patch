@@ -102,5 +102,16 @@ ok('no placeholders ({{...}}) left', !/\{\{|\}\}/.test(css));
   ok('every nx class from the JS appears in the CSS', withoutRule.length === 0, withoutRule.join(', '));
 }
 
+{
+  // nx11: the labels that patch-11 puts in the app's lists ("Checking...") have a rule, and the JS offers what the lists ask
+  const patch = fs.readFileSync(path.join(__dirname, '..', 'patch-11-checking-state.py'), 'utf8');
+  const js = fs.readFileSync(path.join(__dirname, '..', 'nx-patch.js'), 'utf8');
+  const classes = Array.from(new Set(Array.from(patch.matchAll(/class="([^"]*nx-[^"]*)"/g)).flatMap((m) => m[1].split(/\s+/)).filter((k) => /^nx-/.test(k))));
+  const without = classes.filter((k) => !new RegExp('\\.' + k + '(?![\\w-])').test(css));
+  ok('the classes of the "Checking..." labels have a rule (' + classes.join(', ') + ')', classes.length >= 2 && without.length === 0, without.join(', '));
+  ok('the lists ask nxCheck and nx-patch.js offers it', /\$rs\.nxCheck\s*=\s*nxCheck/.test(js) && /nxCheck\(/.test(patch));
+  ok('the "Checking..." animations stand still with reduced motion', /prefers-reduced-motion[^{]*\{[^}]*nx-checking:before[^}]*animation:\s*none/.test(css) && /prefers-reduced-motion[^{]*\{[^}]*nx-checking-text[^}]*animation:\s*none/.test(css));
+}
+
 console.log(failures ? failures + ' of ' + total + ' FAILED' : 'ALL OK (' + total + ' checks)');
 process.exit(failures ? 1 : 0);

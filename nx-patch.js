@@ -130,6 +130,11 @@
   var started = false, wrapped = false, origVerify = null, installVerify = null;
   var T0 = Date.now();
   var GRACE = (typeof window.__nxGraceMs === 'number') ? window.__nxGraceMs : 12000;   // no auto-recovery right after startup
+  // nx11: an accessory that has not been checked yet in this session counts as "being checked" for this long, and an
+  // accessory that no check was started for is checked by this patch after KICKOFF (the app only checks what is on screen)
+  var FIRST_WAIT = (typeof window.__nxFirstWaitMs === 'number') ? window.__nxFirstWaitMs : 9000;
+  var KICKOFF = (typeof window.__nxKickoffMs === 'number') ? window.__nxKickoffMs : 2500;
+  var STUCK = 45000;   // a check that takes longer than this is no longer waited for
 
   function injector() {
     try { return (window.angular && document.body && angular.element(document.body).injector()) || null; } catch (e) { return null; }
@@ -211,17 +216,38 @@
 
     // -------------------------------------------------------------- 3. reachability: hints and new attempts
     // installVerify is called by __nxWrapVerify (right after the definition in the app) and by the poll.
-    var busy = {}, inflight = 0;
+    var busy = {}, inflight = 0;   // busy[mac]: the time at which a check (with its new attempts) started, 0 when none is running
     function isVerifying() {
       if (inflight > 0) return true;
       for (var k in busy) if (busy[k]) return true;
       return false;
     }
+    // nx11: what counts as confirmed. The app says "Not usable" as soon as the FIRST attempt of a check fails (reachable =
+    // false), while the wrapper below is still making its second and third attempt, and right after startup it shows what the
+    // last session left in storage. Neither is a confirmed status. seen[mac] is the result of the last check of this session
+    // that has really finished (after its new attempts). nxCheck(device) tells the lists and the chip what to make of the
+    // app's flag right now:
+    //   'checking'  no result of this session yet and a check is running (or about to): "Checking…", neither good nor bad
+    //   'hold'      the last result was "reachable" and the check that is running now has not failed for good: stay "usable"
+    //   ''          nothing to add: the flag of the app is the confirmed state
+    var seen = {};
+    function runningSince(mac) {
+      var t = busy[mac];
+      return (t && Date.now() - t < STUCK) ? t : 0;
+    }
+    function nxCheck(device) {
+      var mac = device && device.mac;
+      if (!mac) return '';
+      var s = seen[mac];
+      if (runningSince(mac)) return s ? (s.ok ? 'hold' : '') : 'checking';
+      if (!s && Date.now() - T0 < FIRST_WAIT) return 'checking';
+      return '';
+    }
     installVerify = function ($rs) {
       try {
         var cur = $rs.verifyDeviceRecheability;
         if (typeof cur !== 'function') return false;
-        if (cur.__nx) { wrapped = true; return true; }
+        if (cur.__nx) { wrapped = true; $rs.nxCheck = nxCheck; return true; }
         origVerify = cur;
         var wv = function (device) {
           pushHints();
@@ -233,13 +259,18 @@
           try {
             if (ret && ret.promise) ret.promise.then(settle, settle); else settle();
             var mac = device && device.mac;
-            if (mac && !busy[mac] && ret && ret.promise) {
-              busy[mac] = true;
+            if (mac && !runningSince(mac) && ret && ret.promise) {
+              busy[mac] = Date.now();
               var n = 0;
               var check = function () {
                 // the native layer remembers whether the chosen route (local or cloud) worked, and switches route when it failed
                 nx(device.reachable ? 'checkSucceeded' : 'checkFailed', []);
-                if (device.reachable || n >= 2) { busy[mac] = false; refreshPill(); return; }
+                if (device.reachable || n >= 2) {
+                  busy[mac] = 0;
+                  seen[mac] = { ok: device.reachable === true, at: Date.now() };   // only now is the result confirmed
+                  refreshPill();
+                  return;
+                }
                 n++;
                 $timeout(function () {
                   var r2 = origVerify.call($rs, device);
@@ -247,12 +278,14 @@
                 }, 2500);
               };
               ret.promise.then(check, check);
+              refreshPill();   // the chip says "checking…" right away, not only when the check is done
             }
           } catch (e) { log('verify-wrapper', String(e)); settle(); }
           return ret;
         };
         wv.__nx = true;
         $rs.verifyDeviceRecheability = wv;
+        $rs.nxCheck = nxCheck;   // the patched lists ask this (patch-11); without it they behave as the app does
         wrapped = true;
         log('verify-wrapper active');
         return true;
@@ -380,10 +413,20 @@
       if (!devs.length) return cb({ level: 'none' });
       nx('netState', [devs[0].device.address || ''], function (net) {
         var homeSsid = devs[0].home.networkSsid || '';
-        var allOk = devs.every(function (x) { return x.device.reachable === true; });
-        var anyBad = devs.some(function (x) { return x.device.reachable === false; });
+        // per accessory what the app says (reachable or not), unless that is not confirmed yet (see nxCheck)
+        var states = devs.map(function (x) {
+          var c = nxCheck(x.device);
+          if (c === 'checking') return 'checking';
+          if (c === 'hold') return 'ok';
+          return x.device.reachable === true ? 'ok' : x.device.reachable === false ? 'bad' : 'unknown';
+        });
+        var allOk = states.every(function (v) { return v === 'ok'; });
+        var anyBad = states.some(function (v) { return v === 'bad'; });
+        var anyChecking = states.some(function (v) { return v === 'checking'; });
         var viaCloud = net.route === 'cloud';
         if (net.module) return cb({ level: 'info', text: 'Accessory Wi-Fi', net: net });
+        // no verdict, neither good nor bad, as long as a result is missing: without Wi-Fi the Nice cloud may still work
+        if (anyChecking && !anyBad) return cb({ level: 'unknown', text: 'Accessory: checking…', net: net });
         // Without Wi-Fi and without a VPN an accessory in the home network can only be reachable via the Nice cloud. An old
         // "reachable" flag then only counts if the app really chose the cloud for its last connection.
         if (!net.wifi && !net.vpn) {
@@ -1003,6 +1046,23 @@
       document.addEventListener('deviceready', function () { wrapStatusBar(); }, false);
     }
     buildUi();
+    // nx11: the app only checks the accessories on the screen. One that nobody checks would keep showing what the last session
+    // left in storage, so it is checked here (with the same new attempts). Not while the phone is on the accessory's own Wi-Fi.
+    function kickoff() {
+      try {
+        var devs = allDevices();
+        if (!devs.length) return;
+        nx('netState', [devs[0].device.address || ''], function (net) {
+          if (net && net.module) return;
+          devs.forEach(function (x) {
+            if (seen[x.device.mac] || runningSince(x.device.mac)) return;
+            var d = liveDevice(x.home.homeId, x.device.mac) || x.device;
+            try { $rootScope.verifyDeviceRecheability(d); } catch (e) { log('kickoff', String(e)); }
+          });
+        });
+      } catch (e) { log('kickoff', String(e)); }
+    }
+    setTimeout(kickoff, KICKOFF);
     setTimeout(refreshPill, 1500);
     setTimeout(refreshPill, GRACE + 300);     // first chance for the automatic recovery, right after the quiet period
     setInterval(refreshPill, 20000);

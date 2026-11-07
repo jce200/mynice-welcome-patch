@@ -1,8 +1,39 @@
 # Details and history
 
 This is the technical background to the [README.md](../README.md): why every change exists, with the diagnoses that led to them
-(nx3 through nx10: the project's build numbers). The example values (Wi-Fi `HomeWifi`, accessory `NiceIT4WIFIAABBCC`, user
+(nx3 through nx11: the project's build numbers). The example values (Wi-Fi `HomeWifi`, accessory `NiceIT4WIFIAABBCC`, user
 `homeuser`) stand in for whatever is different in your case. The data in this document comes from one phone and one IT4WIFI module.
+
+## What is new in nx11 (no status before it is confirmed, and a calmer palette)
+
+nx11 has version code 20201109 and installs over nx10 when it is signed with the same key.
+
+**"Checking…" instead of a premature "Not usable".** The app marks an accessory "Not usable" as soon as the *first* attempt of its
+reachability check fails, while `nx-patch.js` still makes a second and a third attempt (since nx3). Right after startup the lists and the
+chip also showed what the last session had left in storage. So a healthy accessory regularly showed a red "Not usable" and a red
+chip for a few seconds, and a chip that said "online" before anything had been checked. Now no status is shown before it is confirmed:
+- `nx-patch.js` keeps, per accessory, whether a check is running and the result of the last check of this session that really
+  finished (after its new attempts). `$rootScope.nxCheck(device)` answers `'checking'` (no result yet), `'hold'` (the last result was
+  "reachable" and the check that is running now has not failed for good, so the list keeps showing "usable") or `''` (nothing to add:
+  the app's own flag is the confirmed state). A check that takes longer than 45 s is no longer waited for, and an accessory that has not
+  been checked is only "being checked" for the first 9 s after startup.
+- `patch-11-checking-state.py` makes the lists ask that: the label under an accessory in the favorites, the list of accessories of a
+  home, the add-favorites and settings lists, and the state line at the top of the accessory screen. Where nothing is confirmed they show
+  a neutral "Checking…" (grey pill with a pulsing dot; it stands still with reduced motion) instead of the red "Not usable". Where
+  `nxCheck` does not exist (when `nx-patch.js` did not load) every expression falls back to what the app did before.
+- The status chip says "Accessory: checking…" (grey) as long as a result is missing, also without Wi-Fi: with mobile data the Nice
+  cloud may still work, so "No Wi-Fi" is not a verdict yet. Only the accessory's own Wi-Fi (setup) is known at once.
+- An accessory that nobody checks (the app only checks the ones on the screen) is checked by the patch 2.5 s after startup, with the
+  same new attempts, but not while the phone is on the accessory's own Wi-Fi.
+
+**Palette.** The scheme is now a calm petrol blue: seed color #1E6A8A in the Material scheme "tonal spot" (before: the "vibrant" scheme
+with seed #3A6FF7: electric blue next to lavender and pink). Surfaces, *Open*, *Close* and the sheet now come from one color family:
+*Close* is a soft tint of it (secondary container) instead of a third hue, and the green, amber and red of the statuses stand out
+because the rest is calm. The wizard screens follow too: the dark "stage" for Nice's light-gray icons and the brand surface of the welcome
+screen are derived from the scheme (`--nx-stage`, `--nx-brand`, in `tokens.css`) instead of being fixed colors. Contrast of the
+main pairs (text on surface, on primary, on the containers, white on the brand surface): 4.8:1 at the lowest (dark theme, white on the
+brand surface), 6.5:1 and more everywhere else. `skin/src/tools/build-tokens.mjs` takes `--seed` and `--scheme` to try another
+palette (`node bt.mjs --seed '#00796B' --scheme tonal` is the teal variant); the harness shows the result.
 
 ## What is new in nx10 (everything in English)
 
@@ -14,7 +45,7 @@ too (for example the plugin action `versie` is `version` now, the JSON key `gebo
 find in older notes or logs may differ.
 nx10 has version code 20201108 and installs over nx9 when it is signed with the same key.
 
-## Where does the app work? (nx10)
+## Where does the app work? (nx11)
 
 The app talks to the accessory in two ways: directly at its address on your home network (discovery via mDNS, then TLS on port 443;
 if mDNS fails, the IP safety net tries the saved address), and through the Nice cloud (`it4wifi.cloud.nice.niceappdomain.com`, port 7890)
@@ -58,7 +89,7 @@ Only the look and the way the connection is shown; no function of the app and no
 (the native layer only reports `nx-9` as its version).
 
 **Look (Material 3 Expressive).** The same design language everywhere: color roles from the Material "vibrant" scheme with seed
-color #3A6FF7 (light and dark, following the system; Android's status bar gets the same color as the header), the Roboto Flex
+color #3A6FF7 (replaced in nx11 by a calmer petrol palette; light and dark, following the system; Android's status bar gets the same color as the header), the Roboto Flex
 typeface (OFL, bundled), lists as cards with large corner radii at the ends, a navigation bar with a pill indicator, tonal round
 buttons in the header, popups as dialogs, and on the accessory screen a large shape that changes with the state (closed, open, moving,
 stopped, obstruction), with Open and Close side by side below it and Stop beneath them. The wizard screens keep their light-gray icons
@@ -176,8 +207,8 @@ to NiceIT4WIFI… sent" or "requestNetwork failed"). Passwords are masked, but c
 
 **Tested** (without a phone): the build and signing; that every call between the new code and the app/Cordova exists with exactly the
 same signature; the logic of the new code on a plain JVM (81 checks, among them the calculation rule for the network range); the JS in
-a simulated environment (154 checks, in which the new behaviors were also checked with deliberately introduced faults), the masking
-(13 checks) and the CSS itself (16 checks); the decompiled result of the three patched places in the app; and that the patched
+a simulated environment (183 checks, in which the new behaviors were also checked with deliberately introduced faults), the masking
+(13 checks) and the CSS itself (19 checks); the decompiled result of the three patched places in the app; and that the patched
 `app.min.js` is valid JavaScript.
 
 **Not tested** (can only be tested on a phone):
@@ -199,7 +230,7 @@ is a reset of the accessory.
 ## Building and the files
 
 See [README.md](../README.md) for the steps (`./get-tools.sh`, then `./build.sh <original.apk>`). The script unpacks the original APK,
-applies `patch-01-wifi-binding.py` through `patch-10-skin.py`, builds the Java layer (`java/src/com/nice/patch`) into `classes2.dex`,
+applies `patch-01-wifi-binding.py` through `patch-11-checking-state.py`, builds the Java layer (`java/src/com/nice/patch`) into `classes2.dex`,
 adds it, aligns, signs with your key in `keys/` and checks the result (`verify-apk.py`, if `androguard` and `loguru` are installed).
 Every patch checks that its anchor text occurs exactly once, so a different APK version is not silently patched wrongly.
 
@@ -210,6 +241,7 @@ Every patch checks that its anchor text occurs exactly once, so a different APK 
 | `patch-05-native-hooks.py` | hooks into the new layer (WifiWizard, JmDNS, ConnectionsManager), manifest, `config.xml`, version number |
 | `patch-06-js-layer.py` | `nx-patch.js` in the app and the patch points in `app.min.js` |
 | `patch-10-skin.py` | nx9: the skin (`skin/nx-expressive.css`), the font (`skin/fonts-nx`) and the `<link>` in `index.html` |
+| `patch-11-checking-state.py` | nx11: "Checking…" instead of a premature "Not usable" in the app's lists (six templates; they ask `nxCheck` from `nx-patch.js`) |
 | `patch-09-socket-fallback.py` | nx7: `socketFor` in `_openSocket` (EPERM fallback) and the VPN guard in both `bindNiceWifi` copies |
 | `patch-08-route-choice.py` | nx6: hooks in `ConnectionsManager`: `vetLocal` (vetting the local address), `noteRoute` (remembering the chosen route), `socketAddress` (name resolution with a fallback) |
 | `patch-07-vpn-binding.py` | nx4: skipping VPN networks in the bind loop, `Nx.wifiType`/`Nx.ctx` in the Wi-Fi receiver, the `__nxWrapVerify` hook in `app.min.js` |
@@ -219,7 +251,7 @@ Every patch checks that its anchor text occurs exactly once, so a different APK 
 | `skin/` | `nx-expressive.css` (the result that goes into the app) and `fonts-nx/`; the source is in `skin/src/`: `skin.css` (the app), `status.css` (the status sheet), `tokens.css` (colors and spring curves, generated by `src/tools/build-tokens.mjs`), `shapes.json` (the polygons for the shapes, all 144 points), `build-css.py` assembles them. Edit the source and run `python3 skin/src/build-css.py`, never edit the result |
 | `harness/` | `screens.cjs` runs the real app (unpacked from the APK: `unzip -o <apk> "assets/www/*"`, next to the script as a folder `www`) in headless Chromium with a simulated Cordova bridge (`shim.js`) and takes screenshots of every page (light, and with `COLOR_SCHEME=dark` also dark, `PRE=` for an action such as `NX.diagnose()`, `CFG=` for a different network state); `sweep.sh` does 25 screens and makes a contact sheet; `make-screenshots.py` redoes the pictures in `docs/screenshots`. Requires Node with `playwright` and Python with PIL |
 | `get-tools.sh`, `test-all.sh` | downloading the tools with a SHA-256 check, and all tests in one go |
-| `test/` and `java/test/` | the tests (jsdom: `NODE_PATH=<folder with node_modules/jsdom> node test/nxpatch.test.js`, 154 checks; `node test/masker.test.js`; `node test/skin.test.js` checks the CSS itself: no placeholders, braces, every variable defined, all shapes with the same number of points, icons, font and prefix) |
+| `test/` and `java/test/` | the tests (jsdom: `NODE_PATH=<folder with node_modules/jsdom> node test/nxpatch.test.js`, 183 checks; `node test/masker.test.js`; `node test/skin.test.js` checks the CSS itself: no placeholders, braces, every variable defined, all shapes with the same number of points, icons, font and prefix) |
 
 ## Signing key
 

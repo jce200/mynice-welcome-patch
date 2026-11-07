@@ -3,7 +3,7 @@
 
 Usage: python patch-10-skin.py <apktool-output-dir>   (all or nothing; idempotent)
 
-What it does: puts skin/nx-expressive.css into assets/www/css (color roles from the Material scheme "vibrant", light and dark
+What it does: puts skin/nx-expressive.css into assets/www/css (color roles from the Material scheme "tonal spot", seed #1E6A8A, light and dark
 following the system; shapes, lists, navigation bar, buttons, the hero on the device screen, the connection status), the
 font Roboto Flex (OFL, skin/fonts-nx) into assets/www/fonts-nx, and a <link> in index.html directly after fontello.css
 so that the skin overrides the original styles.

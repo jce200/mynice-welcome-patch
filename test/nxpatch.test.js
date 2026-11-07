@@ -85,6 +85,8 @@ async function environment(scen) {
   w.angular = { element: () => ({ injector: () => injector }) };
 
   w.__nxGraceMs = scen.graceMs != null ? scen.graceMs : 1e9;   // auto-recovery is off by default in the tests
+  w.__nxFirstWaitMs = scen.firstWaitMs != null ? scen.firstWaitMs : 0;   // nx11: "not checked yet" waits are off by default in the tests
+  w.__nxKickoffMs = scen.kickoffMs != null ? scen.kickoffMs : 1e9;        // and so is the check that the patch starts itself
   if (scen.preXhr) scen.preXhr(w);
   w.eval(SRC);
   await sleep(800);   // on startup it checks every 500 ms whether Angular is there
@@ -204,6 +206,113 @@ function sheet(env) { return env.document.getElementById('nx-sheet'); }
     env.$rootScope.verifyDeviceRecheability(live);
     await sleep(600);
     ok('verify: no double retry loop (2 starts + 2 retries = 4)', env.verifyLog.length === 4, env.verifyLog.length + ': ' + env.verifyLog.join(','));
+  }
+
+  // ---------------------------------------------------------------- nx11: no status before it is confirmed
+  // The app sets "reachable = false" as soon as the FIRST attempt of a check fails; the wrapper then tries twice more. The
+  // lists and the chip must not call that a result. nxCheck(device): 'checking' (no result yet), 'hold' (an earlier result was
+  // "reachable"), '' (the app's flag is the confirmed state).
+  {
+    // first attempt fails, second succeeds: the whole time "checking", never "not reachable"
+    const env = await environment({ homes: [home([device({ reachable: false })])], net: { wifi: true, ssid: 'HomeWifi' }, reachable: [false, true], verifyMs: 120 });
+    const live = env.HS.homes[0].devices[0];
+    env.$rootScope.verifyDeviceRecheability(live);
+    await sleep(60);
+    ok('nx11 chip: first attempt running -> checking', chip(env).textContent === 'Accessory: checking…', chip(env).textContent);
+    ok('nx11 list: first attempt running -> checking', env.$rootScope.nxCheck(live) === 'checking');
+    await sleep(120);   // the first attempt has failed (the app stored reachable = false), the second is not finished yet
+    env.w.NX.refresh(); await sleep(30);
+    ok('nx11: at this moment the app\'s own flag says "not reachable"', live.reachable === false);
+    ok('nx11 chip: after the first failure still checking (a new attempt follows)', chip(env).textContent === 'Accessory: checking…', chip(env).textContent);
+    ok('nx11 list: after the first failure still checking', env.$rootScope.nxCheck(live) === 'checking');
+    await sleep(300);
+    ok('nx11 chip: confirmed -> online', chip(env).textContent === 'Accessory online', chip(env).textContent);
+    ok('nx11 list: confirmed -> nothing to add', env.$rootScope.nxCheck(live) === '');
+  }
+  {
+    // all three attempts fail: only then "not reachable" (a stale "reachable" from storage never counts as a result)
+    const env = await environment({ homes: [home([device({ reachable: true })])], net: { wifi: true, ssid: 'HomeWifi' }, reachableDefault: false, verifyMs: 100 });
+    const live = env.HS.homes[0].devices[0];
+    env.$rootScope.verifyDeviceRecheability(live);
+    await sleep(180); env.w.NX.refresh(); await sleep(30);
+    ok('nx11 chip: between the attempts still checking', chip(env).textContent === 'Accessory: checking…', chip(env).textContent);
+    await sleep(400);
+    ok('nx11 chip: after three failed attempts "not reachable"', chip(env).textContent === 'Accessory not reachable', chip(env).textContent);
+    ok('nx11 list: after three failed attempts the app\'s "Not usable" stands', env.$rootScope.nxCheck(live) === '' && live.reachable === false);
+  }
+  {
+    // an earlier result of this session was "reachable": a new check whose first attempt fails does not turn it into "not usable"
+    const env = await environment({ homes: [home([device()])], net: { wifi: true, ssid: 'HomeWifi' }, reachable: [true, false, true], verifyMs: 100 });
+    const live = env.HS.homes[0].devices[0];
+    env.$rootScope.verifyDeviceRecheability(live);
+    await sleep(250);
+    ok('nx11 list: confirmed reachable -> nothing to add', env.$rootScope.nxCheck(live) === '');
+    env.$rootScope.verifyDeviceRecheability(live);      // the user comes back to the list: a new check, its first attempt fails
+    await sleep(150);
+    ok('nx11: the new check\'s first attempt has failed (flag false)', live.reachable === false);
+    ok('nx11 list: an earlier "reachable" holds during the new attempt', env.$rootScope.nxCheck(live) === 'hold', env.$rootScope.nxCheck(live));
+    env.w.NX.refresh(); await sleep(30);
+    ok('nx11 chip: stays online during the new attempt', chip(env).textContent === 'Accessory online', chip(env).textContent);
+    await sleep(300);
+    ok('nx11 list: new attempt succeeded -> nothing to add', env.$rootScope.nxCheck(live) === '' && live.reachable === true);
+  }
+  {
+    // an earlier result was "not reachable": the label stays while the new check runs (no flicker between "Not usable" and "Checking…")
+    const env = await environment({ homes: [home([device()])], net: { wifi: true, ssid: 'HomeWifi' }, reachable: [false, false, false, true], verifyMs: 60 });
+    const live = env.HS.homes[0].devices[0];
+    env.$rootScope.verifyDeviceRecheability(live);
+    await sleep(450);
+    ok('nx11 list: three failures -> the app\'s flag stands', env.$rootScope.nxCheck(live) === '' && live.reachable === false);
+    env.$rootScope.verifyDeviceRecheability(live);
+    await sleep(30);
+    ok('nx11 list: a new check does not turn "Not usable" back into "Checking…"', env.$rootScope.nxCheck(live) === '', env.$rootScope.nxCheck(live));
+  }
+  {
+    // right after startup an accessory that has not been checked yet counts as "being checked", whatever storage says
+    const env = await environment({ homes: [home([device({ reachable: true })])], net: { wifi: true, ssid: 'HomeWifi' }, firstWaitMs: 4000 });
+    env.w.NX.refresh(); await sleep(50);
+    ok('nx11 chip: "reachable" left in storage by the last session is not shown as confirmed', chip(env).textContent === 'Accessory: checking…', chip(env).textContent);
+    ok('nx11 list: not checked yet -> checking', env.$rootScope.nxCheck(env.HS.homes[0].devices[0]) === 'checking');
+    ok('nx11 list: no device -> nothing to add', env.$rootScope.nxCheck(null) === '' && env.$rootScope.nxCheck({}) === '');
+  }
+  {
+    // without Wi-Fi and without a VPN the Nice cloud can still work: no "No Wi-Fi" before the check has shown otherwise
+    const env = await environment({ homes: [home([device({ reachable: false })])], net: { wifi: false, cellular: true, vpn: false, route: 'cloud' }, reachable: [true], verifyMs: 120 });
+    const live = env.HS.homes[0].devices[0];
+    env.$rootScope.verifyDeviceRecheability(live);
+    await sleep(60);
+    ok('nx11 chip: mobile data, check running -> checking (not "No Wi-Fi")', chip(env).textContent === 'Accessory: checking…', chip(env).textContent);
+    await sleep(200);
+    ok('nx11 chip: mobile data, confirmed via the cloud', chip(env).textContent === 'Accessory online · cloud', chip(env).textContent);
+  }
+  {
+    // on the accessory's own Wi-Fi (setup) the state is known at once: nothing to wait for
+    const env = await environment({ homes: [home([device()])], net: { wifi: true, ssid: 'NiceIT4WIFIAABBCC', module: true }, firstWaitMs: 4000 });
+    env.w.NX.refresh(); await sleep(50);
+    ok('nx11 chip: accessory Wi-Fi needs no check', chip(env).textContent === 'Accessory Wi-Fi', chip(env).textContent);
+  }
+  {
+    // a check that never finishes is not waited for forever (after 45 s)
+    const env = await environment({ homes: [home([device()])], net: { wifi: true, ssid: 'HomeWifi' }, verifyMs: 60000 });
+    const live = env.HS.homes[0].devices[0];
+    env.$rootScope.verifyDeviceRecheability(live);
+    ok('nx11 stuck: running -> checking', env.$rootScope.nxCheck(live) === 'checking');
+    const real = env.w.Date.now;
+    env.w.Date.now = () => real.call(env.w.Date) + 50000;
+    ok('nx11 stuck: after 45 s it is no longer waited for', env.$rootScope.nxCheck(live) === '', env.$rootScope.nxCheck(live));
+  }
+  {
+    // an accessory that the app does not check is checked by the patch itself, a few seconds after startup
+    const env = await environment({ homes: [home([device({ reachable: true })])], net: { wifi: true, ssid: 'HomeWifi' }, reachableDefault: true, kickoffMs: 100, firstWaitMs: 3000 });
+    const live = env.HS.homes[0].devices[0];
+    ok('nx11 kick-off: the patch started a check by itself', env.verifyLog.length === 1, env.verifyLog.join(','));
+    env.w.NX.refresh(); await sleep(50);
+    ok('nx11 kick-off: confirmed -> online', chip(env).textContent === 'Accessory online' && env.$rootScope.nxCheck(live) === '', chip(env).textContent);
+  }
+  {
+    // ... but not while the phone is on the accessory's own Wi-Fi (setup)
+    const env = await environment({ homes: [home([device()])], net: { wifi: true, ssid: 'NiceIT4WIFIAABBCC', module: true }, reachableDefault: true, kickoffMs: 100 });
+    ok('nx11 kick-off: not on the accessory Wi-Fi', env.verifyLog.length === 0, env.verifyLog.join(','));
   }
 
   // ---------------------------------------------------------------- new user
@@ -579,6 +688,7 @@ function sheet(env) { return env.document.getElementById('nx-sheet'); }
     const before = env.native.filter((c) => c.action === 'setHints').length;
     env.w.__nxWrapVerify(env.$rootScope);                 // ... and calls the hook right after
     ok('hook: verify is wrapped immediately', env.$rootScope.verifyDeviceRecheability.__nx === true);
+    ok('nx11 hook: nxCheck exists once verify is wrapped', typeof env.$rootScope.nxCheck === 'function');
     const live = env.HS.homes[0].devices[0];
     env.$rootScope.verifyDeviceRecheability(live);
     const after = env.native.filter((c) => c.action === 'setHints').length;

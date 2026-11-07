@@ -130,9 +130,17 @@ with zipfile.ZipFile(path) as z:
     if '{{' in css or 'var(--md-sys-color-primary)' not in css:
         errors.append('nx-expressive.css is not completely filled in')
     js = text('assets/www/js/nx-patch.js')
-    for m in ('--nx-sub', '--nx-dot', 'data-nx-status', 'nx-sheet', 'wrapStatusBar'):
+    for m in ('--nx-sub', '--nx-dot', 'data-nx-status', 'nx-sheet', 'wrapStatusBar', 'nxCheck'):
         if m not in js:
             errors.append('nx-patch.js is missing ' + m)
+    # nx11: the lists ask nxCheck and have a label for "Checking..."; the CSS styles it
+    for n in ('favorites/favorites.html', 'favorites/add_favorites.html', 'settings/settings_device.html',
+              'settings/settings_scene_edit.html', 'system/controls_home.html', 'system/device_detail.html'):
+        if 'nxCheck' not in text('assets/www/templates/' + n):
+            errors.append('templates/%s does not ask nxCheck (patch-11)' % n)
+    for m in ('.nx-checking', 'nx-checking-text'):
+        if m not in css:
+            errors.append('nx-expressive.css does not style ' + m)
     dl = text('assets/www/js/debuglog.js')
     for m in ('nx-log-button', '__nxLogShow'):
         if m not in dl:

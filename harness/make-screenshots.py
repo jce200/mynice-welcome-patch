@@ -4,7 +4,7 @@
 Usage (from this folder, with the app unpacked into ./www, see README.md):
     python3 make-screenshots.py [output-folder]        # default: ../docs/screenshots
 
-Writes overview.png (favorites, device page and status sheet, light above dark) and status-states.png (the status sheet in four
+Writes overview.png (favorites, device page and status sheet, light above dark) and status-states.png (the status sheet in five
 situations). Everything on them is made up (accessory AABBCC, Wi-Fi HomeWifi); there is nothing of a real installation in them.
 Needs Node with `playwright` (screens.cjs) and Python with PIL."""
 import json
@@ -22,10 +22,11 @@ MAC = '00:0B:6C:AA:BB:CC'
 DETAIL = f'#/tabs/favorites-device-detail/1/{MAC}'
 
 # the shapes that the native layer (Nx.netState / Nx.probe) returns; shim.js has the same defaults
-NET = {'version': 'nx-10', 'sdk': 37, 'wifi': True, 'ssid': 'HomeWifi', 'ip': '192.168.1.172', 'validated': True, 'cellular': False,
+NET = {'version': 'nx-11', 'sdk': 37, 'wifi': True, 'ssid': 'HomeWifi', 'ip': '192.168.1.172', 'validated': True, 'cellular': False,
        'vpn': False, 'module': False, 'defaultType': 'wifi', 'route': 'local', 'routeAgeSeconds': 4}
 CLOUD_OK = {'ok': True, 'dns': '63.182.6.157', 'dnsMs': 12, 'tcpMs': 60}
 STATES = {
+    'checking': {'verifyDelay': 60000, 'reachable': False},   # the first check is still running: nothing is confirmed yet
     'online': {},
     'cloud': {'net': dict(NET, wifi=False, ssid='', ip='10.8.0.5', cellular=True, vpn=True, defaultType='vpn', route='cloud', routeAgeSeconds=3),
               'probe': {'ok': False, 'tcpMs': None, 'bound': False, 'cloud': CLOUD_OK}},
@@ -69,7 +70,7 @@ overview = grid(rows, 0.5)
 overview.save(os.path.join(OUT, 'overview.png'), optimize=True)
 
 states = []
-for name in ('online', 'cloud', 'guest', 'setup'):
+for name in ('checking', 'online', 'cloud', 'guest', 'setup'):
     shot = shoot(f'ov-state-{name}', ['#/tabs/favorites'], cfg=STATES[name], pre='NX.open()')[0]
     w, h = shot.size
     states.append(shot.crop((0, int(h * 0.20), w, h)))   # the sheet is the subject; drop most of the dimmed page above it

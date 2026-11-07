@@ -25,10 +25,8 @@
   --nx-r-m: 16px;
   --nx-r-l: 28px;
   --nx-gap: 3px;
-  /* fixed brand blue for surfaces where Nice's light-gray wizard icons have to keep standing out */
-  --nx-brand: #1f4fc4;
-  /* the dark "stage" those icons sit on */
-  --nx-stage: #24272f;
+  /* --nx-brand (surfaces where Nice's light-gray wizard icons have to keep standing out) and --nx-stage (the dark "stage" those
+     icons sit on) come from tokens.css: they follow the color scheme */
   --nx-sub: none;
   --nx-dot: transparent;
   {{ICONS}}
@@ -37,9 +35,6 @@
   --nx-v-flower: {{SHAPE_flower}};
   --nx-v-star: {{SHAPE_star}};
   --nx-v-sun: {{SHAPE_sun}};
-}
-@media (prefers-color-scheme: dark) {
-  :root { --nx-brand: #3b66d6; --nx-stage: #23262e; }
 }
 
 /* ============================================================ base */
@@ -233,6 +228,18 @@ html[data-nx-status="info"]:root body[data-ng-app] .bar .title::after { backgrou
   align-self: flex-start; margin-top: 6px; padding: 2px 10px; border-radius: 10px;
   background: var(--md-sys-color-error-container); color: var(--md-sys-color-on-error-container) !important; font-size: 12px; font-weight: 600; line-height: 18px;
 }
+/* "Checking…" (patch-11): the same pill, but neutral, as long as the result of the check is not confirmed. A pulsing dot says that
+   something is happening; with reduced motion it stands still. */
+{{P}} .item-nota.nx-checking {
+  display: flex; width: fit-content; align-items: center; gap: 6px; align-self: flex-start; margin-top: 6px; padding: 2px 10px 2px 8px; border-radius: 10px;
+  background: var(--md-sys-color-surface-container-highest); color: var(--md-sys-color-on-surface-variant) !important;
+  font-size: 12px; font-weight: 600; line-height: 18px;
+}
+{{P}} .item-nota.nx-checking:before {
+  content: ''; flex: 0 0 auto; width: 6px; height: 6px; border-radius: 50%; background: currentColor; animation: nx-pulse 1.1s ease-in-out infinite;
+}
+@keyframes nx-pulse { 0%, 100% { opacity: .25; transform: scale(.8); } 50% { opacity: 1; transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { {{P}} .item-nota.nx-checking:before { animation: none; opacity: .6; } }
 {{P}} .centered-screen { color: var(--md-sys-color-on-surface-variant); font-size: 18px; }
 {{P}} .spazio_bianco { height: 24px; }
 /* info cards (.spacer): About, version and user at the bottom of Settings: name on the left, value on the right, as a list row */
@@ -324,6 +331,12 @@ html[data-nx-status="info"]:root body[data-ng-app] .bar .title::after { backgrou
   font-variation-settings: 'wdth' 100;
 }
 {{P}} .device-info .device-row:first-child strong span[translate="CONTROLS_DEVICE_NOT_READY"] { font-size: 28px; line-height: 36px; color: var(--md-sys-color-error); }
+{{P}} .device-info .device-row:first-child strong.nx-checking-text {
+  font-size: 28px; line-height: 36px; font-weight: 600; letter-spacing: 0; color: var(--md-sys-color-on-surface-variant);
+  font-variation-settings: 'wdth' 100; animation: nx-fade 1.4s ease-in-out infinite;
+}
+@keyframes nx-fade { 0%, 100% { opacity: .45; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { {{P}} .device-info .device-row:first-child strong.nx-checking-text { animation: none; } }
 {{P}} .device-info .device-row:not(:first-child) {
   display: inline-flex; align-items: center; gap: 6px; margin: 0 4px 8px; padding: 6px 14px;
   border-radius: 12px; background: var(--md-sys-color-surface-container-high); color: var(--md-sys-color-on-surface);
@@ -355,7 +368,7 @@ html[data-nx-status="info"]:root body[data-ng-app] .bar .title::after { backgrou
 }
 {{P}} .device-commands .command:active, {{P}} .device-commands .command.activated { border-radius: 20px; transform: scale(0.965); }
 {{P}} .device-commands .command:has([translate$="_open"]) { background: var(--md-sys-color-primary) !important; color: var(--md-sys-color-on-primary) !important; grid-column: 1; grid-row: 1; }
-{{P}} .device-commands .command:has([translate$="_close"]) { background: var(--md-sys-color-tertiary-container) !important; color: var(--md-sys-color-on-tertiary-container) !important; grid-column: 2; grid-row: 1; }
+{{P}} .device-commands .command:has([translate$="_close"]) { background: var(--md-sys-color-secondary-container) !important; color: var(--md-sys-color-on-secondary-container) !important; grid-column: 2; grid-row: 1; }
 {{P}} .device-commands .command:has([translate$="_stop"]) { background: var(--md-sys-color-error-container) !important; color: var(--md-sys-color-on-error-container) !important; grid-column: 1 / -1; grid-row: 2; height: 80px; min-height: 80px; }
 {{P}} .device-commands .command:has([translate$="_stop"]) span { flex-direction: row; gap: 14px; }
 {{P}} .device-commands .command:has([translate$="_stop"]) span:before { width: 28px; height: 28px; }
