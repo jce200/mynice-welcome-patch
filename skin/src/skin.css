@@ -1,0 +1,455 @@
+/* nx-expressive.css (skin): the MyNice Welcome app in the style of Material 3 Expressive.
+ *
+ * Appearance only, not a single line of logic. Color roles and spring curves come from tokens.css (light and dark follow the
+ * system). Every selector starts with {{P}} (html:root body[data-ng-app], specificity 0,2,2): the original styles
+ * (style.css, ionic.app.css) target elements such as .bar.bar-dark .title and would otherwise win on specificity;
+ * !important is therefore only still needed where the app itself sets inline styles (the title's position).
+ *
+ * Icons are Material paths used as an SVG mask (data URI: a mask loaded from a file is blocked by CORS in a WebView on
+ * file://).
+ */
+
+@font-face {
+  font-family: 'Roboto Flex Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 1000;
+  src: url('../fonts-nx/roboto-flex-latin.woff2') format('woff2');
+}
+
+:root {
+  color-scheme: light dark;
+  --nx-font: 'Roboto Flex Variable', 'Roboto Flex', Roboto, 'Google Sans', system-ui, sans-serif;
+  --nx-bar-h: 80px;
+  --nx-tabs-h: 84px;
+  --nx-r-m: 16px;
+  --nx-r-l: 28px;
+  --nx-gap: 3px;
+  /* fixed brand blue for surfaces where Nice's light-gray wizard icons have to keep standing out */
+  --nx-brand: #1f4fc4;
+  /* the dark "stage" those icons sit on */
+  --nx-stage: #24272f;
+  --nx-sub: none;
+  --nx-dot: transparent;
+  {{ICONS}}
+  --nx-v-circle: {{SHAPE_circle}};
+  --nx-v-cookie: {{SHAPE_cookie}};
+  --nx-v-flower: {{SHAPE_flower}};
+  --nx-v-star: {{SHAPE_star}};
+  --nx-v-sun: {{SHAPE_sun}};
+}
+@media (prefers-color-scheme: dark) {
+  :root { --nx-brand: #3b66d6; --nx-stage: #23262e; }
+}
+
+/* ============================================================ base */
+html:root, {{P}} {
+  background: var(--md-sys-color-surface) !important;
+  color: var(--md-sys-color-on-surface);
+}
+{{P}} {
+  font-family: var(--nx-font);
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+{{P}} *:not([class^="icon"]):not([class*=" icon"]):not([class^="ion"]):not([class*=" ion"]):not(i):not(svg):not(pre):not(code) {
+  font-family: var(--nx-font);
+}
+{{P}} .pane, {{P}} .view, {{P}} ion-view, {{P}} .scroll-content, {{P}} ion-content, {{P}} .scroll, {{P}} .full-container, {{P}} .row {
+  background-color: transparent;
+}
+{{P}} .pane, {{P}} .view, {{P}} .scroll-content { background-color: var(--md-sys-color-surface) !important; color: var(--md-sys-color-on-surface); }
+/* style.css sets `* { color: #323232 }` and then also colors dozens of individual elements: as a result text never inherits its color from its card and stays
+   dark gray on dark in the dark theme. Every element now inherits its color; whatever needs a color of its own gets it further down with a more specific rule. */
+{{P}} *, {{P}} *::before, {{P}} *::after { color: inherit; }
+{{P}} a { color: var(--md-sys-color-primary); }
+{{P}} .setup-wifi-bridge .area.bg-black-one, {{P}} .setup-wifi-bridge .area.bg-blu_nice, {{P}} .setup-wifi-bridge .area.bg-verde, {{P}} .bg-black-one, {{P}} .bg-blu_nice, {{P}} .bg-verde { color: #fff; }
+{{P}} ::selection { background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); }
+
+/* ============================================================ top app bar: title on the left, tonal round buttons */
+{{P}} .bar.bar-header, {{P}} ion-nav-bar .bar, {{P}} .bar-dark.bar, {{P}} .nav-bar-block .bar, {{P}} .nav-bar-block, {{P}} ion-nav-bar {
+  background: var(--md-sys-color-surface) !important;
+  background-image: none !important;
+  color: var(--md-sys-color-on-surface) !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+{{P}} .bar.bar-header {
+  height: var(--nx-bar-h) !important;
+  padding: 12px 14px !important;
+  display: flex !important;
+  align-items: center;
+  gap: 10px;
+}
+{{P}} .has-header, {{P}} .has-subheader { top: var(--nx-bar-h) !important; }
+{{P}} .bar .title, {{P}} .bar.bar-dark .title, {{P}} h1.title {
+  position: relative !important;
+  left: auto !important; right: auto !important; top: auto !important;
+  flex: 1 1 auto; min-width: 0;
+  margin: 0 !important; padding: 0 !important;
+  height: auto !important;
+  text-align: left !important;
+  color: var(--md-sys-color-on-surface) !important;
+  font-size: 26px; line-height: 32px; font-weight: 600; letter-spacing: -0.2px;
+  font-variation-settings: 'wdth' 105;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+{{P}} .bar .title span, {{P}} .title span { color: inherit !important; font-size: inherit; font-weight: inherit; background: none !important; }
+/* the connection status as a chip under the title (see nx-patch.js: --nx-sub, --nx-dot and data-nx-status on <html>); a tap opens the status sheet */
+{{P}} .bar .title::after {
+  content: var(--nx-sub, none);
+  display: block; width: max-content; max-width: 100%; margin-top: 3px; padding: 0 12px 0 25px; height: 24px;
+  font-size: 13px; line-height: 24px; font-weight: 500; letter-spacing: 0.1px; font-variation-settings: 'wdth' 100;
+  color: var(--md-sys-color-on-surface-variant);
+  background: radial-gradient(circle at 13px 12px, var(--nx-dot, transparent) 0 4.5px, transparent 5px) no-repeat, var(--md-sys-color-surface-container-high);
+  border-radius: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  transition: background-color var(--nx-effects-ms) var(--nx-effects);
+}
+html[data-nx-status="bad"]:root body[data-ng-app] .bar .title::after { background-color: var(--md-sys-color-error-container); color: var(--md-sys-color-on-error-container); }
+html[data-nx-status="warn"]:root body[data-ng-app] .bar .title::after { background-color: var(--nx-warn-container); color: var(--nx-on-warn-container); }
+html[data-nx-status="info"]:root body[data-ng-app] .bar .title::after { background-color: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); }
+{{P}} .bar .buttons, {{P}} .bar .left-buttons, {{P}} .bar .right-buttons { display: flex; align-items: center; gap: 8px; margin: 0; padding: 0; }
+{{P}} .bar .button, {{P}} .bar button.button, {{P}} .bar .back-button, {{P}} .bar .button-icon {
+  background: var(--md-sys-color-surface-container-high) !important;
+  color: var(--md-sys-color-on-surface-variant) !important;
+  border: 0 !important; box-shadow: none !important;
+  width: 48px; height: 48px; min-width: 48px; min-height: 48px; padding: 0 !important; margin: 0 !important;
+  border-radius: 50%; display: grid; place-items: center; line-height: 1 !important; font-size: 0;
+  transition: border-radius var(--nx-spring-fast-ms) var(--nx-spring-fast), transform var(--nx-spring-fast-ms) var(--nx-spring-fast), background-color var(--nx-effects-ms) var(--nx-effects);
+}
+{{P}} .bar .button.hide, {{P}} .bar .back-button.hide, {{P}} .bar .ng-hide { display: none !important; }
+{{P}} .bar .button:active, {{P}} .bar .button.activated { border-radius: 16px; transform: scale(0.94); background: var(--md-sys-color-secondary-container) !important; }
+{{P}} .bar .back-text { display: none; }
+/* a button with text (Next, Help, Avanti) becomes a filled pill button instead of a round icon button */
+{{P}} .bar .button.header-item:not(.icon-occhio):not([class*="ion-"]) {
+  width: auto; padding: 0 20px !important; border-radius: 24px; font-size: 15px; font-weight: 600; letter-spacing: 0.1px;
+  background: var(--md-sys-color-primary) !important; color: var(--md-sys-color-on-primary) !important;
+}
+{{P}} .bar .button.ion-ios-arrow-back:before, {{P}} .bar .button.icon-occhio:before, {{P}} .bar .button.ion-android-add:before,
+{{P}} .bar .button.ion-ios-arrow-forward:before {
+  content: '' !important; display: block; width: 24px; height: 24px; background: currentColor; font-size: 0;
+  -webkit-mask: var(--nx-i-arrow-back) center / contain no-repeat; mask: var(--nx-i-arrow-back) center / contain no-repeat;
+}
+{{P}} .bar .button.icon-occhio:before { -webkit-mask-image: var(--nx-i-visibility); mask-image: var(--nx-i-visibility); }
+{{P}} .bar .button.ion-ios-arrow-forward:before { -webkit-mask-image: var(--nx-i-chevron); mask-image: var(--nx-i-chevron); }
+{{P}} .bar .button.ion-android-add:before { -webkit-mask-image: var(--nx-i-add); mask-image: var(--nx-i-add); }
+/* the app's page headers that used to change color per page (green, blue, white): the same surface everywhere. style.css colors everything
+   in the header with !important (.header-bg-blu * { background-color: #69a0fa !important }), the title included: that is undone here */
+{{P}} .header-bg-verde, {{P}} .header-bg-blu, {{P}} .header-bg-white { background: var(--md-sys-color-surface) !important; color: var(--md-sys-color-on-surface) !important; }
+{{P}} .header-bg-verde *, {{P}} .header-bg-blu *, {{P}} .header-bg-white * { background-color: transparent !important; border-color: transparent !important; color: inherit !important; }
+
+/* ============================================================ bottom bar: navigation bar with pill indicator */
+{{P}} .tabs, {{P}} .tab-nav.tabs, {{P}} .tabs-dark > .tabs, {{P}} .tabs-striped.tabs-dark .tabs, {{P}} .tabs-dark.tabs-icon-top > .tabs {
+  background: var(--md-sys-color-surface-container) !important;
+  background-image: none !important;
+  border: 0 !important; box-shadow: none !important;
+  height: var(--nx-tabs-h) !important; max-height: var(--nx-tabs-h);
+  padding: 12px 8px 16px !important;
+  display: flex !important; align-items: flex-start;
+}
+{{P}} .has-tabs, {{P}} .has-tabs-top { bottom: var(--nx-tabs-h) !important; }
+{{P}} .tab-item, {{P}} .tabs-icon-top > .tabs .tab-item, {{P}} .tabs-icon-top.tabs .tab-item {
+  background: none !important; border: 0 !important; opacity: 1 !important;
+  flex: 1 1 0; display: flex !important; flex-direction: column; align-items: center; justify-content: flex-start; gap: 4px;
+  max-width: none; min-width: 0; margin: 0; padding: 0 !important; height: auto !important; line-height: 16px !important;
+  color: var(--md-sys-color-on-surface-variant) !important;
+  font-size: 12px; font-weight: 500; letter-spacing: 0.5px;
+}
+{{P}} .tab-item .tab-title {
+  display: block; margin: 0 !important; padding: 0 !important; color: inherit !important; font-size: 12px; line-height: 16px; font-weight: inherit;
+  transition: color var(--nx-effects-ms) var(--nx-effects);
+}
+{{P}} .tab-item .icon {
+  width: 64px; height: 32px; margin: 0 !important; padding: 0 !important; border-radius: 16px;
+  display: grid !important; place-items: center; font-size: 0 !important; color: inherit !important; line-height: 1 !important;
+  background: transparent; position: relative; top: 0 !important;
+  transition: background-color var(--nx-effects-ms) var(--nx-effects), transform var(--nx-spring-fast-ms) var(--nx-spring-fast);
+}
+{{P}} .tab-item .icon:before {
+  content: '' !important; display: block; width: 24px; height: 24px; background: currentColor; font-size: 0 !important;
+  -webkit-mask: var(--nx-i-star) center / contain no-repeat; mask: var(--nx-i-star) center / contain no-repeat;
+}
+{{P}} .tab-item .icon-casa-dispositivi:before { -webkit-mask-image: var(--nx-i-home); mask-image: var(--nx-i-home); }
+{{P}} .tab-item .icon-settings:before { -webkit-mask-image: var(--nx-i-settings); mask-image: var(--nx-i-settings); }
+{{P}} .tab-item.tab-item-active, {{P}} .tab-item.active { color: var(--md-sys-color-on-surface) !important; }
+{{P}} .tab-item.tab-item-active .tab-title, {{P}} .tab-item.active .tab-title { font-weight: 700; }
+{{P}} .tab-item.tab-item-active .icon, {{P}} .tab-item.active .icon { background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container) !important; }
+{{P}} .tab-item:active .icon { transform: scale(0.9); }
+
+/* ============================================================ lists: a segmented list of cards with large corners at the ends */
+{{P}} .list { margin: 0 !important; padding: 0 16px 24px !important; background: transparent !important; border: 0 !important; }
+{{P}} .list .item-divider, {{P}} .item-divider {
+  background: transparent !important; border: 0 !important;
+  padding: 24px 12px 10px !important; margin: 0 !important;
+  font-size: 14px; line-height: 20px; font-weight: 700; letter-spacing: 0.3px; text-transform: none !important;
+  color: var(--md-sys-color-primary) !important; text-align: left;
+}
+{{P}} .list .item:where(:not(.item-divider):not(.item-input):not(.item-checkbox):not(.item-toggle):not(.item-select):not(.item-radio)),
+{{P}} .item.item-icon-right:where(:not(.item-divider)) {
+  background: var(--md-sys-color-surface-container-low) !important;
+  color: var(--md-sys-color-on-surface) !important;
+  border: 0 !important; margin: 0 0 var(--nx-gap) !important;
+  border-radius: 8px !important;
+  min-height: 64px; padding: 14px 20px !important;
+  font-size: 17px; line-height: 24px; font-weight: 500;
+  display: flex; flex-direction: column; justify-content: center; position: relative; text-align: left;
+  transition: border-radius var(--nx-spring-fast-ms) var(--nx-spring-fast), background-color var(--nx-effects-ms) var(--nx-effects), transform var(--nx-spring-fast-ms) var(--nx-spring-fast);
+}
+{{P}} .item.item-icon-right:where(:not(.item-divider)) { padding-right: 56px !important; }
+{{P}} .list .item-divider + .item:where(:not(.item-divider)), {{P}} .list > .item:first-child:where(:not(.item-divider)), {{P}} .list > form > :first-child {
+  border-top-left-radius: var(--nx-r-l) !important; border-top-right-radius: var(--nx-r-l) !important;
+}
+{{P}} .list .item:where(:not(.item-divider)):has(+ .item-divider), {{P}} .list > .item:last-child:where(:not(.item-divider)), {{P}} .list > form > :last-child {
+  border-bottom-left-radius: var(--nx-r-l) !important; border-bottom-right-radius: var(--nx-r-l) !important;
+}
+{{P}} .list .item:where(:not(.item-divider)):active, {{P}} .list .item.activated:where(:not(.item-divider)) {
+  background: var(--md-sys-color-secondary-container) !important; border-radius: var(--nx-r-m) !important; transform: scale(0.985);
+}
+{{P}} .item .item-nota, {{P}} .item span.item-nota, {{P}} .item-nota, {{P}} .item-nota span, {{P}} a.item .item-nota span {
+  color: var(--md-sys-color-on-surface-variant) !important; font-size: 14px; line-height: 20px; font-weight: 400; letter-spacing: 0.1px;
+  white-space: normal; overflow: visible;
+}
+{{P}} .item-icon-right .icon, {{P}} .item .icon.ion-ios-arrow-forward {
+  color: var(--md-sys-color-on-surface-variant) !important; right: 16px !important; font-size: 0 !important; width: 24px; height: 24px; margin-top: -12px; top: 50% !important;
+}
+{{P}} .item .icon.ion-ios-arrow-forward:before, {{P}} .item-icon-right .icon:before {
+  content: '' !important; display: block; width: 24px; height: 24px; background: currentColor; font-size: 0;
+  -webkit-mask: var(--nx-i-chevron) center / contain no-repeat; mask: var(--nx-i-chevron) center / contain no-repeat;
+}
+/* favorites: a tonal circle with a gate to the left of the name */
+{{P}} .list a.item.item-favorites { padding-left: 84px !important; min-height: 88px; }
+{{P}} .list a.item.item-favorites:before {
+  content: ''; position: absolute; left: 20px; top: 50%; width: 48px; height: 48px; margin-top: -24px; border-radius: 50%;
+  background: var(--md-sys-color-primary-container);
+}
+{{P}} .list a.item.item-favorites:after {
+  content: ''; position: absolute; left: 32px; top: 50%; width: 24px; height: 24px; margin-top: -12px;
+  background: var(--md-sys-color-on-primary-container);
+  -webkit-mask: var(--nx-i-gate) center / contain no-repeat; mask: var(--nx-i-gate) center / contain no-repeat;
+}
+{{P}} a.item.item-favorites .item-nota[translate="CONTROLS_DEVICE_NOT_READY"],
+{{P}} a.item .item-nota[translate="CONTROLS_DEVICE_NOT_READY"] {
+  align-self: flex-start; margin-top: 6px; padding: 2px 10px; border-radius: 10px;
+  background: var(--md-sys-color-error-container); color: var(--md-sys-color-on-error-container) !important; font-size: 12px; font-weight: 600; line-height: 18px;
+}
+{{P}} .centered-screen { color: var(--md-sys-color-on-surface-variant); font-size: 18px; }
+{{P}} .spazio_bianco { height: 24px; }
+/* info cards (.spacer): About, version and user at the bottom of Settings: name on the left, value on the right, as a list row */
+{{P}} .list > .spacer:not(:empty):not(.last), {{P}} .list > div > .spacer:not(:empty):not(.last) {
+  background: var(--md-sys-color-surface-container-low) !important; border: 0 !important; margin: 0 0 var(--nx-gap) !important; border-radius: 8px;
+  padding: 14px 20px !important; min-height: 52px; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  font-size: 16px; line-height: 22px; font-weight: 500; color: var(--md-sys-color-on-surface); text-align: left; z-index: auto;
+}
+{{P}} .spacer .item-note, {{P}} .spacer span.item-note { float: none !important; margin-left: auto; text-align: right; color: var(--md-sys-color-on-surface-variant) !important; font-weight: 400; font-size: 15px; overflow-wrap: anywhere; }
+{{P}} .item-divider + .spacer:not(:empty), {{P}} .list > .spacer:not(:empty):first-child { border-top-left-radius: var(--nx-r-l); border-top-right-radius: var(--nx-r-l); }
+{{P}} .spacer:not(:empty):has(+ .item-divider), {{P}} .spacer:not(:empty):has(+ .spacer:empty), {{P}} .spacer:not(:empty):has(+ .button), {{P}} .list > .spacer:not(:empty):last-child { border-bottom-left-radius: var(--nx-r-l); border-bottom-right-radius: var(--nx-r-l); }
+{{P}} .spacer:empty, {{P}} .spacer.last, {{P}} .tinyspacer { background: transparent !important; border: 0 !important; margin: 0 !important; padding: 6px !important; min-height: 0; }
+{{P}} .bordo_filetto_grigio { border: 0 !important; }
+/* buttons as a list row ("Add Home...") and the red "Reset App" */
+{{P}} button.item.item-button, {{P}} .item-button {
+  width: 100%; text-align: center !important; align-items: center;
+  background: var(--md-sys-color-surface-container-low) !important; color: var(--md-sys-color-primary) !important;
+  font-weight: 600 !important; border-radius: 8px;
+}
+{{P}} .button.item-button.button-assertive, {{P}} .item-button.button-assertive {
+  display: block; margin: 20px 0 0 !important; width: 100%; height: 56px; border-radius: 28px !important;
+  background: var(--md-sys-color-error-container) !important; color: var(--md-sys-color-on-error-container) !important; font-size: 16px; font-weight: 600;
+}
+{{P}} .item-button.button-assertive span { background: none !important; color: inherit !important; }
+
+/* ============================================================ input fields and switches */
+{{P}} .item.item-input, {{P}} label.item.item-input {
+  background: var(--md-sys-color-surface-container-low) !important; border: 0 !important; border-radius: 8px !important;
+  margin: 0 0 var(--nx-gap) !important; padding: 8px 20px !important; min-height: 64px; align-items: center;
+}
+{{P}} .item-input .input-label { color: var(--md-sys-color-on-surface-variant) !important; font-size: 13px; font-weight: 600; text-transform: none; letter-spacing: 0.3px; }
+{{P}} .item-input input, {{P}} .item-input textarea, {{P}} input[type="text"], {{P}} input[type="password"], {{P}} input[type="email"], {{P}} input[type="number"] {
+  color: var(--md-sys-color-on-surface) !important; background: transparent !important; font-size: 17px; caret-color: var(--md-sys-color-primary);
+}
+{{P}} input::placeholder, {{P}} textarea::placeholder { color: var(--md-sys-color-outline) !important; opacity: 1; }
+{{P}} .item-checkbox, {{P}} .item-toggle, {{P}} .item-select { background: var(--md-sys-color-surface-container-low) !important; color: var(--md-sys-color-on-surface) !important; border: 0 !important; border-radius: 8px !important; margin: 0 0 var(--nx-gap) !important; }
+{{P}} .toggle input:checked + .track { background: var(--md-sys-color-primary) !important; border-color: var(--md-sys-color-primary) !important; }
+
+/* ============================================================ buttons */
+{{P}} .button { border-radius: 24px; border: 0; font-weight: 600; letter-spacing: 0.1px; min-height: 48px; line-height: 48px; padding: 0 24px;
+  background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container);
+  transition: border-radius var(--nx-spring-fast-ms) var(--nx-spring-fast), transform var(--nx-spring-fast-ms) var(--nx-spring-fast); }
+{{P}} .button:active, {{P}} .button.activated { border-radius: 14px; transform: scale(0.97); filter: brightness(.96); }
+{{P}} .button.button-positive, {{P}} .button-positive, {{P}} .btn-blu_nice, {{P}} .button.btn-blu_nice { background: var(--md-sys-color-primary) !important; color: var(--md-sys-color-on-primary) !important; }
+{{P}} .button.button-assertive { background: var(--md-sys-color-error-container); color: var(--md-sys-color-on-error-container); }
+{{P}} .button.button-clear, {{P}} .button.button-outline { background: transparent !important; color: var(--md-sys-color-primary) !important; }
+{{P}} .btn-demo { background: var(--md-sys-color-surface-container-high) !important; color: var(--md-sys-color-on-surface) !important; }
+
+/* ============================================================ accessory detail: the hero */
+{{P}} ion-slide-box, {{P}} .slider, {{P}} .slider-slide, {{P}} ion-slide { background: transparent; }
+{{P}} .full-container { display: flex; flex-direction: column; height: 100%; }
+{{P}} .row.flex-2 { height: auto !important; flex: 0 0 auto !important; padding: 0 20px !important; }
+{{P}} .row.flex-3 { height: auto !important; flex: 1 1 0 !important; min-height: 0; padding: 0 !important; display: flex; }
+{{P}} .device-detail.col, {{P}} .col.text-center { display: flex; flex-direction: column; align-items: center; padding: 0 !important; width: 100%; }
+{{P}} .device-icon {
+  position: relative; flex: 0 0 auto; width: 176px; height: 176px; aspect-ratio: 1; margin: 8px auto 4px; padding: 0 !important;
+  display: grid; place-items: center; text-align: center;
+}
+{{P}} .device-icon:before {
+  content: ''; position: absolute; inset: 0; z-index: 0;
+  background: var(--md-sys-color-primary-container);
+  clip-path: var(--nx-v-cookie);
+  transition: clip-path var(--nx-spring-bouncy-ms) var(--nx-spring-bouncy), background-color var(--nx-effects-ms) var(--nx-effects);
+  animation: nx-spin 60s linear infinite;
+}
+{{P}} .device-icon i { position: relative; z-index: 1; font-size: 88px !important; line-height: 1; color: var(--md-sys-color-on-primary-container) !important; transition: color var(--nx-effects-ms) var(--nx-effects); }
+{{P}} .device-icon:has(i.opening):before, {{P}} .device-icon:has(i.closing):before { background: var(--md-sys-color-tertiary-container); clip-path: var(--nx-v-sun); animation-duration: 8s; }
+{{P}} .device-icon:has(i.opening) i, {{P}} .device-icon:has(i.closing) i { color: var(--md-sys-color-on-tertiary-container) !important; }
+{{P}} .device-icon:has(i.open):before { background: var(--nx-ok-container); clip-path: var(--nx-v-flower); }
+{{P}} .device-icon:has(i.open) i { color: var(--nx-on-ok-container) !important; }
+{{P}} .device-icon:has(i.stopped):before { background: var(--nx-warn-container); clip-path: var(--nx-v-flower); }
+{{P}} .device-icon:has(i.stopped) i { color: var(--nx-on-warn-container) !important; }
+{{P}} .device-icon:has(i.status-1):before { background: var(--md-sys-color-error-container); clip-path: var(--nx-v-star); animation-duration: 12s; }
+{{P}} .device-icon:has(i.status-1) i { color: var(--md-sys-color-on-error-container) !important; }
+@keyframes nx-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { {{P}} .device-icon:before { animation: none !important; } }
+
+{{P}} .device-info { padding: 0 !important; max-height: none !important; overflow: visible !important; text-align: center; font-size: 16px; line-height: 24px; color: var(--md-sys-color-on-surface-variant) !important; width: 100%; }
+{{P}} .device-info .device-row { overflow: visible; white-space: normal; }
+{{P}} .device-info .device-row > span[translate="DEVICE_DETAIL_LABEL_STATE"] { display: none; }
+{{P}} .device-info .device-row:first-child { margin: 4px 0 12px; }
+{{P}} .device-info .device-row:first-child strong, {{P}} .device-info .device-row:first-child strong span {
+  font-size: 44px; line-height: 52px; font-weight: 700; letter-spacing: -0.5px; color: var(--md-sys-color-on-surface); display: inline;
+  font-variation-settings: 'wdth' 110;
+}
+{{P}} .device-info .device-row:first-child .status-1 { color: var(--md-sys-color-error) !important; }
+{{P}} .device-info .device-row:first-child strong span[translate="DEVICE_STATE_OBSTRUCTED"] {
+  display: block; font-size: 18px; line-height: 24px; font-weight: 600; letter-spacing: 0; color: var(--md-sys-color-error) !important; margin-top: 2px;
+  font-variation-settings: 'wdth' 100;
+}
+{{P}} .device-info .device-row:first-child strong span[translate="CONTROLS_DEVICE_NOT_READY"] { font-size: 28px; line-height: 36px; color: var(--md-sys-color-error); }
+{{P}} .device-info .device-row:not(:first-child) {
+  display: inline-flex; align-items: center; gap: 6px; margin: 0 4px 8px; padding: 6px 14px;
+  border-radius: 12px; background: var(--md-sys-color-surface-container-high); color: var(--md-sys-color-on-surface);
+  font-size: 14px; line-height: 20px; font-weight: 500; max-width: 46%;
+}
+{{P}} .device-info .device-row:not(:first-child) > span { font-weight: 400; color: var(--md-sys-color-on-surface-variant); }
+
+/* ============================================================ accessory detail: the buttons (Open | Close, Stop below) */
+{{P}} .device-commands {
+  display: grid !important; grid-template-columns: 1fr 1fr; grid-template-rows: minmax(0, 1fr) auto; grid-auto-rows: auto; gap: 10px;
+  padding: 8px 16px 18px; width: 100%; min-height: 0; box-sizing: border-box; flex: 1 1 auto;
+}
+{{P}} .device-commands .command, {{P}} .device-commands a.command {
+  display: grid !important; place-items: center; position: relative; overflow: hidden;
+  width: auto; height: auto; min-height: 96px; border: 0 !important; padding: 0 !important;
+  border-radius: 36px;
+  background: var(--md-sys-color-secondary-container) !important; color: var(--md-sys-color-on-secondary-container) !important;
+  font-size: 24px; font-weight: 650; letter-spacing: -0.2px; line-height: 1.1; text-align: center;
+  transition: border-radius var(--nx-spring-bouncy-ms) var(--nx-spring-bouncy), transform var(--nx-spring-fast-ms) var(--nx-spring-fast), background-color var(--nx-effects-ms) var(--nx-effects);
+}
+{{P}} .device-commands .command span {
+  position: static !important; margin: 0 !important; padding: 0 !important; width: auto !important;
+  display: flex !important; flex-direction: column; align-items: center; gap: 10px;
+  color: inherit !important; font-size: inherit; font-weight: inherit; letter-spacing: inherit; overflow: visible; text-overflow: clip;
+}
+{{P}} .device-commands .command span:before {
+  content: ''; display: block; width: 40px; height: 40px; background: currentColor;
+  -webkit-mask: var(--nx-i-play) center / contain no-repeat; mask: var(--nx-i-play) center / contain no-repeat;
+}
+{{P}} .device-commands .command:active, {{P}} .device-commands .command.activated { border-radius: 20px; transform: scale(0.965); }
+{{P}} .device-commands .command:has([translate$="_open"]) { background: var(--md-sys-color-primary) !important; color: var(--md-sys-color-on-primary) !important; grid-column: 1; grid-row: 1; }
+{{P}} .device-commands .command:has([translate$="_close"]) { background: var(--md-sys-color-tertiary-container) !important; color: var(--md-sys-color-on-tertiary-container) !important; grid-column: 2; grid-row: 1; }
+{{P}} .device-commands .command:has([translate$="_stop"]) { background: var(--md-sys-color-error-container) !important; color: var(--md-sys-color-on-error-container) !important; grid-column: 1 / -1; grid-row: 2; height: 80px; min-height: 80px; }
+{{P}} .device-commands .command:has([translate$="_stop"]) span { flex-direction: row; gap: 14px; }
+{{P}} .device-commands .command:has([translate$="_stop"]) span:before { width: 28px; height: 28px; }
+{{P}} .device-commands .command [translate$="_open"]:before { -webkit-mask-image: var(--nx-i-arrow-up); mask-image: var(--nx-i-arrow-up); }
+{{P}} .device-commands .command [translate$="_close"]:before { -webkit-mask-image: var(--nx-i-arrow-down); mask-image: var(--nx-i-arrow-down); }
+{{P}} .device-commands .command [translate$="_stop"]:before { -webkit-mask-image: var(--nx-i-stop); mask-image: var(--nx-i-stop); }
+/* a single button, or an additional (fourth) button: full width */
+{{P}} .device-commands .command:only-child, {{P}} .device-commands .command.bg-blue-4 { grid-column: 1 / -1; grid-row: auto; }
+
+/* ============================================================ wizard: stage with the light-gray icon, text below it, large button at the bottom */
+{{P}} .setup-wifi-bridge { background: var(--md-sys-color-surface); }
+{{P}} .setup-wifi-bridge .area.bg-black-one, {{P}} .bg-black-one {
+  background-color: var(--nx-stage) !important; border-radius: 0 0 40px 40px; position: relative;
+}
+{{P}} .setup-wifi-bridge .area.bg-blu_nice, {{P}} .bg-blu_nice { background-color: var(--nx-brand) !important; }
+{{P}} .setup-wifi-bridge .area.bg-verde, {{P}} .bg-verde { background-color: var(--nx-ok) !important; }
+{{P}} .setup-wifi-bridge .info { color: var(--md-sys-color-on-surface-variant); text-align: left; background: transparent !important; }
+{{P}} .setup-wifi-bridge .info h2, {{P}} .setup-wifi-bridge .info h4 {
+  color: var(--md-sys-color-on-surface); text-align: left; font-size: 28px; line-height: 36px; font-weight: 600; letter-spacing: -0.2px;
+  padding: 24px 24px 8px !important; margin: 0;
+}
+{{P}} .setup-wifi-bridge .info p { padding: 0 24px; margin: 0 0 8px; font-size: 16px; line-height: 24px; text-align: left; color: var(--md-sys-color-on-surface-variant); }
+{{P}} .setup-wifi-bridge .info p strong, {{P}} .setup-wifi-bridge .info strong { color: var(--md-sys-color-on-surface); }
+{{P}} .setup-wifi-bridge .info .list { padding: 8px 20px 0 !important; }
+{{P}} .setup-wifi-bridge .conferma, {{P}} .setup-wifi-bridge .conferma-two-buttons, {{P}} .setup-wifi-bridge .conferma-three-buttons { padding: 0 16px 16px; box-sizing: border-box; background: transparent !important; }
+{{P}} .setup-wifi-bridge .conferma .button, {{P}} .setup-wifi-bridge .conferma-two-buttons .button, {{P}} .setup-wifi-bridge .conferma-three-buttons .button {
+  height: 64px !important; line-height: 64px; font-size: 18px !important; border-radius: 32px; margin: 0 0 8px; padding: 0 24px;
+}
+{{P}} .setup-wifi-bridge .sceltaDispositivo .button { height: auto !important; min-height: 88px; border-radius: 28px; margin-bottom: 10px; background-color: var(--md-sys-color-surface-container-low) !important; color: var(--md-sys-color-on-surface) !important; }
+{{P}} .bar-footer.bridge_stepper { background: var(--md-sys-color-surface-container-highest) !important; height: 6px !important; max-height: 6px; min-height: 0; padding: 0 !important; border: 0; }
+{{P}} .stepper { background: var(--md-sys-color-primary) !important; border-radius: 0 3px 3px 0; }
+{{P}} .spinner svg, {{P}} .spinner-dark svg, {{P}} ion-spinner svg { stroke: var(--md-sys-color-primary) !important; fill: var(--md-sys-color-primary) !important; }
+{{P}} .setup-wifi-bridge .bg-black-one .spinner svg { stroke: #fff !important; fill: #fff !important; }
+
+/* ============================================================ alerts, loading screen, popups */
+{{P}} .backdrop { background-color: rgba(0, 0, 0, .4) !important; }
+{{P}} .popup { border-radius: 28px !important; background: var(--md-sys-color-surface-container-high) !important; color: var(--md-sys-color-on-surface) !important; box-shadow: 0 8px 24px rgba(0,0,0,.28); width: min(88vw, 360px); overflow: hidden; }
+{{P}} .popup-head { background: transparent !important; border: 0 !important; padding: 24px 24px 0 !important; text-align: left; }
+{{P}} .popup .popup-title { color: var(--md-sys-color-on-surface) !important; font-size: 24px; line-height: 32px; font-weight: 600; text-align: left; }
+{{P}} .popup-body { padding: 12px 24px 8px !important; color: var(--md-sys-color-on-surface-variant) !important; font-size: 14px; line-height: 20px; text-align: left; overflow: visible; }
+{{P}} .popup-buttons { border: 0 !important; padding: 8px 16px 16px !important; display: flex; justify-content: flex-end; gap: 8px; min-height: 0; height: auto; }
+{{P}} .popup-buttons .button { flex: 0 0 auto !important; width: auto; min-height: 40px; height: 40px; line-height: 40px; padding: 0 16px; margin: 0; border-radius: 20px !important; background: transparent !important; color: var(--md-sys-color-primary) !important; font-size: 14px; border: 0 !important; }
+{{P}} .popup-buttons .button.button-positive, {{P}} .popup-buttons .button.button-assertive { background: transparent !important; color: var(--md-sys-color-primary) !important; }
+{{P}} .loading-container .loading { border-radius: 28px; background: var(--md-sys-color-surface-container-high) !important; color: var(--md-sys-color-on-surface) !important; }
+{{P}} .action-sheet-backdrop .action-sheet, {{P}} .action-sheet { border-radius: 28px 28px 0 0; background: var(--md-sys-color-surface-container-low); }
+
+/* ============================================================ the LOG button: small, round, tonal (debuglog.js) */
+{{P}} #nx-log-button {
+  left: 12px !important; bottom: calc(var(--nx-tabs-h) + 12px) !important; width: 40px; height: 40px; padding: 0 !important; border-radius: 50% !important;
+  background: var(--md-sys-color-surface-container-highest) !important; color: var(--md-sys-color-on-surface-variant) !important;
+  opacity: .72 !important; display: grid !important; place-items: center; font-size: 0 !important; box-shadow: none !important;
+}
+{{P}} #nx-log-button:before { content: ''; display: block; width: 22px; height: 22px; background: currentColor; -webkit-mask: var(--nx-i-bug) center / contain no-repeat; mask: var(--nx-i-bug) center / contain no-repeat; }
+
+/* ============================================================ selection lists (ion-radio): no fixed height, check mark on the right */
+{{P}} .item-radio, {{P}} label.item.item-radio {
+  background: var(--md-sys-color-surface-container-low) !important; color: var(--md-sys-color-on-surface) !important; border: 0 !important;
+  border-radius: 8px !important; margin: 0 0 var(--nx-gap) !important; padding: 0 !important; min-height: 64px; display: block; position: relative;
+}
+{{P}} .item-radio .item-content { background: transparent !important; padding: 20px 56px 20px 20px !important; font-size: 17px; line-height: 24px; font-weight: 500; min-height: 64px; box-sizing: border-box; }
+{{P}} .item-radio .radio-icon { color: var(--md-sys-color-primary) !important; right: 16px !important; font-size: 24px; }
+{{P}} .item-radio input:checked ~ .item-content { background: var(--md-sys-color-secondary-container) !important; color: var(--md-sys-color-on-secondary-container); border-radius: inherit; }
+{{P}} .list > .item-radio:first-of-type, {{P}} .list > .item-divider + .item-radio { border-top-left-radius: var(--nx-r-l) !important; border-top-right-radius: var(--nx-r-l) !important; }
+{{P}} .list > .item-radio:last-of-type { border-bottom-left-radius: var(--nx-r-l) !important; border-bottom-right-radius: var(--nx-r-l) !important; }
+{{P}} .card { background: var(--md-sys-color-surface-container-low) !important; border: 0 !important; border-radius: var(--nx-r-l) !important; box-shadow: none !important; margin: 8px 16px !important; overflow: hidden; }
+{{P}} .card .item { background: transparent !important; border: 0 !important; }
+{{P}} .item.item-text-wrap, {{P}} .item-body { background: transparent !important; color: var(--md-sys-color-on-surface-variant); }
+/* the LOG button must not cover the accessory's control buttons */
+html:root body[data-ng-app]:has(.device-commands) #nx-log-button { display: none !important; }
+
+/* ============================================================ start page: two large tiles */
+{{P}} .start-commands { display: grid !important; grid-template-rows: 1fr 1fr; gap: 12px; padding: 12px 16px 20px; box-sizing: border-box; width: 100%; height: 100%; }
+{{P}} .start-commands .command {
+  display: grid !important; place-items: center; position: relative; overflow: hidden; border-radius: 40px; border: 0 !important; padding: 24px !important;
+  font-size: 28px; line-height: 1.15; font-weight: 600; letter-spacing: -0.2px; text-align: center;
+  background: var(--md-sys-color-primary) !important; color: var(--md-sys-color-on-primary) !important;
+  transition: border-radius var(--nx-spring-bouncy-ms) var(--nx-spring-bouncy), transform var(--nx-spring-fast-ms) var(--nx-spring-fast);
+}
+{{P}} .start-commands .command.bg-blue-two { background: var(--md-sys-color-tertiary-container) !important; color: var(--md-sys-color-on-tertiary-container) !important; }
+{{P}} .start-commands .command span { position: static !important; margin: 0 !important; padding: 0 !important; width: auto !important; color: inherit !important; display: block !important; }
+{{P}} .start-commands .command:active, {{P}} .start-commands .command.activated { border-radius: 24px; transform: scale(0.97); background: var(--md-sys-color-primary); }
+
+/* style.css gives every .item a fixed height of 58 px with !important: multi-line text overflowed it */
+{{P}} .item { height: auto !important; }
+{{P}} .start-commands .command, {{P}} .start-commands .command span { text-decoration: none !important; }
+
+/* style.css explicitly colors .item span (#323232) and .buttons (#69a0fa): unreadable in the dark theme and a blue square behind the button, respectively */
+{{P}} .item span, {{P}} a.item span, {{P}} .item-radio .item-content, {{P}} .item strong, {{P}} .item-content span { color: inherit; }
+{{P}} .buttons, {{P}} .bar .buttons, {{P}} .bar .left-buttons, {{P}} .bar .right-buttons, {{P}} .buttons-left, {{P}} .buttons-right { background: transparent !important; }
+
+/* standalone rows in the wizard (Add accessory: "Scanning...", the explanation below it), outside a .list: the same card, or just plain text */
+{{P}} .setup-wifi-bridge .info > .item:where(:not(.button):not(.item-divider):not(.item-text-wrap)) {
+  background: var(--md-sys-color-surface-container-low) !important; border: 0 !important; border-radius: var(--nx-r-l) !important; margin: 8px 20px !important;
+  padding: 16px 20px !important; min-height: 56px; display: flex; align-items: center; color: var(--md-sys-color-on-surface) !important; font-size: 16px; text-align: left;
+}
+{{P}} .setup-wifi-bridge .info > .item.item-text-wrap { background: transparent !important; border: 0 !important; padding: 8px 24px !important; margin: 0 !important; min-height: 0; }
+{{P}} .setup-wifi-bridge .info .button.button-full { width: calc(100% - 40px); margin: 8px 20px; }

@@ -1,0 +1,116 @@
+# MyNice Welcome patch (unofficial)
+
+Patch scripts that turn **your own copy** of the *MyNice Welcome* 2.2.0 Android app (`com.nice.nhk`) into a build that works on
+modern Android (10 and newer) with **Nice IT4WIFI** modules (Robus and other gate and garage-door openers). It also fixes the
+app's trouble with VPNs and mobile data, adds a connection-status sheet with a real diagnosis, and gives the app a Material 3
+Expressive look (light and dark).
+
+> **Unofficial, and not affiliated with Nice S.p.A.** This repository contains **no Nice binaries**: no original APK and no
+> patched APK. You build the patched app yourself, from an APK you obtained yourself. See [NOTICE.md](NOTICE.md).
+>
+> **Gates and garage doors can hurt people.** This changes only the phone app; it does not touch the module or the motor
+> controller. Use it at your own risk, with the gate in sight, and see the [license](LICENSE) (no warranty).
+
+![The patched app, light and dark](docs/screenshots/overview.png)
+
+## What it fixes and adds
+
+- **Pairing on Android 10+.** The wizard joins the accessory's Wi-Fi through Android's `WifiNetworkSpecifier` dialog (the old Wi-Fi
+  APIs no longer work), falls back to the manual route, waits longer for slow modules, and fills in the home network when Android
+  no longer lists known networks.
+- **"Not usable" while the accessory is online.** When mDNS finds nothing, the app now tries the accessory's saved IP address,
+  retries the reachability check, and rebuilds a stuck connection by itself.
+- **VPN (Tailscale, WireGuard, ...) and mobile data.** A VPN that apps cannot bypass makes Android refuse the app's
+  `Network.bindSocket` call (`EPERM`), and the original app does that on every connection, so everything failed with the VPN on.
+  The patched app falls back to a normal socket. It also chooses between the local connection and the Nice cloud on what actually
+  works, so it works away from home too (through the cloud).
+- **Approve new users.** A popup "X requests access" for pairing requests, for example from a Home Assistant integration.
+- **A connection status you can read.** A chip under the page title ("Accessory online · cloud", "Accessory not reachable · no
+  Wi-Fi, VPN, mobile"), and a sheet behind it with the route (phone, cloud, accessory), the measurements (TCP and TLS times),
+  plain-language advice and buttons for *Reconnect*, *New users*, *Copy* and *Log*.
+
+  ![The status sheet: online over Wi-Fi, online through the Nice cloud with a VPN, not reachable, and the accessory's own Wi-Fi](docs/screenshots/status-states.png)
+
+- **A log without secrets.** Passwords, setup codes and tokens are masked in the in-app log, and a log line that printed Wi-Fi
+  passwords is gone.
+- **A new look.** Material 3 Expressive: colors, shapes, a gate icon that changes shape with its state. Light and dark follow the
+  system. It is a CSS layer; no function of the app changed.
+
+The accessory is what the app calls it ("Add accessory"): the IT4WIFI (or CORE) Wi-Fi module of your gate opener.
+
+## What you need
+
+- JDK 17 or newer (`javac` and `keytool`), Python 3, bash (Linux, macOS, WSL, or Git Bash on Windows) and `curl`.
+- The original app: **MyNice Welcome 2.2.0 (build 90)**, package `com.nice.nhk`. The patches were written against the file with
+  SHA-256 `115b403234f49726005905f52bcc4c8fbacc4f78e1f0c1d8adf3e28990f058ef`. Get it yourself: from your own phone if it is still
+  installed (`adb shell pm path com.nice.nhk`, then `adb pull <path>`) or from an APK mirror. I don't host it. Every patch checks
+  that its anchor text occurs exactly once, so a different build fails loudly instead of being patched wrongly.
+
+## Build
+
+```
+./get-tools.sh                               # once: downloads apktool and friends into ./tools, checked on SHA-256
+./build.sh /path/to/MyNiceWelcome_2.2.0.apk
+# result: out/MyNiceWelcome_2.2.0_nx10.apk
+```
+
+The first build creates **your own signing key** in `keys/` (with a random password in `keys/password.txt`). Keep that folder
+private and never commit it: whoever has it can build an APK that installs over your app. Use the same key for every later build,
+otherwise Android refuses to update the app and its data (the pairing with your accessory) is lost. To use an existing key:
+`KS=/path/key.jks KSPASS=secret ./build.sh ...`.
+
+## Install
+
+The patched app is signed with your key, not Nice's, so Android won't install it over the official app: **uninstall the official
+MyNice Welcome first**. The accessory stays paired and online, but the app's own data goes with it, so you pair again with the
+setup code on the back of the accessory (use the same user name as before, otherwise the accessory asks the administrator for
+permission). Later builds made with the same key install over the previous one without losing anything.
+
+## Tests
+
+```
+npm install            # only for the jsdom tests
+./get-tools.sh         # only for the Java tests (android-all)
+./test-all.sh
+```
+
+That runs the checks of `nx-patch.js` in a simulated Angular/Cordova environment (jsdom), the log masking, the CSS itself, and the
+logic of the native layer on a plain JVM. What no test can show: how the patched app behaves on a real phone, a real VPN or your
+accessory. I developed it against one phone and one IT4WIFI module, diagnosing from that phone's logs.
+
+`harness/` can also run the app's screens in headless Chromium with a simulated Cordova bridge and take screenshots (that is how
+the pictures in this README were made, with made-up data; `harness/make-screenshots.py` redoes them); see `harness/README.md`.
+
+## How it works
+
+Three layers, applied by the `patch-*.py` scripts to the unpacked app:
+
+1. **Hooks in the app's smali** (`ConnectionsManager`, `WifiWizard`, `JmDNSDiscoveryService`, the manifest and `config.xml`) that call
+   into the new code.
+2. **A native layer** `com.nice.patch` (`java/src`, compiled to a second dex): `Nx` (network state, probes, local-or-cloud choice,
+   the socket fallback), `NxWifi` (joining the accessory's Wi-Fi) and `NxPlugin` (the Cordova bridge to JavaScript).
+3. **A JavaScript layer** in the WebView: `nx-patch.js` (status chip and sheet, diagnosis, user approval, automatic recovery),
+   `debuglog.js` (the log) and the skin in `skin/` (generated from `skin/src/` by `build-css.py`; change the source, not the result).
+
+The full notes, with the diagnoses that led to each fix, are in [docs/DETAILS.md](docs/DETAILS.md).
+
+## Known limits
+
+- Only version 2.2.0 (90) of the app. Newer builds need new anchors.
+- On a network that uses the same address range as your home (192.168.1.x at someone else's house) the app tries the home address
+  first, so the cloud route is not tried there.
+- The skin uses CSS `:has()` and spring easing (`linear()`): fully visible from Android System WebView 113; an older WebView loses
+  some shapes and animations, not the function.
+- The app's own screens follow the phone's language (the app ships 17 languages). The texts this patch adds (status chip and sheet,
+  diagnosis, approval popup, error messages) are English only; translations are welcome, the strings are in `nx-patch.js`.
+- Only the Latin subset of Roboto Flex is included.
+
+## Contributing
+
+Issues are welcome, with the text from the status sheet (*Technical details* > *Copy*); the issue form says how. No support is
+promised. Please don't attach APKs or the original app.
+
+## License
+
+MIT for the code in this repository (see [LICENSE](LICENSE)); third-party parts are listed in [NOTICE.md](NOTICE.md). The license
+does not cover the Nice app that the scripts patch.

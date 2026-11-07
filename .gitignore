@@ -1,0 +1,25 @@
+# build output and tools (get-tools.sh downloads the tools again)
+/out/
+/tools/
+/java/out/
+/venv/
+node_modules/
+__pycache__/
+.build/
+.DS_Store
+
+# THE SIGNING KEY: never in git. Whoever has it can build an APK that installs over your installed app.
+/keys/
+*.jks
+*.keystore
+*.p12
+password.txt
+
+# no APKs in this repo: not the original (Nice's) and not the patched one (it contains their code)
+*.apk
+*.aab
+*.xapk
+
+# output of the test harness
+/harness/shots/
+/harness/www/
