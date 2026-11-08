@@ -69,6 +69,21 @@
     return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
   }
 
+  // ------------------------------------------------------------------ colors (nx21)
+  // Settings > Appearance > Colors: one of the palettes of the skin (tokens.css). The choice is in localStorage ('nxPalette') and on <html> as
+  // data-nx-palette; nx-theme.js puts it there before the first paint. The first palette is the one that the tokens have on :root, so for that
+  // one nothing is saved and nothing is set. The ids are the names of the palettes in tokens.css and of the pattern in nx-theme.js.
+  var PALETTES = [['midnight', 'Midnight'], ['nice', 'Nice blue'], ['graphite', 'Graphite'], ['paper', 'Paper'], ['violet', 'Violet'], ['pine', 'Pine'], ['ember', 'Ember']];
+  var PALETTE_KEY = 'nxPalette';
+  function paletteIndex(id) { for (var i = 0; i < PALETTES.length; i++) if (PALETTES[i][0] === id) return i; return -1; }
+  function readPalette() {
+    try { var p = window.localStorage.getItem(PALETTE_KEY); return paletteIndex(p) > 0 ? p : PALETTES[0][0]; } catch (e) { return PALETTES[0][0]; }
+  }
+  function applyPalette(id) {
+    var r = document.documentElement;
+    if (paletteIndex(id) > 0) r.setAttribute('data-nx-palette', id); else r.removeAttribute('data-nx-palette');
+  }
+
   // ------------------------------------------------------------------ 1. error messages
   window.__nxMsg = function (e, fallback) {
     try {
@@ -412,6 +427,22 @@
         tuneStatusBar();
         log('theme', mode);
       } catch (e) { log('theme', String(e)); }
+    };
+    // colors: the same for the palette (patch-13 shows the swatches); the status bar takes the surface color of the new palette at once
+    var paletteNow = readPalette();
+    applyPalette(paletteNow);    // nx-theme.js did this already; here in case that script is not there
+    $rootScope.nxPalettes = PALETTES.map(function (p) { return { id: p[0], label: p[1] }; });
+    $rootScope.nxPalette = function () { return paletteNow; };
+    $rootScope.nxPaletteLabel = function () { return PALETTES[paletteIndex(paletteNow)][1]; };
+    $rootScope.nxSetPalette = function (id) {
+      try {
+        if (typeof id !== 'string' || paletteIndex(id) < 0) return;
+        paletteNow = id;
+        try { if (paletteIndex(id) === 0) window.localStorage.removeItem(PALETTE_KEY); else window.localStorage.setItem(PALETTE_KEY, id); } catch (e) { log('palette: not saved', String(e)); }
+        applyPalette(id);
+        tuneStatusBar();
+        log('palette', id);
+      } catch (e) { log('palette', String(e)); }
     };
     $rootScope.nxExtra = extraCodes;
     $rootScope.nxQuickHas = function (device, code) { return quickCodes(device).indexOf(code) >= 0; };
@@ -1279,6 +1310,7 @@
 
     window.NX = { diagnose: diagnose, reconnect: reconnect, checkWaitingUsers: checkWaitingUsers, refresh: refreshPill, open: openSheet, close: closeSheet,
       theme: function (mode) { if (mode) $rootScope.nxSetTheme(mode); return themeNow; },
+      palette: function (id) { if (id) $rootScope.nxSetPalette(id); return paletteNow; },
       activity: function (device) {
         if (!activity) return;
         var d = device || (allDevices()[0] || {}).device;

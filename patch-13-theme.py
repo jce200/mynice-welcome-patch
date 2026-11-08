@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
-"""Patch nx12 (theme): a choice between Auto, Light and Dark in the settings of the app.
+"""Patch nx12/nx21 (theme and colors): a choice between Auto, Light and Dark, and between the palettes, in the settings of the app.
 
 Usage: python patch-13-theme.py <apktool-output-dir>   (all or nothing; idempotent)
 
 The skin has a light and a dark palette and picks one with the WebView's prefers-color-scheme. Android's WebView takes that from
 the Android theme of the app, and the theme of the Nice app is a dark base theme (Theme.DeviceDefault), so the app does not
 necessarily follow the phone, and there was no way to choose. Now:
-  js/nx-theme.js (new, in <head> before the stylesheets): puts the saved choice on <html> (data-nx-theme) before the first paint
+  js/nx-theme.js (new, in <head> before the stylesheets): puts the saved choices on <html> (data-nx-theme, data-nx-palette) before the first paint
   index.html: loads it
-  templates/settings/settings.html: a row "Theme" with Auto | Light | Dark under the settings of the connection
-nx-patch.js (nxTheme, nxSetTheme) saves the choice and applies it at once; the color tokens answer to data-nx-theme. Where nxSetTheme
-does not exist (nx-patch.js did not load) the row is not shown.
+  templates/settings/settings.html: a row "Theme" with Auto | Light | Dark, and (nx21) a row "Colors" with the palettes as round swatches, under the
+  settings of the connection
+nx-patch.js (nxTheme, nxSetTheme, nxPalettes, nxPalette, nxSetPalette) saves the choices and applies them at once; the color tokens answer to
+data-nx-theme and data-nx-palette. Where nxSetTheme / nxSetPalette does not exist (nx-patch.js did not load) the rows are not shown.
 """
 import os
 import shutil
@@ -64,6 +65,13 @@ ROW = ('    <div class="item item-divider" data-ng-if="nxSetTheme">Appearance</d
        '      <div class="nx-seg" role="radiogroup" aria-label="Theme">\n'
        + seg("auto", "Auto") + seg("light", "Light") + seg("dark", "Dark") +
        '      </div>\n'
+       '    </div>\n'
+       '    <div class="item nx-palette-row" data-ng-if="nxSetPalette">\n'
+       '      <div class="nx-palette-head"><span>Colors</span><small>{{ nxPaletteLabel() }}</small></div>\n'
+       '      <div class="nx-swatches" role="radiogroup" aria-label="Colors">\n'
+       '        <a class="nx-swatch" role="radio" tabindex="0" data-ng-repeat="p in nxPalettes" data-nx-pal="{{ p.id }}" data-ng-class="{ \'nx-on\': nxPalette() === p.id }" '
+       'aria-checked="{{ nxPalette() === p.id }}" aria-label="{{ p.label }}" title="{{ p.label }}" data-ng-click="nxSetPalette(p.id)"></a>\n'
+       '      </div>\n'
        '    </div>\n\n')
 settings = settings.replace(DIVIDER, ROW + DIVIDER)
 
@@ -71,4 +79,4 @@ settings = settings.replace(DIVIDER, ROW + DIVIDER)
 shutil.copy(src_path, os.path.join(WWW, "js", "nx-theme.js"))
 write_text(idx_path, idx)
 write_text(set_path, settings)
-print("patched (nx12 theme): js/nx-theme.js, index.html, settings.html")
+print("patched (nx12/nx21 theme and colors): js/nx-theme.js, index.html, settings.html")

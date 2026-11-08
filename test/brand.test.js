@@ -241,7 +241,13 @@ const SCALE = (r) => r / (CIRCLE[2] + 0.5);                                // so
 }
 
 // ---- the splash screens: the sizes of the original app, light and dark, the logo in the middle
-const LIGHT = [0xF6, 0xFA, 0xFE], DARK = [0x0F, 0x14, 0x17];
+// the field of the splash screens is the surface of the DEFAULT palette of the skin: the first light block and the first dark block of tokens.css (the other palettes
+// come after those and are chosen in the app; the native splash screen cannot know the choice)
+const TOKENS = fs.readFileSync(path.join(ROOT, 'skin', 'src', 'tokens.css'), 'utf8'), MEDIA = TOKENS.indexOf('@media (prefers-color-scheme: dark)');
+const surfaceOf = (text) => ((text.match(/--md-sys-color-surface:\s*#([0-9a-f]{6})/i) || [])[1] || '').toUpperCase();
+const LIGHT_HEX = '#' + surfaceOf(TOKENS.slice(0, MEDIA)), DARK_HEX = '#' + surfaceOf(TOKENS.slice(MEDIA));
+const rgbOf = (hex) => [1, 3, 5].map((i) => parseInt(hex.substr(i, 2), 16));
+const LIGHT = rgbOf(LIGHT_HEX), DARK = rgbOf(DARK_HEX);
 {
   const badSize = [], badColor = [], badLogo = [], tooBig = [];
   for (const [d, [w, h]] of Object.entries(SCREENS)) for (const [o, ww, hh] of [['port', w, h], ['land', h, w]]) {
@@ -263,7 +269,7 @@ const LIGHT = [0xF6, 0xFA, 0xFE], DARK = [0x0F, 0x14, 0x17];
   }
   ok('the 12 splash pictures have the sizes of the originals, and so do their 12 night variants (portrait and landscape, six densities)', badSize.length === 0, badSize.join(' | '));
   ok('...they are small (a plain field and a logo)', tooBig.length === 0, tooBig.join(', '));
-  ok('...the field is the surface of the light theme of the skin (#F6FAFE), and #0F1417 for the night mode, in all four corners; RGB, no alpha', badColor.length === 0, badColor.join(' | '));
+  ok('...the field is the surface of the light theme of the default palette (' + LIGHT_HEX + '), and ' + DARK_HEX + ' for the night mode, in all four corners; RGB, no alpha', /^#[0-9A-F]{6}$/.test(LIGHT_HEX) && /^#[0-9A-F]{6}$/.test(DARK_HEX) && badColor.length === 0, badColor.join(' | '));
   ok('...the logo is in the middle and 27 % of the shorter side high, also in landscape', badLogo.length === 0, badLogo.join(' | '));
   const day = decode(read('res/drawable-port-xxhdpi/screen.png'), 'day'), night = decode(read('res/drawable-port-night-xxhdpi/screen.png'), 'night');
   let same = 0, opaque = 0;
@@ -306,9 +312,8 @@ const LIGHT = [0xF6, 0xFA, 0xFE], DARK = [0x0F, 0x14, 0x17];
   const ai = read('res/mipmap-anydpi-v26/ic_launcher.xml').toString(), v = read('res/values/nx_brand.xml').toString(), vn = read('res/values-night/nx_brand.xml').toString(), v31 = read('res/values-v31/nx_brand.xml').toString();
   ok('the adaptive icon has a background (a color), and a foreground and a monochrome layer (both mipmaps of the app)', /<adaptive-icon /.test(ai) && /<background android:drawable="@color\/nx_icon_background"\/>/.test(ai) &&
     /<foreground android:drawable="@mipmap\/ic_launcher_foreground"\/>/.test(ai) && /<monochrome android:drawable="@mipmap\/ic_launcher_monochrome"\/>/.test(ai));
-  const tokens = fs.readFileSync(path.join(ROOT, 'skin', 'src', 'tokens.css'), 'utf8');
-  const surfaces = Array.from(new Set(Array.from(tokens.matchAll(/--md-sys-color-surface:\s*(#[0-9a-f]{6})/gi)).map((m) => m[1].toUpperCase())));
-  ok('the colors of the field are the surface colors of the skin: ' + surfaces.join(' and ') + ' (light and dark; skin/src/tokens.css)', surfaces.join() === '#F6FAFE,#0F1417' &&
+  const surfaces = [LIGHT_HEX, DARK_HEX];
+  ok('the colors of the field are the surface colors of the default palette of the skin: ' + surfaces.join(' and ') + ' (light and dark; the first blocks of skin/src/tokens.css)',
     new RegExp('<color name="nx_splash_field">' + surfaces[0] + '</color>').test(v) && new RegExp('<color name="nx_splash_field">' + surfaces[1] + '</color>').test(vn), surfaces.join());
   ok('the background of the adaptive icon is white (the logo is made for it)', /<color name="nx_icon_background">#FFFFFF<\/color>/.test(v));
   ok('the theme NxTheme is the old one (Theme.DeviceDefault.NoActionBar) with the field as the color of the window', /<style name="NxTheme" parent="@android:style\/Theme\.DeviceDefault\.NoActionBar">/.test(v) && /windowBackground">@color\/nx_splash_field/.test(v));

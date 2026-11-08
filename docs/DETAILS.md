@@ -1,8 +1,57 @@
 # Details and history
 
 This is the technical background to the [README.md](../README.md): why every change exists, with the diagnoses that led to them
-(nx3 through nx20: the project's build numbers). The example values (Wi-Fi `HomeWifi`, accessory `NiceIT4WIFIAABBCC`, user
+(nx3 through nx21: the project's build numbers). The example values (Wi-Fi `HomeWifi`, accessory `NiceIT4WIFIAABBCC`, user
 `homeuser`) stand in for whatever is different in your case. The data in this document comes from one phone and one IT4WIFI module.
+
+## What is new in nx21 (new color palettes, and a choice of seven)
+
+nx21 has version code 20201119 and installs over nx20 when it is signed with the same key. Nothing changed in the network layer
+(the native layer only reports `nx-21` as its version); in the app only the colors of the skin changed, and the settings have a row *Colors* next to *Theme*.
+
+**What was reported.** *"I want nicer color palettes. I don't like the current one."* (with a screenshot of the accessory screen in the dark theme: *Not usable*, the red chip, the big red *Stop*.)
+It was the second palette that did not please (nx9: the "vibrant" scheme, electric blue next to lavender and pink; nx11 to nx20: a petrol). What is wrong with the petrol, seen on that screenshot:
+- the seed color #1E6A8A has hue 233 and chroma 36 (in HCT, Material's color space): gray and a little green. The big shape behind the state was #004D67 on a near-black with a green cast
+  (#0F1417): about 2:1, a muddy teal;
+- Material's error container in the dark theme is a saturated deep red (#93000A). The skin uses it for *Stop*, the red chip and the star of a gate that cannot be used, so a screen with a
+  problem had three reds at once (also the salmon *Not usable*), and the biggest one was a bar across the whole width;
+- *Open* was a pale sky blue next to a slate *Close*;
+- and the app now has the logo of Nice as its icon, a different blue (hue 256, chroma 50, the gradient of the logo goes from #195592 to #3789DC): the app did not fit its own icon.
+
+**What it is now.** A palette is no longer one seed color run through the "tonal spot" scheme. Each is a few tonal palettes of its own (hue and chroma for the primary, the secondary and the tertiary
+palette, and for the neutral palette that the surfaces come from), and Material's own tone logic turns them into the roles, so the pairs of text and background keep their contrast.
+`skin/src/tools/build-tokens.mjs` has the table (`node build-tokens.bundle.mjs --only ember` shows one palette on its own). The seven, and why:
+
+| palette | primary | surfaces | what for |
+|---|---|---|---|
+| **Midnight** (the default) | the blue of the Nice logo, a little more vivid (hue 262) | cool white; navy in the dark theme (#0C1321) | fits the icon and the splash screen; the most depth in the dark theme |
+| **Nice blue** | the blue of the logo itself (hue 257) | cool white; charcoal in the dark theme | the same blue on neutral surfaces |
+| **Graphite** | one vivid azure | gray, without a tint | the quietest |
+| **Paper** | the blue again | warm paper in the light theme, warm charcoal in the dark | a blue accent on a warm base |
+| **Violet** | violet (hue 296) | a hint of lilac | the Material baseline look |
+| **Pine** | deep green-teal (hue 172) | a hint of green | a gate in a garden; its status green is a little yellower than the button green |
+| **Ember** | terracotta (hue 38) | warm cream and brown-black | warm and different |
+
+**The error color.** In the dark themes the error container is a wine red (hue 14, chroma 52, tone 24; in the light themes a pale rose, as before). Tried on the screenshot of the report: hue 24 was a rusty
+brown, hue 4 and 350 went to burgundy and plum, hue 12 to 14 is a red with depth that does not shout. The salmon *Not usable* and the red chip are made from it, so that the red of a problem is one red.
+
+**The choice** (Settings > Appearance > Colors; `patch-13-theme.py`, `nxSetPalette` in `nx-patch.js`, `nx-theme.js`): seven round swatches (the primary color of the palette against its dark surface), the one in
+use with a ring and its name above. The choice is in localStorage (`nxPalette`) and on `<html>` as `data-nx-palette`; the early script puts it there before the first paint, like the theme. The first palette is
+what the tokens have without an attribute, so for it nothing is saved and nothing is set. The status bar of Android follows at once. Every other palette has its three blocks in `tokens.css` (light, dark as the
+WebView reports it, dark chosen), each more specific than any default block, so the order does not matter; the theme (Auto, Light, Dark) and the palette are independent. To add a palette: the table in
+`build-tokens.mjs`, `PALETTES` in `nx-patch.js`, the pattern in `nx-theme.js` and a swatch rule in `skin.css`; `test/skin.test.js` says what is missing.
+
+**What does not follow the choice.** The native splash screen and the window behind the app have the colors of the default palette (Midnight): the native side cannot know the choice, and the splash screen is
+generated from the surface of the first palette (`brand/assets.py`; `test/brand.test.js` checks that). With another palette the app opens in Midnight's colors for a moment and then changes. The icon, the logo on
+the splash screen and the icon of the notifications do not depend on the palette (the notifications are tinted with the blue of the logo).
+
+**Not seen on a phone.** The palettes were looked at in the harness (headless Chromium: the real app with a simulated bridge), light and dark, on the accessory screen in the state of the report, the status sheet and
+the settings, and the swatches were tapped in the real Angular app (what jsdom cannot check: the template of the row). How they look on your screen, next to your own icons and in daylight, is for you to say.
+
+Tests: `test/skin.test.js` has 38 checks (10 new: every palette has its three blocks, the same 43 color properties as the default and plain #rrggbb, the two dark blocks are the same, 22 pairs of text and background
+in 7 palettes and 2 themes (the lowest is 4.8:1), the error container is not Material's deep red, the swatches, and that the lists in `nx-patch.js` and `nx-theme.js` agree with `tokens.css`),
+`test/nxpatch.test.js` 291 (19 new: the list, the default, saving, junk, the status bar, theme and palette independent, the early script), `test/brand.test.js` 46 (the splash colors come from the default palette in
+`tokens.css`). Five deliberate breaks of the CSS and five of the scripts were each caught.
 
 ## What is new in nx20 (the logo of Nice: icon, notification icon and splash screen)
 
@@ -463,14 +512,14 @@ chip for a few seconds, and a chip that said "online" before anything had been c
 - An accessory that nobody checks (the app only checks the ones on the screen) is checked by the patch 2.5 s after startup, with the
   same new attempts, but not while the phone is on the accessory's own Wi-Fi.
 
-**Palette.** The scheme is now a calm petrol blue: seed color #1E6A8A in the Material scheme "tonal spot" (before: the "vibrant" scheme
+**Palette.** (Replaced in nx21 by seven palettes, see above; what follows is how it was from nx11 to nx20.) The scheme is now a calm petrol blue: seed color #1E6A8A in the Material scheme "tonal spot" (before: the "vibrant" scheme
 with seed #3A6FF7: electric blue next to lavender and pink). Surfaces, *Open*, *Close* and the sheet now come from one color family:
 *Close* is a soft tint of it (secondary container) instead of a third hue, and the green, amber and red of the statuses stand out
 because the rest is calm. The wizard screens follow too: the dark "stage" for Nice's light-gray icons and the brand surface of the welcome
 screen are derived from the scheme (`--nx-stage`, `--nx-brand`, in `tokens.css`) instead of being fixed colors. Contrast of the
 main pairs (text on surface, on primary, on the containers, white on the brand surface): 4.8:1 at the lowest (dark theme, white on the
-brand surface), 6.5:1 and more everywhere else. `skin/src/tools/build-tokens.mjs` takes `--seed` and `--scheme` to try another
-palette (`node bt.mjs --seed '#00796B' --scheme tonal` is the teal variant); the harness shows the result.
+brand surface), 6.5:1 and more everywhere else. (Then `skin/src/tools/build-tokens.mjs` took `--seed` and `--scheme` to try another palette;
+now it has the table of palettes and `--only`.) The harness shows the result.
 
 ## What is new in nx10 (everything in English)
 
@@ -482,7 +531,7 @@ too (for example the plugin action `versie` is `version` now, the JSON key `gebo
 find in older notes or logs may differ.
 nx10 has version code 20201108 and installs over nx9 when it is signed with the same key.
 
-## Where does the app work? (nx20)
+## Where does the app work? (nx21)
 
 The app talks to the accessory in two ways: directly at its address on your home network (discovery via mDNS, then TLS on port 443;
 if mDNS fails, the IP safety net tries the saved address), and through the Nice cloud (`it4wifi.cloud.nice.niceappdomain.com`, port 7890)
@@ -526,7 +575,7 @@ Only the look and the way the connection is shown; no function of the app and no
 (the native layer only reports `nx-9` as its version).
 
 **Look (Material 3 Expressive).** The same design language everywhere: color roles from the Material "vibrant" scheme with seed
-color #3A6FF7 (replaced in nx11 by a calmer petrol palette; light and dark, with the choice in the settings since nx12; Android's status bar gets the same color as the header), the Roboto Flex
+color #3A6FF7 (replaced in nx11 by a calmer petrol palette and in nx21 by seven palettes; light and dark, with the choice in the settings since nx12; Android's status bar gets the same color as the header), the Roboto Flex
 typeface (OFL, bundled), lists as cards with large corner radii at the ends, a navigation bar with a pill indicator, tonal round
 buttons in the header, popups as dialogs, and on the accessory screen a large shape that changes with the state (closed, open, moving,
 stopped, obstruction), with Open and Close side by side below it and Stop beneath them. The wizard screens keep their light-gray icons
@@ -690,10 +739,10 @@ Every patch checks that its anchor text occurs exactly once, so a different APK 
 | `java/src/com/nice/patch` | `Nx` (helper functions), `NxWifi` (connecting via WifiNetworkSpecifier), `NxPlugin` (bridge to the JS) |
 | `java/stubs` | only signatures of app and Cordova classes that the code is compiled against; they do not end up in the dex |
 | `nx-patch.js`, `nx-theme.js`, `nx-activity.js`, `debuglog.js` | the JS improvements (nx9: also the status chip and the status sheet; nx12: the extra buttons and the theme; nx14: the activity sheet) with the early theme script, and the LOG panel |
-| `skin/` | `nx-expressive.css` (the result that goes into the app) and `fonts-nx/`; the source is in `skin/src/`: `skin.css` (the app), `status.css` (the status sheet), `activity.css` (the activity sheet and its line), `tokens.css` (colors and spring curves, generated by `src/tools/build-tokens.mjs`), `shapes.json` (the polygons for the shapes, all 144 points), `build-css.py` assembles them. Edit the source and run `python3 skin/src/build-css.py`, never edit the result |
+| `skin/` | `nx-expressive.css` (the result that goes into the app) and `fonts-nx/`; the source is in `skin/src/`: `skin.css` (the app), `status.css` (the status sheet), `activity.css` (the activity sheet and its line), `tokens.css` (the colors of the seven palettes and the spring curves, generated by `src/tools/build-tokens.mjs`), `shapes.json` (the polygons for the shapes, all 144 points), `build-css.py` assembles them. Edit the source and run `python3 skin/src/build-css.py`, never edit the result |
 | `harness/` | `screens.cjs` runs the real app (unpacked from the APK: `unzip -o <apk> "assets/www/*"`, next to the script as a folder `www`) in headless Chromium with a simulated Cordova bridge (`shim.js`) and takes screenshots of every page (light, and with `COLOR_SCHEME=dark` also dark, `PRE=` for an action such as `NX.diagnose()`, `CFG=` for a different network state); `sweep.sh` does 25 screens and makes a contact sheet; `make-screenshots.py` redoes the pictures in `docs/screenshots`. Requires Node with `playwright` and Python with PIL |
 | `get-tools.sh`, `test-all.sh` | downloading the tools with a SHA-256 check, and all tests in one go |
-| `test/` and `java/test/` | the tests (jsdom: `NODE_PATH=<folder with node_modules/jsdom> node test/nxpatch.test.js`, 272 checks; `node test/masker.test.js`; `node test/activity.test.js`, 291 checks of the activity statistics, the state, the readings in the background and the sheet; `node test/skin.test.js` checks the CSS itself: no placeholders, braces, every variable defined, all shapes with the same number of points, icons, font and prefix; `node test/brand.test.js`, 46 checks, runs `patch-16-brand.py` on an invented logo and checks the generated icon and splash files; it needs `python3`) |
+| `test/` and `java/test/` | the tests (jsdom: `NODE_PATH=<folder with node_modules/jsdom> node test/nxpatch.test.js`, 291 checks; `node test/masker.test.js`; `node test/activity.test.js`, 291 checks of the activity statistics, the state, the readings in the background and the sheet; `node test/skin.test.js` (38 checks) checks the CSS itself: no placeholders, braces, every variable defined, all shapes with the same number of points, icons, font and prefix, and the palettes (their blocks, the contrast of the text, the swatches); `node test/brand.test.js`, 46 checks, runs `patch-16-brand.py` on an invented logo and checks the generated icon and splash files; it needs `python3`) |
 
 ## Signing key
 

@@ -26,8 +26,8 @@ SPLASH_RADIUS = 76.0           # dp: the radius of the circle around the logo; A
 SCREEN_LOGO = 0.27             # the height of the logo on a splash screen, as a part of its shorter side
 
 WHITE = (0xFF, 0xFF, 0xFF)     # the background of the adaptive icon: the logo is made for white
-LIGHT = (0xF6, 0xFA, 0xFE)     # surface of the light theme of the skin (skin/src/tokens.css)
-DARK = (0x0F, 0x14, 0x17)      # surface of the dark theme
+LIGHT = (0xF9, 0xF9, 0xFF)     # surface of the light theme of the default palette of the skin (the first block of skin/src/tokens.css)
+DARK = (0x0C, 0x13, 0x21)      # surface of the dark theme of that palette
 
 
 def hexcolor(rgb):

@@ -5,7 +5,8 @@ Usage (from this folder, with the app unpacked into ./www, see README.md):
     python3 make-screenshots.py [output-folder]        # default: ../docs/screenshots
 
 Writes overview.png (favorites, device page and status sheet, light above dark), status-states.png (the status sheet in five
-situations), extras-theme.png (the extra buttons, the page where they are ticked, the theme row, and the buttons in dark) and activity.png
+situations), extras-theme.png (the extra buttons, the page where they are ticked, the theme row and the colors row, and the buttons in dark), palettes.png
+(the accessory screen in the seven palettes, dark above light) and activity.png
 (the line on the accessory screen and the activity sheet, light above dark) and blocked.png (a gate that was blocked, with a state that
 the accessory still reports as "opening").
 Everything on them is made up (accessory AABBCC, Wi-Fi HomeWifi); there is nothing of a real installation in them.
@@ -16,7 +17,7 @@ import re
 import subprocess
 import sys
 
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else os.path.join(HERE, '..', 'docs', 'screenshots')
@@ -25,7 +26,7 @@ MAC = '00:0B:6C:AA:BB:CC'
 DETAIL = f'#/tabs/favorites-device-detail/1/{MAC}'
 
 # the shapes that the native layer (Nx.netState / Nx.probe) returns; shim.js has the same defaults
-NET = {'version': 'nx-20', 'sdk': 37, 'wifi': True, 'ssid': 'HomeWifi', 'ip': '192.168.1.172', 'validated': True, 'cellular': False,
+NET = {'version': 'nx-21', 'sdk': 37, 'wifi': True, 'ssid': 'HomeWifi', 'ip': '192.168.1.172', 'validated': True, 'cellular': False,
        'vpn': False, 'module': False, 'defaultType': 'wifi', 'route': 'local', 'routeAgeSeconds': 4}
 CLOUD_OK = {'ok': True, 'dns': '63.182.6.157', 'dnsMs': 12, 'tcpMs': 60}
 STATES = {
@@ -107,5 +108,20 @@ light, dark = blocked_shots('ov-blocked-light', 'light'), blocked_shots('ov-bloc
 blocked = grid([[light[0], light[1], dark[0], dark[1]]], 0.5)
 blocked.save(os.path.join(OUT, 'blocked.png'), optimize=True)
 
-for name, im in (('overview.png', overview), ('status-states.png', strip), ('extras-theme.png', extras), ('activity.png', activity), ('blocked.png', blocked)):
+# nx21: the seven palettes (Settings > Appearance > Colors): the accessory screen with the extra buttons, dark above light; NX.palette() chooses
+PALETTES = [('midnight', 'Midnight'), ('nice', 'Nice blue'), ('graphite', 'Graphite'), ('paper', 'Paper'), ('violet', 'Violet'), ('pine', 'Pine'), ('ember', 'Ember')]
+shots = {scheme: [shoot(f'ov-pal-{scheme}-{key}', [DETAIL], cfg=QUICK, scheme=scheme, pre=f'NX.palette("{key}")')[0] for key, _ in PALETTES] for scheme in ('dark', 'light')}
+sheet = grid([shots['dark'], shots['light']], 0.4)
+label_h = 44
+labeled = Image.new('RGB', (sheet.width, sheet.height + label_h), BG)
+labeled.paste(sheet, (0, label_h))
+draw = ImageDraw.Draw(labeled)
+font = ImageFont.load_default(size=26)
+col = sheet.width / len(PALETTES)
+for i, (_, label) in enumerate(PALETTES):
+    draw.text((int(i * col + col / 2 - draw.textlength(label, font=font) / 2), 8), label, fill=(40, 44, 52), font=font)
+palettes = labeled
+palettes.save(os.path.join(OUT, 'palettes.png'), optimize=True)
+
+for name, im in (('overview.png', overview), ('status-states.png', strip), ('extras-theme.png', extras), ('palettes.png', palettes), ('activity.png', activity), ('blocked.png', blocked)):
     print(name, im.size, os.path.getsize(os.path.join(OUT, name)) // 1024, 'KB')

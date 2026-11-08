@@ -433,6 +433,25 @@ html[data-nx-status="connecting"]:root body[data-ng-app] .bar .title::after {
 }
 {{P}} .nx-seg-btn:first-child { border-left: 0; }
 {{P}} .nx-seg-btn.nx-on { background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container) !important; }
+/* color choice (nx21, patch-13): the palettes as round swatches in the settings, the one in use with a ring. Every swatch has its own colors (--nx-swatch-<name> in the
+   tokens: the primary color against the dark surface of that palette), whichever palette is active. A name here must also be in PALETTES (nx-patch.js) and in nx-theme.js. */
+{{P}} .item.nx-palette-row { display: block; }
+{{P}} .nx-palette-head { display: flex; flex-direction: row; align-items: baseline; justify-content: space-between; gap: 12px; }
+{{P}} .nx-palette-head small { color: var(--md-sys-color-on-surface-variant); font-size: 14px; line-height: 20px; }
+{{P}} .nx-swatches { display: flex; flex-direction: row; flex-wrap: wrap; justify-content: space-between; gap: 10px 6px; margin-top: 12px; }
+{{P}} .nx-swatch {
+  display: block; box-sizing: border-box; flex: 0 0 auto; width: 38px; height: 38px; border-radius: 50%; cursor: pointer; position: relative;
+  box-shadow: inset 0 0 0 1px rgba(128, 128, 128, .32);
+  transition: transform var(--nx-spring-fast-ms) var(--nx-spring-fast), box-shadow var(--nx-effects-ms) var(--nx-effects);
+}
+{{P}} .nx-swatch.nx-on { transform: scale(1.06); box-shadow: 0 0 0 3px var(--md-sys-color-surface-container-low), 0 0 0 5px var(--md-sys-color-primary); }
+{{P}} .nx-swatch[data-nx-pal="midnight"] { background: var(--nx-swatch-midnight); }
+{{P}} .nx-swatch[data-nx-pal="nice"] { background: var(--nx-swatch-nice); }
+{{P}} .nx-swatch[data-nx-pal="graphite"] { background: var(--nx-swatch-graphite); }
+{{P}} .nx-swatch[data-nx-pal="paper"] { background: var(--nx-swatch-paper); }
+{{P}} .nx-swatch[data-nx-pal="violet"] { background: var(--nx-swatch-violet); }
+{{P}} .nx-swatch[data-nx-pal="pine"] { background: var(--nx-swatch-pine); }
+{{P}} .nx-swatch[data-nx-pal="ember"] { background: var(--nx-swatch-ember); }
 
 /* ============================================================ wizard: stage with the light-gray icon, text below it, large button at the bottom */
 {{P}} .setup-wifi-bridge { background: var(--md-sys-color-surface); }

@@ -6,7 +6,7 @@
   3. the manifest contains CHANGE_NETWORK_STATE and the plugin Nx is in config.xml
   3a. (nx18/nx20) the logo as the adaptive icon, the small icon of the notifications and the splash screens (patch-16); with the original APK as a second argument also that the
       launcher icons for Android 7 and older are still the original ones
-  3b. (nx9) the skin, the font and the hook points in index.html, nx-patch.js and debuglog.js
+  3b. (nx9) the skin, the font and the hook points in index.html, nx-patch.js and debuglog.js; (nx21) the seven palettes and the choice in the settings
   4. package, version and signature (v2/v3)
 Usage: python verify-apk.py <apk> [original.apk]   (run with the androguard venv)"""
 import os
@@ -218,6 +218,21 @@ with zipfile.ZipFile(path) as z:
         errors.append('nx-theme.js is missing or index.html does not load it')
     if 'nxSetTheme' not in js or 'nxQuickToggle' not in js:
         errors.append('nx-patch.js is missing nxSetTheme or nxQuickToggle')
+    # nx21: the palettes: seven in the CSS (the default on :root and six on data-nx-palette, each with its dark blocks), the swatches in the settings, the early script, the JS
+    PALETTES = ('midnight', 'nice', 'graphite', 'paper', 'violet', 'pine', 'ember')
+    for n in PALETTES:
+        if '--nx-swatch-%s:' % n not in css or '.nx-swatch[data-nx-pal="%s"]' % n not in css:
+            errors.append('nx-expressive.css has no swatch for the palette %s (nx21)' % n)
+        if n != PALETTES[0] and (css.count(':root[data-nx-palette="%s"]' % n) != 3 or ':root[data-nx-palette="%s"]:not([data-nx-theme="light"])' % n not in css):
+            errors.append('nx-expressive.css: the palette %s has not its three blocks (nx21)' % n)
+    if 'nxSetPalette' not in text('assets/www/templates/settings/settings.html') or 'nx-palette-row' not in text('assets/www/templates/settings/settings.html'):
+        errors.append('settings.html has no row for the colors (patch-13, nx21)')
+    if 'nxSetPalette' not in js or "var PALETTES = [['midnight'," not in js:
+        errors.append('nx-patch.js does not know the palettes (nx21)')
+    if 'data-nx-palette' not in text('assets/www/js/nx-theme.js'):
+        errors.append('nx-theme.js does not apply the palette before the first paint (nx21)')
+    if '#93000a' in css.lower():
+        errors.append('nx-expressive.css still has the saturated deep red of Material as a color (nx21: the error container is a wine red)')
     # nx14: the activity sheet: its script (loaded before nx-patch.js), the line on the accessory screen, its styles
     if 'js/nx-activity.js' not in idx or idx.index('js/nx-activity.js') > idx.index('js/nx-patch.js'):
         errors.append('index.html does not load nx-activity.js before nx-patch.js')

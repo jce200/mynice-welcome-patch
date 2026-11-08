@@ -78,8 +78,14 @@ Expressive look (light and dark).
   icon of the app you patch (only 192 px) and rebuilds it as a gradient and two shapes, so that it can be drawn sharp at every size, without the light fringe of the original file.
   The launcher icons for Android 7 and older stay what they were. See [docs/DETAILS.md](docs/DETAILS.md).
 
-- **A new look.** Material 3 Expressive in a calm petrol blue: one color family for the surfaces and the buttons, a gate icon that
-  changes shape with its state. It has a light and a dark palette; it is a CSS layer, and no function of the app changed.
+- **A new look.** Material 3 Expressive: lists as cards, one color family for the surfaces and the buttons, a gate icon that
+  changes shape with its state, in a light and a dark version; it is a CSS layer, and no function of the app changed.
+- **Seven palettes to choose from.** Settings > Appearance > *Colors*: *Midnight* (the default: the blue of the Nice logo, on navy in the dark theme), *Nice blue*, *Graphite*, *Paper*,
+  *Violet*, *Pine* and *Ember*; one tap and the whole app follows. The error color is a wine red instead of Material's saturated deep red, so that *Stop* and the red chip no longer
+  shout. The text keeps its contrast in every palette (4.8:1 at the lowest; the tests check it). The splash screen has the colors of the default palette.
+
+  ![The accessory screen in the seven palettes, dark above light](docs/screenshots/palettes.png)
+
 - **Light, dark or automatic.** Settings > Appearance > *Theme*. *Auto* uses what the WebView reports as the phone's scheme, which is
   what the app did before. Android takes that value from the app's own theme, and the theme of the Nice app is a dark base theme, so
   *Auto* does not necessarily follow your phone (I could not check that on every phone); *Light* and *Dark* always do what they say.
@@ -112,7 +118,7 @@ This way you don't have to trust a binary from someone else, and the app is sign
 ```
 ./get-tools.sh                               # once: downloads apktool and friends into ./tools, checked on SHA-256
 ./build.sh /path/to/MyNiceWelcome_2.2.0.apk
-# result: out/MyNiceWelcome_2.2.0_nx20.apk
+# result: out/MyNiceWelcome_2.2.0_nx21.apk
 ```
 
 The first build creates **your own signing key** in `keys/` (with a random password in `keys/password.txt`). Keep that folder

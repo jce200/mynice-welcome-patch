@@ -552,6 +552,78 @@ function sheet(env) { return env.document.getElementById('nx-sheet'); }
     ok('nx12 theme.js: storage that cannot be read throws nothing and sets nothing', b.threw === false && b.attr === null);
   }
 
+  // ---------------------------------------------------------------- nx21: colors (Settings > Appearance > Colors)
+  // seven palettes; the first ('midnight') is what the tokens have without an attribute, so for it nothing is saved and nothing is set; the others are saved
+  // (localStorage 'nxPalette') and on <html> as data-nx-palette; the status bar follows at once.
+  {
+    const IDS = ['midnight', 'nice', 'graphite', 'paper', 'violet', 'pine', 'ember'];
+    const env = await environment({ homes: [home([device()])], net: { wifi: true, ssid: 'HomeWifi' } });
+    const r = env.$rootScope, root = env.document.documentElement;
+    ok('nx21 colors: functions and the list for the settings page', typeof r.nxSetPalette === 'function' && typeof r.nxPalette === 'function' && typeof r.nxPaletteLabel === 'function' &&
+      r.nxPalettes.map((p) => p.id).join() === IDS.join() && r.nxPalettes.every((p) => typeof p.label === 'string' && p.label.length > 2), JSON.stringify(r.nxPalettes));
+    ok('nx21 colors: nothing chosen -> the first palette, nothing on <html>, nothing saved', r.nxPalette() === 'midnight' && r.nxPaletteLabel() === 'Midnight' && !root.hasAttribute('data-nx-palette') && env.w.localStorage.getItem('nxPalette') === null);
+    r.nxSetPalette('ember');
+    ok('nx21 colors: a palette -> saved and on <html>, with its name', r.nxPalette() === 'ember' && r.nxPaletteLabel() === 'Ember' && root.getAttribute('data-nx-palette') === 'ember' && env.w.localStorage.getItem('nxPalette') === 'ember');
+    r.nxSetPalette('nice');
+    ok('nx21 colors: another one replaces it', r.nxPalette() === 'nice' && r.nxPaletteLabel() === 'Nice blue' && root.getAttribute('data-nx-palette') === 'nice' && env.w.localStorage.getItem('nxPalette') === 'nice');
+    r.nxSetPalette('red'); r.nxSetPalette(undefined); r.nxSetPalette({}); r.nxSetPalette(3); r.nxSetPalette('');
+    ok('nx21 colors: something else changes nothing', r.nxPalette() === 'nice' && root.getAttribute('data-nx-palette') === 'nice' && env.w.localStorage.getItem('nxPalette') === 'nice');
+    r.nxSetPalette('midnight');
+    ok('nx21 colors: the first palette -> nothing saved and nothing on <html> again', r.nxPalette() === 'midnight' && !root.hasAttribute('data-nx-palette') && env.w.localStorage.getItem('nxPalette') === null);
+    ok('nx21 colors: NX.palette() reads and sets', (env.w.NX.palette('pine'), env.w.NX.palette() === 'pine' && root.getAttribute('data-nx-palette') === 'pine'));
+    // the theme and the palette do not get in each other's way
+    r.nxSetTheme('dark');
+    ok('nx21 colors: theme and palette are independent', root.getAttribute('data-nx-theme') === 'dark' && root.getAttribute('data-nx-palette') === 'pine' && r.nxTheme() === 'dark' && r.nxPalette() === 'pine');
+    r.nxSetTheme('auto');
+    ok('nx21 colors: the theme going back to auto leaves the palette alone', !root.hasAttribute('data-nx-theme') && root.getAttribute('data-nx-palette') === 'pine');
+  }
+  {
+    // a choice from an earlier session is there from the start, junk is ignored
+    const env = await environment({ homes: [home([device()])], net: { wifi: true } });
+    ok('nx21 colors: storage is empty in a new environment', env.$rootScope.nxPalette() === 'midnight');
+    const env2 = await environment({ homes: [home([device()])], net: { wifi: true }, preXhr: (w) => w.localStorage.setItem('nxPalette', 'violet') });
+    ok('nx21 colors: a saved choice is applied when the patch starts', env2.$rootScope.nxPalette() === 'violet' && env2.document.documentElement.getAttribute('data-nx-palette') === 'violet');
+    const env3 = await environment({ homes: [home([device()])], net: { wifi: true }, preXhr: (w) => w.localStorage.setItem('nxPalette', 'neon') });
+    ok('nx21 colors: a junk value counts as the first palette', env3.$rootScope.nxPalette() === 'midnight' && !env3.document.documentElement.hasAttribute('data-nx-palette'));
+    const env4 = await environment({ homes: [home([device()])], net: { wifi: true }, preXhr: (w) => w.localStorage.setItem('nxPalette', 'midnight') });
+    ok('nx21 colors: the first palette saved by hand (not by this patch) sets nothing either', env4.$rootScope.nxPalette() === 'midnight' && !env4.document.documentElement.hasAttribute('data-nx-palette'));
+  }
+  {
+    // the status bar takes the surface color of the new palette at once
+    const calls = [];
+    const env = await environment({ homes: [home([device()])], net: { wifi: true }, preXhr: (w) => {
+      w.StatusBar = { backgroundColorByHexString: (c) => calls.push('color ' + c), styleLightContent: () => calls.push('light'), styleDefault: () => calls.push('dark') };
+      w.matchMedia = () => ({ matches: false, addEventListener() {} });
+    } });
+    await sleep(100);
+    calls.length = 0;
+    env.document.documentElement.style.setProperty('--md-sys-color-surface', '#101412');
+    env.$rootScope.nxSetPalette('pine');
+    ok('nx21 colors: a palette chosen -> the status bar gets the color of the surface', calls.indexOf('color #101412') >= 0, calls.join(','));
+    calls.length = 0;
+    env.$rootScope.nxSetPalette('wrong');
+    ok('nx21 colors: a wrong name does not touch the status bar', calls.length === 0, calls.join(','));
+  }
+  {
+    // nx-theme.js (the early script) applies the palette too
+    const THEME_SRC = fs.readFileSync(path.join(__dirname, '..', 'nx-theme.js'), 'utf8');
+    const run = (stored, brokenStorage, theme) => {
+      const dom = new JSDOM('<!doctype html><html><head></head><body></body></html>', { url: 'http://localhost/', runScripts: 'outside-only' });
+      const w = dom.window;
+      if (stored !== undefined) w.localStorage.setItem('nxPalette', stored);
+      if (theme !== undefined) w.localStorage.setItem('nxTheme', theme);
+      if (brokenStorage) Object.defineProperty(w, 'localStorage', { get() { throw new Error('denied'); } });
+      let threw = false;
+      try { w.eval(THEME_SRC); } catch (e) { threw = true; }
+      return { attr: w.document.documentElement.getAttribute('data-nx-palette'), theme: w.document.documentElement.getAttribute('data-nx-theme'), threw };
+    };
+    ok('nx21 theme.js: every palette except the first is applied', ['nice', 'graphite', 'paper', 'violet', 'pine', 'ember'].every((n) => run(n).attr === n));
+    ok('nx21 theme.js: nothing saved, the first palette or junk -> nothing set', run(undefined).attr === null && run('midnight').attr === null && run('neon').attr === null && run('').attr === null && run('Ember').attr === null && run('ember ').attr === null);
+    ok('nx21 theme.js: the theme is applied as before, next to the palette', run('ember', false, 'dark').attr === 'ember' && run('ember', false, 'dark').theme === 'dark' && run(undefined, false, 'light').theme === 'light');
+    const b = run(undefined, true);
+    ok('nx21 theme.js: storage that cannot be read throws nothing and sets nothing', b.threw === false && b.attr === null && b.theme === null);
+  }
+
   // ---------------------------------------------------------------- new user
   {
     const env = await environment({ homes: [home([device()])], net: { wifi: true, ssid: 'HomeWifi' }, waiting: [{ id: 2, username: 'Home assistant', controllerID: 'c1' }] });
