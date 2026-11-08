@@ -4,7 +4,7 @@
 #   masker   masking of passwords in the LOG panel (node)
 #   jsdom    nx-patch.js in a simulated Angular/Cordova environment (node + jsdom: npm install)
 #   activity nx-activity.js: the statistics from the accessory's event log (node), and its sheet (jsdom)
-#   brand    the icon and the splash screen that patch-16-brand.py puts in the app (node)
+#   brand    patch-16-brand.py on an invented logo: the icon, the small icon and the splash screens it makes (node + python3)
 #   java     the logic of the native layer on a plain JVM, against android-all-10 (run ./get-tools.sh first)
 set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"

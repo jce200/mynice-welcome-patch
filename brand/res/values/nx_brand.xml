@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <color name="nx_splash_field">#003547</color>
-    <!-- the theme of the activity: the same as before (Theme.DeviceDefault.NoActionBar), with the field of the splash screen as the color of the window -->
-    <style name="NxTheme" parent="@android:style/Theme.DeviceDefault.NoActionBar">
-        <item name="android:windowBackground">@color/nx_splash_field</item>
-    </style>
-</resources>

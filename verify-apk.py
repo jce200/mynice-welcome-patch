@@ -4,9 +4,12 @@
   2. every call from classes2.dex to app and Cordova classes exists in classes.dex with the same signature
      (so what was compiled against stubs matches what is really in the app)
   3. the manifest contains CHANGE_NETWORK_STATE and the plugin Nx is in config.xml
+  3a. (nx18/nx20) the logo as the adaptive icon, the small icon of the notifications and the splash screens (patch-16); with the original APK as a second argument also that the
+      launcher icons for Android 7 and older are still the original ones
   3b. (nx9) the skin, the font and the hook points in index.html, nx-patch.js and debuglog.js
   4. package, version and signature (v2/v3)
-Usage: python verify-apk.py <apk>   (run with the androguard venv)"""
+Usage: python verify-apk.py <apk> [original.apk]   (run with the androguard venv)"""
+import os
 import re
 import sys
 import zipfile
@@ -110,29 +113,58 @@ with zipfile.ZipFile(path) as z:
 if 'com.nice.patch.NxPlugin' not in cfg:
     errors.append('plugin Nx is not in config.xml')
 
-# 3a. nx18/nx19: the new icon, the small icon of the notifications and the splash screen (patch-16): the adaptive icon with its layers, the theme, the picture that is
-#     not stretched, and the option that makes the push plugin use the small icon (it would take the launcher icon, an adaptive one with a background: a white blot)
+# 3a. nx18/nx20: the logo of Nice as the adaptive icon (with a monochrome layer), the small icon of the notifications, the splash icon and the splash screens in light and dark (patch-16), the
+#     theme, the picture that is not stretched, and the option that makes the push plugin use the small icon (it would take the launcher icon, an adaptive one with a background: a white blot)
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'brand'))
+import logo  # noqa: E402  (brand/logo.py: a PNG decoder, to compare the launcher icons with the original without depending on how aapt2 wrote the file)
+DENS = ('mdpi', 'hdpi', 'xhdpi', 'xxhdpi', 'xxxhdpi')
 with zipfile.ZipFile(path) as z:
     names0 = set(z.namelist())
-    for n in ('res/mipmap-anydpi-v26/ic_launcher.xml', 'res/drawable/ic_launcher_foreground.xml', 'res/drawable/ic_launcher_background.xml',
-              'res/drawable/ic_launcher_monochrome.xml', 'res/drawable-port-xxhdpi/screen.png', 'res/mipmap-xxxhdpi/ic_launcher.png') + \
-             tuple('res/drawable-%s/nx_stat.png' % d for d in ('mdpi', 'hdpi', 'xhdpi', 'xxhdpi', 'xxxhdpi')):
-        if n not in names0:
-            errors.append('missing from the APK: %s (patch-16)' % n)
+
+    def find(pattern):
+        found = [n for n in names0 if re.fullmatch(pattern, n)]
+        return found[0] if len(found) == 1 else None
+    need = [('res/mipmap-anydpi-v26/ic_launcher.xml', 100)]
+    for d in DENS:
+        need += [('res/mipmap-%s/ic_launcher_foreground.png' % d, 400), ('res/mipmap-%s/ic_launcher_monochrome.png' % d, 300),
+                 ('res/drawable-%s/nx_stat.png' % d, 150), ('res/drawable-%s/nx_splash_icon.png' % d, 3000)]
+    for o in ('port', 'land'):
+        for night in ('', '-night'):
+            for d in ('ldpi', 'mdpi', 'hdpi', 'xhdpi', 'xxhdpi', 'xxxhdpi'):
+                need.append((r'res/drawable-%s%s-%s(-v\d+)?/screen\.png' % (o, night, d), 1500))
+    for pattern, least in need:
+        n = find(re.escape(pattern) if '(' not in pattern else pattern)
+        if n is None:
+            errors.append('missing from the APK (or twice): %s (patch-16)' % pattern)
+        elif n.endswith('.png') and not (z.read(n)[:8] == b'\x89PNG\r\n\x1a\n' and least < len(z.read(n)) < 200000):
+            errors.append('%s is not a usable PNG (patch-16)' % n)         # a white silhouette on transparent is a few hundred bytes, a splash screen is 3 to 40 KB
+    for gone in ('res/drawable/ic_launcher_foreground.xml', 'res/drawable/ic_launcher_background.xml', 'res/drawable/ic_launcher_monochrome.xml'):
+        if gone in names0:
+            errors.append('%s is still in the APK: a mark of nx18/nx19 (patch-16 of an older version?)' % gone)
     arsc = z.read('resources.arsc')
     if b'NxTheme' not in arsc and 'NxTheme'.encode('utf-16le') not in arsc:
         errors.append('the theme NxTheme is not in resources.arsc (patch-16)')
     appjs = z.read('assets/www/js/app.min.js').decode('utf-8', 'replace') if 'assets/www/js/app.min.js' in names0 else ''
-    if 'PushNotification.init({android:{senderID:PUSH_SENDER_ID,icon:"nx_stat",iconColor:"#196585"}' not in appjs:
+    if not re.search(r'PushNotification\.init\(\{android:\{senderID:PUSH_SENDER_ID,icon:"nx_stat",iconColor:"#[0-9A-F]{6}"\}', appjs):
         errors.append('app.min.js does not give the push plugin the small icon nx_stat (patch-16): the notifications would show the launcher icon as a white blot')
     if 'SplashMaintainAspectRatio' not in cfg:
         errors.append('config.xml has no SplashMaintainAspectRatio (patch-16): the splash picture would be stretched')
-    # the picture of the original app was a black one with white text (25 KB at 960 x 1600); the new one is a plain field with a logo: a PNG that is
-    # not a valid PNG, or an empty one, would show as a black or broken splash screen
-    for n, least in (('res/drawable-port-xxhdpi/screen.png', 1500), ('res/drawable-land-xxhdpi/screen.png', 1500), ('res/mipmap-xxxhdpi/ic_launcher.png', 1500),
-                     ('res/drawable-xxxhdpi/nx_stat.png', 150)):       # (a white silhouette on transparent is a few hundred bytes)
-        if n in names0 and not (z.read(n)[:8] == b'\x89PNG\r\n\x1a\n' and least < len(z.read(n)) < 200000):
-            errors.append('%s is not a usable PNG (patch-16)' % n)
+    if len(sys.argv) > 2:
+        # the logo of Nice for Android 7 and older must be what the original app had (same pixels; aapt2 may write the file differently)
+        with zipfile.ZipFile(sys.argv[2]) as zo:
+            onames = set(zo.namelist())
+            for d in ('ldpi', 'mdpi', 'hdpi', 'xhdpi', 'xxhdpi', 'xxxhdpi'):
+                new = [n for n in names0 if re.fullmatch(r'res/mipmap-%s(-v\d+)?/ic_launcher\.png' % d, n)]
+                old = [n for n in onames if re.fullmatch(r'res/mipmap-%s(-v\d+)?/ic_launcher\.png' % d, n)]
+                if len(new) != 1 or len(old) != 1:
+                    errors.append('res/mipmap-%s/ic_launcher.png: found %d in the APK and %d in the original' % (d, len(new), len(old)))
+                    continue
+                try:
+                    same = logo.read_png(z.read(new[0])) == logo.read_png(zo.read(old[0]))
+                except ValueError:
+                    same = z.read(new[0]) == zo.read(old[0])
+                if not same:
+                    errors.append('%s is not the launcher icon of the original app (patch-16 must leave it alone)' % new[0])
 
 # 3b. nx9: the skin, the font and the hook points in index.html, nx-patch.js and debuglog.js
 with zipfile.ZipFile(path) as z:

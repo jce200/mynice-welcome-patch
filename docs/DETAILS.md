@@ -1,10 +1,67 @@
 # Details and history
 
 This is the technical background to the [README.md](../README.md): why every change exists, with the diagnoses that led to them
-(nx3 through nx19: the project's build numbers). The example values (Wi-Fi `HomeWifi`, accessory `NiceIT4WIFIAABBCC`, user
+(nx3 through nx20: the project's build numbers). The example values (Wi-Fi `HomeWifi`, accessory `NiceIT4WIFIAABBCC`, user
 `homeuser`) stand in for whatever is different in your case. The data in this document comes from one phone and one IT4WIFI module.
 
+## What is new in nx20 (the logo of Nice: icon, notification icon and splash screen)
+
+nx20 has version code 20201118 and installs over nx19 when it is signed with the same key. Nothing changed in the network layer
+(the native layer only reports `nx-20` as its version); the app's code only changes in one place (the color of the notification icon, below).
+
+**What was asked.** *"I want a logo that is made from the official Nice logo."* So the marks of nx18 (a cookie with a gate in it) and nx19 (an arched picket gate) are gone, and so are the generator that
+drew them (`brand/build-brand.py`, with Node and Chromium) and the pictures it wrote: the app has the logo of Nice again, the blue house with the white N, but used the way Android wants it.
+
+**Where the logo comes from.** Not from this repository, which has no Nice artwork, and not redrawn by hand: `patch-16-brand.py` reads the launcher icon that is in the APK you patch
+(`res/mipmap-xxxhdpi/ic_launcher.png`, 192 x 192 px: a blue gradient, the shape of a house, a white N, a transparent rest). The launcher icons for Android 7 and older (`res/mipmap-*/ic_launcher.png`)
+are not touched at all; `verify-apk.py <apk> <original apk>` compares them with the original byte for byte. If the file is not what is expected (another app, another version) the script says so and writes nothing.
+
+**Why it is not simply scaled.** The icon is a raster of 192 px at the most, and a splash screen or the splash icon of Android 12 needs the logo 2 to 3 times bigger. Plain resampling then gives soft edges, and
+the file has its own faults: a light fringe along the edge (the shape was anti-aliased against white) and a dark line just inside it (ringing). So `brand/logo.py` takes the icon apart into three things that are
+easy to draw at any size, and draws those:
+- **the gradient**: one smooth blue, a straight diagonal at 45 degrees (dark at the lower left, light at the upper right). It is fitted with a polynomial of degree 2 per color channel, on pixels that are well
+  inside the house (3 px away from every edge and from the N): the fit is within 2 levels of the source there;
+- **the house**: how much of each pixel the shape covers (the alpha channel);
+- **the N**: how white a pixel is, measured against the gradient. The N is open at the bottom (white on white: it reaches the lower edge of the house), so where the house ends the N is carried on to the edge.
+Drawing at another size: sample the two coverages with a Catmull-Rom filter. Enlarging: steepen the edge around the 50 % line by the factor of the enlargement, so that an edge is one pixel wide and not a smear.
+Reducing: several samples per pixel, averaged. The color comes straight from the gradient, so there is no fringe and no ringing. At the scale of the source the drawing reproduces it (mean difference 1.2 levels
+on the opaque pixels; what differs is the fringe and the ringing). It is pure Python 3 (zlib and struct for the PNG files): no Pillow, nothing to install.
+The script also stops when the icon does not fit this model (the N is not between 5 and 60 % of the house, the house covers less than a quarter or more than 90 % of the picture, the gradient is not smooth:
+rms above 4 levels), which is what a different app would give.
+
+**What is made** (`brand/assets.py`). The logo is placed by the smallest circle around it (the roof and the two lower corners lie on it), so that it keeps the same distance to the edge of any mask:
+
+| file | what | how big |
+|---|---|---|
+| `res/mipmap-*/ic_launcher_foreground.png`, `mipmap-anydpi-v26/ic_launcher.xml` | the adaptive icon (Android 8 and up) on a white background | 108 dp canvas, circle of 31 dp (the safe zone has 33, a circular mask shows 36) |
+| `res/mipmap-*/ic_launcher_monochrome.png` | the layer for the themed icons of Android 13: the house with the N cut out, one color | same place |
+| `res/drawable-*/nx_stat.png` | the small icon of the notifications: the same silhouette, white | 24 dp, the house 20 dp high |
+| `res/drawable-*/nx_splash_icon.png` | the icon of the splash screen that Android 12 and up show first (`values-v31`) | 288 dp, circle of 76 dp (Android shows a circle of 96) |
+| `res/drawable-{port,land}[-night]-*/screen.png` | the splash screen of the Cordova plugin: the logo on the surface color of the skin | the 12 sizes of the original, the logo 27 % of the shorter side high; 24 files with the night ones |
+| `res/values/`, `values-night/`, `values-v31/` `nx_brand.xml` | the colors and the theme `NxTheme` | |
+
+The background of the icon is white because the logo is made for it (the N is white and reaches the lower edge: on white it reads as a cut-out, which is how the original icon looks on a launcher).
+
+**Light and dark splash.** The surface color of the skin: `#F6FAFE` (light) and `#0F1417` (dark; `values-night`, and `drawable-*-night-*` for the pictures), so that the app does not open with a white flash
+when the phone is in the dark mode, and the splash goes over into the app without a jump in color. On the dark field the N is still white, as in the official logo.
+
+**The notification icon again.** As in nx19: the push plugin takes the launcher icon as the small icon of a notification when there is no `icon` option, and Android shows only the alpha channel of a small icon,
+so an adaptive icon (an opaque background) would give a white blot. `app.min.js` still gives the plugin `icon:"nx_stat"`; `iconColor` is now the blue of the logo (the gradient in the middle of it,
+`#2871B9` for the real file) instead of the primary color of the skin. Also still one anchor in `patch-16-brand.py` that must occur exactly once.
+
+**Not seen on a phone.** The launcher icon behind a circle, a squircle and a rounded square, the themed icon, the status bar icon and the splash screens were rendered and looked at (and the APK is checked for the
+names and sizes that Android resolves), but there is no launcher, no Android 12 splash screen and no push message in the harness. Nothing in the repository shows the logo, on purpose.
+
+Tests: `test/brand.test.js` has 46 checks. It makes a tree of its own with an *invented* logo (another shape, another color and another N, with the same properties and the light fringe of the real file), runs
+`patch-16-brand.py` on it and decodes the result with a PNG decoder of its own: the 36 files that are added and the 15 that change, the originals that must stay, the sizes, the safe zone, the N as a cut-out,
+how sharp an edge is after an enlargement of 2.8 times (at most 4 partly covered pixels in a row across two walls), no halo, the proportions (a stem of the N is 17 % of the width of the house, and the test
+measures 17.0 %), the N white up to the lower edge, the colors against `skin/src/tokens.css`, a second run, an icon of noise, a house without an N, a missing anchor and a folder with another name (all refused,
+nothing written), and the same bytes from the same input. Ten deliberate breaks of the scripts (the radius, the height of the small icon, no steepening, no cut-out, the wrong field for the night, no
+`iconColor`, a flat color, a wrong circle, a logo too high, the N not carried to the lower edge) were each caught.
+
 ## What is new in nx19 (a new mark: strict, on a grid, and a small icon for the notifications)
+
+*Replaced in nx20: the logo of Nice is the icon again. What is described here about the arched gate, its grid and its files is history; the fault that was found (the notification icon) is solved the same way.*
 
 nx19 has version code 20201117 and installs over nx18 when it is signed with the same key. Nothing changed in the network layer
 (the native layer only reports `nx-19` as its version); the app's code only changes in one place (the icon of the notifications, below).
@@ -70,7 +127,7 @@ flicker between *Not usable* and *Checking…*". That is turned around, as asked
 as its text): *Accessory not reachable · other Wi-Fi, VPN, m...* was cut off by the button. On a header with buttons on the right the chip now stops 48 px before the end
 of the title box and ends in an ellipsis (`.bar:has(.right-buttons > *) .title::after`; a WebView without `:has` keeps the old behavior).
 
-**The icon and the splash screen.** (The mark described here, a cookie with a gate in it, was replaced in nx19; the rest of this paragraph, the adaptive icon, the theme and the splash screen, still holds. See above.) `brand/build-brand.py` draws them from what the skin already has (seed color #1E6A8A and its tones, the *cookie* shape of the state
+**The icon and the splash screen.** (The mark described here, a cookie with a gate in it, was replaced in nx19 and that one by the logo of Nice in nx20; the generator and the preview picture that are mentioned are gone. What still holds: the adaptive icon, the theme, `SplashMaintainAspectRatio` and the Android 12 splash screen.) `brand/build-brand.py` draws them from what the skin already has (seed color #1E6A8A and its tones, the *cookie* shape of the state
 icon) and a gate that is drawn there (an arched double gate with pickets); `patch-16-brand.py` puts the result in the app. The blue *N in a house* of Nice is gone from the
 launcher and the splash screen (the name of the app, the package and the permissions are as they were):
 - **Adaptive icon** (Android 8 and up; `res/mipmap-anydpi-v26/ic_launcher.xml`): a plain field of tone 20 (#003547) as the background, the cookie in the primary color (#196585)
@@ -425,7 +482,7 @@ too (for example the plugin action `versie` is `version` now, the JSON key `gebo
 find in older notes or logs may differ.
 nx10 has version code 20201108 and installs over nx9 when it is signed with the same key.
 
-## Where does the app work? (nx19)
+## Where does the app work? (nx20)
 
 The app talks to the accessory in two ways: directly at its address on your home network (discovery via mDNS, then TLS on port 443;
 if mDNS fails, the IP safety net tries the saved address), and through the Nice cloud (`it4wifi.cloud.nice.niceappdomain.com`, port 7890)
@@ -626,7 +683,7 @@ Every patch checks that its anchor text occurs exactly once, so a different APK 
 | `patch-13-theme.py` | nx12: `nx-theme.js` in `index.html` and the row *Appearance > Theme* in the settings (Auto, Light, Dark) |
 | `patch-14-activity.py` | nx14: `nx-activity.js` in the app (loaded before `nx-patch.js`) and the line on the accessory screen that opens the activity sheet |
 | `patch-15-state.py` | nx15: the state text and icon of the accessory screen ask `nxState` and `nxIcon` (the state settled from the log), a note under the state, and the pill of a blocked gate |
-| `patch-16-brand.py`, `brand/` | nx18/nx19: the new icon (adaptive, monochrome layer, PNG for older Android), the small icon of the notifications and the splash screens (`brand/res`, drawn by `brand/build-brand.py` from the colors and the shape of the skin; the generated files are committed, so building needs neither Node nor Chromium), the theme `NxTheme` and `SplashMaintainAspectRatio` |
+| `patch-16-brand.py`, `brand/` | nx18/nx20: the logo of Nice from the app's own launcher icon as an adaptive icon with a monochrome layer, the small icon of the notifications, the splash icon of Android 12 and the splash screens (light and dark); the theme `NxTheme` and `SplashMaintainAspectRatio`. `brand/logo.py` takes the icon apart (gradient, house, N) and draws it sharp at any size, `brand/assets.py` says what is drawn where; both are plain Python 3 and there is no picture in the repository |
 | `patch-09-socket-fallback.py` | nx7: `socketFor` in `_openSocket` (EPERM fallback) and the VPN guard in both `bindNiceWifi` copies |
 | `patch-08-route-choice.py` | nx6: hooks in `ConnectionsManager`: `vetLocal` (vetting the local address), `noteRoute` (remembering the chosen route), `socketAddress` (name resolution with a fallback) |
 | `patch-07-vpn-binding.py` | nx4: skipping VPN networks in the bind loop, `Nx.wifiType`/`Nx.ctx` in the Wi-Fi receiver, the `__nxWrapVerify` hook in `app.min.js` |
@@ -636,7 +693,7 @@ Every patch checks that its anchor text occurs exactly once, so a different APK 
 | `skin/` | `nx-expressive.css` (the result that goes into the app) and `fonts-nx/`; the source is in `skin/src/`: `skin.css` (the app), `status.css` (the status sheet), `activity.css` (the activity sheet and its line), `tokens.css` (colors and spring curves, generated by `src/tools/build-tokens.mjs`), `shapes.json` (the polygons for the shapes, all 144 points), `build-css.py` assembles them. Edit the source and run `python3 skin/src/build-css.py`, never edit the result |
 | `harness/` | `screens.cjs` runs the real app (unpacked from the APK: `unzip -o <apk> "assets/www/*"`, next to the script as a folder `www`) in headless Chromium with a simulated Cordova bridge (`shim.js`) and takes screenshots of every page (light, and with `COLOR_SCHEME=dark` also dark, `PRE=` for an action such as `NX.diagnose()`, `CFG=` for a different network state); `sweep.sh` does 25 screens and makes a contact sheet; `make-screenshots.py` redoes the pictures in `docs/screenshots`. Requires Node with `playwright` and Python with PIL |
 | `get-tools.sh`, `test-all.sh` | downloading the tools with a SHA-256 check, and all tests in one go |
-| `test/` and `java/test/` | the tests (jsdom: `NODE_PATH=<folder with node_modules/jsdom> node test/nxpatch.test.js`, 272 checks; `node test/masker.test.js`; `node test/activity.test.js`, 291 checks of the activity statistics, the state, the readings in the background and the sheet; `node test/skin.test.js` checks the CSS itself: no placeholders, braces, every variable defined, all shapes with the same number of points, icons, font and prefix; `node test/brand.test.js` checks the generated icon and splash files) |
+| `test/` and `java/test/` | the tests (jsdom: `NODE_PATH=<folder with node_modules/jsdom> node test/nxpatch.test.js`, 272 checks; `node test/masker.test.js`; `node test/activity.test.js`, 291 checks of the activity statistics, the state, the readings in the background and the sheet; `node test/skin.test.js` checks the CSS itself: no placeholders, braces, every variable defined, all shapes with the same number of points, icons, font and prefix; `node test/brand.test.js`, 46 checks, runs `patch-16-brand.py` on an invented logo and checks the generated icon and splash files; it needs `python3`) |
 
 ## Signing key
 

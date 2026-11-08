@@ -71,13 +71,12 @@ Expressive look (light and dark).
 - **"Connecting…" while the app tries again.** After a failed check the screen used to say *Not usable* (and the chip *not reachable*) while the app was, behind it,
   trying to connect again (when a screen is opened, when the app resumes, in the automatic recovery, or after *Reconnect*). Now the state line, the lists and the chip say
   *Connecting…* during such an attempt, and go back to what came of it when it is over. The chip also no longer runs under the eye button.
-- **A new icon and splash screen.** The blue *N in a house* and the black *Welcome to your Nice World!* picture are replaced by an arched picket gate, white on the petrol blue of the skin:
-  six boards of one width under one arch (an exact semicircle), a gap between the two leaves, one rail. It is built, not drawn: five numbers on a grid (see
-  [brand/build-brand.py](brand/build-brand.py)), so that the edges lie on whole units, and on whole pixels in the PNG files. It comes as an adaptive icon (with a monochrome layer for themed
-  icons), a small icon for the notifications (without it Android would show the launcher icon as a white blot in the status bar), and a splash screen that is no longer stretched to the
-  screen. Android 12 and up show the same field first.
-
-  ![The new icon behind a circle, a squircle and a rounded square, on a light and a dark wallpaper, at 48 dp, as a themed icon, in a notification, and the splash screen](docs/screenshots/brand.png)
+- **The logo of Nice as the icon, the notification icon and the splash screen.** The app has its own logo again, the blue *N in a house*, and now it is used properly: as an
+  adaptive icon (on a white background, with a monochrome layer for the themed icons of Android 13), as the small icon of the notifications (the house with the N cut out; without a
+  small icon of its own Android would show the launcher icon as a white blot in the status bar), and on a splash screen in the light or the dark surface color of the skin, so
+  that the app does not open with a white flash at night (Android 12 and up show the same logo first). The logo is not in this repository and it is not redrawn: the build reads the
+  icon of the app you patch (only 192 px) and rebuilds it as a gradient and two shapes, so that it can be drawn sharp at every size, without the light fringe of the original file.
+  The launcher icons for Android 7 and older stay what they were. See [docs/DETAILS.md](docs/DETAILS.md).
 
 - **A new look.** Material 3 Expressive in a calm petrol blue: one color family for the surfaces and the buttons, a gate icon that
   changes shape with its state. It has a light and a dark palette; it is a CSS layer, and no function of the app changed.
@@ -113,7 +112,7 @@ This way you don't have to trust a binary from someone else, and the app is sign
 ```
 ./get-tools.sh                               # once: downloads apktool and friends into ./tools, checked on SHA-256
 ./build.sh /path/to/MyNiceWelcome_2.2.0.apk
-# result: out/MyNiceWelcome_2.2.0_nx19.apk
+# result: out/MyNiceWelcome_2.2.0_nx20.apk
 ```
 
 The first build creates **your own signing key** in `keys/` (with a random password in `keys/password.txt`). Keep that folder

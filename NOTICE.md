@@ -5,7 +5,8 @@
 "Nice", "MyNice" and "MyNice Welcome" are names and trademarks of their owner (Nice S.p.A.), and the MyNice Welcome app
 (`com.nice.nhk`) is their copyrighted work. **This project is unofficial and not affiliated with, endorsed by or supported by Nice.**
 
-The source tree of this repository contains **no Nice binaries**: no original APK and no patched APK. It contains scripts that patch a copy of the
+The source tree of this repository contains **no Nice binaries**: no original APK and no patched APK, and no picture of the Nice logo either: the icon, the notification icon and the splash
+screens that `patch-16-brand.py` makes are drawn at build time from the launcher icon that is in the copy of the app *you* provide (`brand/logo.py` and `brand/assets.py` are only code). It contains scripts that patch a copy of the
 app that *you* provide, plus code written for this project. To make the patches apply, some scripts contain short excerpts of the
 app's code (smali and JavaScript) as anchor text to find and replace, and `java/stubs/` holds method signatures of a few of the
 app's classes so the new code can be compiled against them. Nothing here may be used to get around licensing of the app; you
