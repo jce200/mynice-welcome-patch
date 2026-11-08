@@ -275,13 +275,22 @@ html:root body[data-ng-app] .bar .title::after {
   display: block; width: max-content; max-width: 100%; margin-top: 3px; padding: 0 12px 0 25px; height: 24px;
   font-size: 13px; line-height: 24px; font-weight: 500; letter-spacing: 0.1px; font-variation-settings: 'wdth' 100;
   color: var(--md-sys-color-on-surface-variant);
-  background: radial-gradient(circle at 13px 12px, var(--nx-dot, transparent) 0 4.5px, transparent 5px) no-repeat, var(--md-sys-color-surface-container-high);
+  background: radial-gradient(circle at 13px 12px, var(--nx-dot, transparent) 0 var(--nx-dot-r, 4.5px), transparent calc(var(--nx-dot-r, 4.5px) + .5px)) no-repeat, var(--md-sys-color-surface-container-high);
   border-radius: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   transition: background-color var(--nx-effects-ms) var(--nx-effects);
 }
+/* the title box of the header runs under the buttons on the right (the eye on the accessory screen): the chip stops before them, with an ellipsis */
+html:root body[data-ng-app] .bar:has(.right-buttons > *) .title::after { max-width: calc(100% - 48px); }
 html[data-nx-status="bad"]:root body[data-ng-app] .bar .title::after { background-color: var(--md-sys-color-error-container); color: var(--md-sys-color-on-error-container); }
 html[data-nx-status="warn"]:root body[data-ng-app] .bar .title::after { background-color: var(--nx-warn-container); color: var(--nx-on-warn-container); }
 html[data-nx-status="info"]:root body[data-ng-app] .bar .title::after { background-color: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); }
+/* "Connecting to the accessory..." (nx18): an attempt is running. The dot beats like the label "Connecting..." in the lists; with reduced motion it stands still. */
+html[data-nx-status="connecting"]:root body[data-ng-app] .bar .title::after {
+  background-color: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); animation: nx-dot-beat 1.1s ease-in-out infinite;
+}
+@property --nx-dot-r { syntax: '<length>'; inherits: false; initial-value: 4.5px; }
+@keyframes nx-dot-beat { 0%, 100% { --nx-dot-r: 2.5px; } 50% { --nx-dot-r: 4.5px; } }
+@media (prefers-reduced-motion: reduce) { html[data-nx-status="connecting"]:root body[data-ng-app] .bar .title::after { animation: none; } }
 html:root body[data-ng-app] .bar .buttons, html:root body[data-ng-app] .bar .left-buttons, html:root body[data-ng-app] .bar .right-buttons { display: flex; align-items: center; gap: 8px; margin: 0; padding: 0; }
 html:root body[data-ng-app] .bar .button, html:root body[data-ng-app] .bar button.button, html:root body[data-ng-app] .bar .back-button, html:root body[data-ng-app] .bar .button-icon {
   background: var(--md-sys-color-surface-container-high) !important;
@@ -418,6 +427,8 @@ html:root body[data-ng-app] .item-nota.nx-checking:before {
 }
 @keyframes nx-pulse { 0%, 100% { opacity: .25; transform: scale(.8); } 50% { opacity: 1; transform: scale(1); } }
 @media (prefers-reduced-motion: reduce) { html:root body[data-ng-app] .item-nota.nx-checking:before { animation: none; opacity: .6; } }
+/* "Connecting..." (nx18): a new attempt after "Not usable"; in the primary colors, so that it differs from the first "Checking..." */
+html:root body[data-ng-app] .item-nota.nx-checking.nx-connecting { background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container) !important; }
 html:root body[data-ng-app] .centered-screen { color: var(--md-sys-color-on-surface-variant); font-size: 18px; }
 html:root body[data-ng-app] .spazio_bianco { height: 24px; }
 /* info cards (.spacer): About, version and user at the bottom of Settings: name on the left, value on the right, as a list row */
@@ -513,6 +524,7 @@ html:root body[data-ng-app] .device-info .device-row:first-child strong.nx-check
   font-size: 28px; line-height: 36px; font-weight: 600; letter-spacing: 0; color: var(--md-sys-color-on-surface-variant);
   font-variation-settings: 'wdth' 100; animation: nx-fade 1.4s ease-in-out infinite;
 }
+html:root body[data-ng-app] .device-info .device-row:first-child strong.nx-checking-text.nx-connecting { color: var(--md-sys-color-primary); }
 @keyframes nx-fade { 0%, 100% { opacity: .45; } 50% { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { html:root body[data-ng-app] .device-info .device-row:first-child strong.nx-checking-text { animation: none; } }
 html:root body[data-ng-app] .device-info .device-row:not(:first-child) {

@@ -54,8 +54,10 @@ async function environment(scen) {
   const HS = { homes: JSON.parse(w.localStorage.getItem('keyHomes')) };
   HS.updateDevice = function () { w.localStorage.setItem('keyHomes', JSON.stringify(HS.homes)); };
   const verifyLog = [];
+  const digests = { n: 0 };
   const $rootScope = {
     $on(ev, fn) { (handlers[ev] = handlers[ev] || []).push(fn); },
+    $evalAsync() { digests.n++; },       // what the patch uses to make the views follow its flags
     verifyDeviceRecheability: verifyReal
   };
   function verifyReal(dev) {
@@ -105,7 +107,7 @@ async function environment(scen) {
   if (scen.preXhr) scen.preXhr(w);
   w.eval(SRC);
   await sleep(800);   // on startup it checks every 500 ms whether Angular is there
-  return { w, logs, native, handlers, $rootScope, NHK, HS, popups, approvals, verifyLog, goCalls, document: w.document,
+  return { w, logs, native, handlers, $rootScope, NHK, HS, popups, approvals, verifyLog, goCalls, digests, document: w.document,
     defineVerify() { $rootScope.verifyDeviceRecheability = verifyReal; } };
 }
 
@@ -272,15 +274,85 @@ function sheet(env) { return env.document.getElementById('nx-sheet'); }
     ok('nx11 list: new attempt succeeded -> nothing to add', env.$rootScope.nxCheck(live) === '' && live.reachable === true);
   }
   {
-    // an earlier result was "not reachable": the label stays while the new check runs (no flicker between "Not usable" and "Checking…")
+    // an earlier result was "not reachable": while a new attempt runs the screen says "Connecting…" (nx18; until nx17 it kept saying "Not usable",
+    // and nothing showed that the app was trying again), and when the attempt is over it says what came of it
     const env = await environment({ homes: [home([device()])], net: { wifi: true, ssid: 'HomeWifi' }, reachable: [false, false, false, true], verifyMs: 60 });
     const live = env.HS.homes[0].devices[0];
     env.$rootScope.verifyDeviceRecheability(live);
     await sleep(450);
     ok('nx11 list: three failures -> the app\'s flag stands', env.$rootScope.nxCheck(live) === '' && live.reachable === false);
+    env.w.NX.refresh(); await sleep(30);
+    ok('nx18 chip: three failures -> "not reachable"', chip(env).textContent === 'Accessory not reachable', chip(env).textContent);
     env.$rootScope.verifyDeviceRecheability(live);
     await sleep(30);
-    ok('nx11 list: a new check does not turn "Not usable" back into "Checking…"', env.$rootScope.nxCheck(live) === '', env.$rootScope.nxCheck(live));
+    ok('nx18 list: a new attempt after "Not usable" is "retry" (the lists show "Connecting…")', env.$rootScope.nxCheck(live) === 'retry', env.$rootScope.nxCheck(live));
+    ok('nx18 chip: ...and the chip says that it is connecting, in its own level', chip(env).textContent === 'Connecting to the accessory…' && chip(env).getAttribute('data-level') === 'connecting' &&
+      env.document.documentElement.getAttribute('data-nx-status') === 'connecting', chip(env).textContent);
+    ok('nx18 chip: ...with the dot in the primary color (not the red of "not reachable")', /primary/.test(env.document.documentElement.style.getPropertyValue('--nx-dot')), env.document.documentElement.style.getPropertyValue('--nx-dot'));
+    ok('nx18 chip: ...and the views are told (a digest)', env.digests.n > 0);
+    await sleep(250);
+    env.w.NX.refresh(); await sleep(30);
+    ok('nx18 list: the attempt succeeded -> nothing to add', env.$rootScope.nxCheck(live) === '' && live.reachable === true);
+    ok('nx18 chip: ...and the chip says online', chip(env).textContent === 'Accessory online' && env.document.documentElement.getAttribute('data-nx-status') === 'ok', chip(env).textContent);
+  }
+  {
+    // an attempt that fails again: "Connecting…" while it runs, "not reachable" when it is over (it does not stay on "Connecting…")
+    const env = await environment({ homes: [home([device()])], net: { wifi: true, ssid: 'HomeWifi' }, reachableDefault: false, verifyMs: 50 });
+    const live = env.HS.homes[0].devices[0];
+    env.$rootScope.verifyDeviceRecheability(live);
+    await sleep(400);
+    env.$rootScope.verifyDeviceRecheability(live);
+    await sleep(30);
+    ok('nx18: the second round of attempts is "retry"', env.$rootScope.nxCheck(live) === 'retry', env.$rootScope.nxCheck(live));
+    await sleep(400);
+    env.w.NX.refresh(); await sleep(30);
+    ok('nx18: ...and when it fails again it is over: "Not usable" and "not reachable" again', env.$rootScope.nxCheck(live) === '' && chip(env).textContent === 'Accessory not reachable', env.$rootScope.nxCheck(live) + ' ' + chip(env).textContent);
+  }
+  {
+    // the first check of this session is still "Checking…" (no result yet), not "Connecting…"
+    const env = await environment({ homes: [home([device({ reachable: false })])], net: { wifi: true, ssid: 'HomeWifi' }, reachableDefault: false, verifyMs: 120 });
+    const live = env.HS.homes[0].devices[0];
+    env.$rootScope.verifyDeviceRecheability(live);
+    await sleep(40);
+    ok('nx18: the first check of the session is "checking", as before', env.$rootScope.nxCheck(live) === 'checking' && chip(env).textContent === 'Accessory: checking…', env.$rootScope.nxCheck(live) + ' ' + chip(env).textContent);
+  }
+  {
+    // the automatic recovery is an attempt to connect too: "Connecting…" while it runs (the probe, the reconnect, the new check), the result afterwards
+    const env = await environment({ homes: [home([device({ reachable: false })])], net: { wifi: true, ssid: 'HomeWifi' },
+      probe: { ok: true, tcpMs: 60, tlsMs: 500 }, graceMs: 0, reachable: [false, false, false, true], verifyMs: 40 });
+    const live = env.HS.homes[0].devices[0];
+    env.$rootScope.verifyDeviceRecheability(live);       // the app's own check of this session fails (three attempts): "not reachable", and the recovery starts
+    await sleep(700);
+    env.w.NX.refresh(); await sleep(60);
+    ok('nx18 recovery: it is running (probe, reconnect): the accessory is "retry" and the chip says connecting', env.native.some((c) => c.action === 'probe') &&
+      env.$rootScope.nxCheck(live) === 'retry' && chip(env).textContent === 'Connecting to the accessory…', env.native.map((c) => c.action).join(',') + ' | ' + env.$rootScope.nxCheck(live) + ' | ' + chip(env).textContent);
+    await sleep(3500);
+    env.w.NX.refresh(); await sleep(60);
+    ok('nx18 recovery: when it is over the chip says what came of it', chip(env).textContent === 'Accessory online' && env.$rootScope.nxCheck(live) === '', chip(env).textContent);
+  }
+  {
+    // the diagnosis (and the Reconnect) of the status sheet is an attempt to connect too, for the screen behind the sheet as well
+    const env = await environment({ homes: [home([device({ reachable: false })])], net: { wifi: true, ssid: 'HomeWifi' },
+      probe: { ok: false, error: 'SocketTimeoutException' }, reachableDefault: false, verifyMs: 40 });
+    const live = env.HS.homes[0].devices[0];
+    env.$rootScope.verifyDeviceRecheability(live);
+    await sleep(500);
+    env.w.NX.refresh(); await sleep(50);
+    ok('nx18 diagnosis: before it, "not reachable" and no attempt', chip(env).textContent === 'Accessory not reachable' && env.$rootScope.nxCheck(live) === '');
+    chip(env).click(); await sleep(20);
+    ok('nx18 diagnosis: while it measures the accessory is "retry"', env.$rootScope.nxCheck(live) === 'retry', env.$rootScope.nxCheck(live));
+    ok('nx18 diagnosis: ...and the views are told', env.digests.n > 0);
+    await sleep(500);
+    ok('nx18 diagnosis: when it is over the attempt is over', env.$rootScope.nxCheck(live) === '' && chip(env).textContent === 'Accessory not reachable', env.$rootScope.nxCheck(live) + ' ' + chip(env).textContent);
+  }
+  {
+    // a recovery that finds nothing to repair is over at once: no "Connecting…" left behind
+    const env = await environment({ homes: [home([device({ reachable: false })])], net: { wifi: true, ssid: 'HomeWifi' },
+      probe: { ok: false, error: 'SocketTimeoutException' }, graceMs: 0, reachableDefault: false });
+    const live = env.HS.homes[0].devices[0];
+    env.w.NX.refresh(); await sleep(500);
+    env.w.NX.refresh(); await sleep(60);
+    ok('nx18 recovery: nothing to repair -> no "Connecting…" left behind', env.$rootScope.nxCheck(live) !== 'retry' && chip(env).textContent !== 'Connecting to the accessory…', env.$rootScope.nxCheck(live) + ' | ' + chip(env).textContent);
   }
   {
     // right after startup an accessory that has not been checked yet counts as "being checked", whatever storage says

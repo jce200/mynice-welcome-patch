@@ -1,8 +1,58 @@
 # Details and history
 
 This is the technical background to the [README.md](../README.md): why every change exists, with the diagnoses that led to them
-(nx3 through nx17: the project's build numbers). The example values (Wi-Fi `HomeWifi`, accessory `NiceIT4WIFIAABBCC`, user
+(nx3 through nx18: the project's build numbers). The example values (Wi-Fi `HomeWifi`, accessory `NiceIT4WIFIAABBCC`, user
 `homeuser`) stand in for whatever is different in your case. The data in this document comes from one phone and one IT4WIFI module.
+
+## What is new in nx18 ("Connecting…", a new icon and splash screen)
+
+nx18 has version code 20201116 and installs over nx17 when it is signed with the same key. Nothing changed in the network layer
+(the native layer only reports `nx-18` as its version).
+
+**"Connecting…" while the app tries again.** What was reported: the accessory screen said *Not usable* in red (and the chip *Accessory not reachable ·
+other Wi-Fi, VPN, ...*) while the app was, behind the screen, trying to connect. The cause was a choice of nx11: `nxCheck(device)` only said `'checking'`
+when this session had no result yet. After a failed check (three attempts), every later attempt (the app checks again when a screen is entered or the app
+resumes; the automatic recovery; the diagnosis and the *Reconnect* of the status sheet) ran without a sign: the label did not change, "so as not to
+flicker between *Not usable* and *Checking…*". That is turned around, as asked:
+- `nxCheck` has a new value, `'retry'`: the last result was "not reachable" and a new attempt to connect is running. It is `'retry'` while the app's own check runs
+  (`busy[mac]`), and while one of the attempts that this patch makes runs: the automatic recovery (`heal.busy`: the probe, the reconnect, the new check) and the diagnosis or
+  reconnect of the status sheet (`busyDiag`). The first check of a session is still `'checking'` ("Checking…"), as before.
+- The accessory screen and the lists (the six templates of patch-11) have a label *Connecting…* next to *Checking…*: in the primary colors, with the same
+  pulsing as *Checking…* (it stands still with reduced motion). When the attempt fails, the label goes back to *Not usable*; when it works, to the state.
+- The chip under the title says *Connecting to the accessory…* (level `connecting`, the dot beats; `@property --nx-dot-r`, so that the dot can be animated; without
+  that support it stands still) instead of the verdict of the attempt before it.
+- The flags change outside Angular's digest (timers, the native layer), so the patch asks for a digest after every refresh of the chip, when the recovery starts and
+  ends (`setHeal`) and when the diagnosis starts and ends (`setBusy`). `nx-activity.js` does not read the log while an attempt runs (`'checking'` or `'retry'`).
+- Run in the harness (`harness/steps-connecting.cjs`, the real app, a check that fails and takes a moment): *Checking…* → three failures → *Not usable* → the screen is
+  entered again: *Connecting…* → *Not usable* → *Connecting…* → the state; each with the chip.
+- The nx11 tests that required the opposite (`a new check does not turn "Not usable" back into "Checking…"`) are now tests of this.
+
+**The chip under the title** ran under the eye button on the accessory screen (the title box of the header runs under the buttons on the right, and the chip is as wide
+as its text): *Accessory not reachable · other Wi-Fi, VPN, m...* was cut off by the button. On a header with buttons on the right the chip now stops 48 px before the end
+of the title box and ends in an ellipsis (`.bar:has(.right-buttons > *) .title::after`; a WebView without `:has` keeps the old behavior).
+
+**The icon and the splash screen.** `brand/build-brand.py` draws them from what the skin already has (seed color #1E6A8A and its tones, the *cookie* shape of the state
+icon) and a gate that is drawn there (an arched double gate with pickets); `patch-16-brand.py` puts the result in the app. The blue *N in a house* of Nice is gone from the
+launcher and the splash screen (the name of the app, the package and the permissions are as they were):
+- **Adaptive icon** (Android 8 and up; `res/mipmap-anydpi-v26/ic_launcher.xml`): a plain field of tone 20 (#003547) as the background, the cookie in the primary color (#196585)
+  and the white gate as the foreground, and a *monochrome* layer (the gate alone) for the themed icons of Android 13. Vector drawables, only the path commands M, L, H, V, C, A and Z.
+  **Older Android** (7 and older, no adaptive icons): the same picture as PNG on a rounded square (36 to 192 px).
+- **Splash screen** (the Cordova plugin; `res/drawable-{port,land}-*/screen.png`, the names and sizes of the original): the same field, the icon exactly in the middle and *MyNice
+  Welcome* under it (in Roboto Flex, the font of the skin). The original pictures were stretched to the screen (the plugin's default, `FIT_XY`); `SplashMaintainAspectRatio` makes it
+  `CENTER_CROP`, so that the logo keeps its shape on any screen, and the pictures are made for that (everything that matters is in the middle). Each is 6 to 40 KB.
+- **Android 12 and up** show a splash screen of their own first (the icon on a colored field). The activity now has the theme `NxTheme` (the old one,
+  `Theme.DeviceDefault.NoActionBar`, with one color as the window background; `values-v31` also sets `windowSplashScreenBackground` and `windowSplashScreenAnimatedIcon`),
+  so that the system splash screen has the same field and icon, and the change to the picture of the app is not a jump in color. Older versions show that field as the window
+  from the first frame.
+- `brand/preview.png` (also in the README) shows the icon behind a circle, a squircle and a rounded square on a light and a dark wallpaper, at 48 dp, as the themed icon, and the
+  splash screen. `test/brand.test.js` checks the generated files (the sizes of all 24, the colors against `skin/src/tokens.css`, the layers, the theme, the agreement with the patch
+  script); `verify-apk.py` checks that the APK has the adaptive icon, its layers, `NxTheme` and `SplashMaintainAspectRatio` (and that the APK's launcher icon is the adaptive one).
+- **Not seen on a phone.** The icon and the splash screen were drawn and rendered in Chromium (the same shapes as the vector drawables), and the APK was checked for what Android will
+  use (the launcher icon resolves to the adaptive icon, the main activity to `NxTheme`), but there is no launcher or Android 12 splash screen in the harness. If a launcher cuts the
+  cookie in a way that is not liked, the size of the cookie (`BADGE`, 78 of 108) is one number in the generator.
+
+Tests: `test/nxpatch.test.js` has 272 checks (256 in nx17; new: *Connecting…* in the chip and in the labels, the recovery, the diagnosis, the digests), `test/activity.test.js` 291 (not
+reading while an attempt runs), `test/skin.test.js` 28 (the chip level, the labels, the ellipsis rule, `@property`), the new `test/brand.test.js` 18.
 
 ## What is new in nx17 (a gate that moves is not blocked)
 
@@ -336,7 +386,7 @@ too (for example the plugin action `versie` is `version` now, the JSON key `gebo
 find in older notes or logs may differ.
 nx10 has version code 20201108 and installs over nx9 when it is signed with the same key.
 
-## Where does the app work? (nx17)
+## Where does the app work? (nx18)
 
 The app talks to the accessory in two ways: directly at its address on your home network (discovery via mDNS, then TLS on port 443;
 if mDNS fails, the IP safety net tries the saved address), and through the Nice cloud (`it4wifi.cloud.nice.niceappdomain.com`, port 7890)
@@ -521,7 +571,7 @@ is a reset of the accessory.
 ## Building and the files
 
 See [README.md](../README.md) for the steps (`./get-tools.sh`, then `./build.sh <original.apk>`). The script unpacks the original APK,
-applies `patch-01-wifi-binding.py` through `patch-15-state.py`, builds the Java layer (`java/src/com/nice/patch`) into `classes2.dex`,
+applies `patch-01-wifi-binding.py` through `patch-16-brand.py`, builds the Java layer (`java/src/com/nice/patch`) into `classes2.dex`,
 adds it, aligns, signs with your key in `keys/` and checks the result (`verify-apk.py`, if `androguard` and `loguru` are installed).
 Every patch checks that its anchor text occurs exactly once, so a different APK version is not silently patched wrongly.
 
@@ -537,6 +587,7 @@ Every patch checks that its anchor text occurs exactly once, so a different APK 
 | `patch-13-theme.py` | nx12: `nx-theme.js` in `index.html` and the row *Appearance > Theme* in the settings (Auto, Light, Dark) |
 | `patch-14-activity.py` | nx14: `nx-activity.js` in the app (loaded before `nx-patch.js`) and the line on the accessory screen that opens the activity sheet |
 | `patch-15-state.py` | nx15: the state text and icon of the accessory screen ask `nxState` and `nxIcon` (the state settled from the log), a note under the state, and the pill of a blocked gate |
+| `patch-16-brand.py`, `brand/` | nx18: the new icon (adaptive, monochrome layer, PNG for older Android) and splash screens (`brand/res`, drawn by `brand/build-brand.py` from the colors and the shape of the skin; the generated files are committed, so building needs neither Node nor Chromium), the theme `NxTheme` and `SplashMaintainAspectRatio` |
 | `patch-09-socket-fallback.py` | nx7: `socketFor` in `_openSocket` (EPERM fallback) and the VPN guard in both `bindNiceWifi` copies |
 | `patch-08-route-choice.py` | nx6: hooks in `ConnectionsManager`: `vetLocal` (vetting the local address), `noteRoute` (remembering the chosen route), `socketAddress` (name resolution with a fallback) |
 | `patch-07-vpn-binding.py` | nx4: skipping VPN networks in the bind loop, `Nx.wifiType`/`Nx.ctx` in the Wi-Fi receiver, the `__nxWrapVerify` hook in `app.min.js` |
@@ -546,7 +597,7 @@ Every patch checks that its anchor text occurs exactly once, so a different APK 
 | `skin/` | `nx-expressive.css` (the result that goes into the app) and `fonts-nx/`; the source is in `skin/src/`: `skin.css` (the app), `status.css` (the status sheet), `activity.css` (the activity sheet and its line), `tokens.css` (colors and spring curves, generated by `src/tools/build-tokens.mjs`), `shapes.json` (the polygons for the shapes, all 144 points), `build-css.py` assembles them. Edit the source and run `python3 skin/src/build-css.py`, never edit the result |
 | `harness/` | `screens.cjs` runs the real app (unpacked from the APK: `unzip -o <apk> "assets/www/*"`, next to the script as a folder `www`) in headless Chromium with a simulated Cordova bridge (`shim.js`) and takes screenshots of every page (light, and with `COLOR_SCHEME=dark` also dark, `PRE=` for an action such as `NX.diagnose()`, `CFG=` for a different network state); `sweep.sh` does 25 screens and makes a contact sheet; `make-screenshots.py` redoes the pictures in `docs/screenshots`. Requires Node with `playwright` and Python with PIL |
 | `get-tools.sh`, `test-all.sh` | downloading the tools with a SHA-256 check, and all tests in one go |
-| `test/` and `java/test/` | the tests (jsdom: `NODE_PATH=<folder with node_modules/jsdom> node test/nxpatch.test.js`, 256 checks; `node test/masker.test.js`; `node test/activity.test.js`, 288 checks of the activity statistics, the state, the readings in the background and the sheet; `node test/skin.test.js` checks the CSS itself: no placeholders, braces, every variable defined, all shapes with the same number of points, icons, font and prefix) |
+| `test/` and `java/test/` | the tests (jsdom: `NODE_PATH=<folder with node_modules/jsdom> node test/nxpatch.test.js`, 272 checks; `node test/masker.test.js`; `node test/activity.test.js`, 291 checks of the activity statistics, the state, the readings in the background and the sheet; `node test/skin.test.js` checks the CSS itself: no placeholders, braces, every variable defined, all shapes with the same number of points, icons, font and prefix; `node test/brand.test.js` checks the generated icon and splash files) |
 
 ## Signing key
 

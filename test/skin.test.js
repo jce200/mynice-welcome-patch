@@ -77,8 +77,8 @@ ok('no placeholders ({{...}}) left', !/\{\{|\}\}/.test(css));
   ok('the font license sits next to it', fs.existsSync(path.join(SKIN, 'fonts-nx', 'ROBOTO-FLEX-LICENSE.txt')));
 }
 {
-  // specificity: every rule outside :root, @font-face and @keyframes starts with the prefix (otherwise style.css wins)
-  const withoutBlocks = bare.replace(/@keyframes[^{]*\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}/g, '').replace(/@font-face\s*\{[^}]*\}/g, '');
+  // specificity: every rule outside :root, @font-face, @property and @keyframes starts with the prefix (otherwise style.css wins)
+  const withoutBlocks = bare.replace(/@keyframes[^{]*\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}/g, '').replace(/@font-face\s*\{[^}]*\}/g, '').replace(/@property[^{]*\{[^}]*\}/g, '');
   const selectors = [];
   let rest = withoutBlocks;
   // top-level rules and rules inside @media
@@ -123,6 +123,12 @@ ok('no placeholders ({{...}}) left', !/\{\{|\}\}/.test(css));
   const offered = asked.filter((n) => !new RegExp('\\$(?:rootScope|rs)\\.' + n + '\\s*=').test(js));
   ok('nx-patch.js and nx-activity.js offer what the patched templates ask (' + asked.join(', ') + ')', asked.length >= 15 && offered.length === 0, offered.join(', '));
   ok('the "Checking..." animations stand still with reduced motion', /prefers-reduced-motion[^{]*\{[^}]*nx-checking:before[^}]*animation:\s*none/.test(css) && /prefers-reduced-motion[^{]*\{[^}]*nx-checking-text[^}]*animation:\s*none/.test(css));
+  // nx18: "Connecting..." (a new attempt after "Not usable"): the chip, the labels, and the chip that stops before the buttons on the right
+  ok('"Connecting..." has its chip level, with a dot that beats (and stands still with reduced motion)', /html\[data-nx-status="connecting"\][^{]*\.bar \.title::after\s*\{[^}]*animation:\s*nx-dot-beat/.test(css) &&
+    /@keyframes nx-dot-beat/.test(css) && /@property --nx-dot-r/.test(css) && /prefers-reduced-motion[^{]*\{[^}]*data-nx-status="connecting"[^}]*animation:\s*none/.test(css));
+  ok('"Connecting..." has its label in the lists and on the accessory screen', /\.item-nota\.nx-checking\.nx-connecting\s*\{/.test(css) && /strong\.nx-checking-text\.nx-connecting\s*\{/.test(css));
+  ok('the chip uses the radius of the dot with a fallback (without @property it is as before)', /var\(--nx-dot-r, 4\.5px\)/.test(css));
+  ok('the chip stops before the buttons on the right', /\.bar:has\(\.right-buttons > \*\) \.title::after\s*\{\s*max-width:\s*calc\(100% - 48px\)/.test(css));
 }
 {
   // the theme: the dark tokens exist twice (what the WebView reports, unless light was chosen; and dark chosen) and are the same

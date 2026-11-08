@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Patch nx11 (lists): "Checking…" instead of a premature "Not usable".
+"""Patch nx11 (lists): "Checking…" instead of a premature "Not usable"; since nx18 also "Connecting…" while a new attempt runs.
 
 Usage: python patch-11-checking-state.py <apktool-output-dir>   (all or nothing; idempotent)
 
@@ -8,6 +8,8 @@ makes a second and third attempt after that. Right after startup the label also 
 Neither is a confirmed status. nx-patch.js therefore offers $rootScope.nxCheck(device):
   'checking'  no result of this session yet: show a neutral "Checking…"
   'hold'      the last result was "reachable" and the check that is running has not failed for good: show nothing
+  'retry'     the last result was "not reachable" and a new attempt to connect is running: show "Connecting…" (nx18; the screen used to
+              keep saying "Not usable" while the app was trying again behind it)
   ''          nothing to add: the app's own rule applies
 This script makes the lists ask that. Where nxCheck does not exist (nx-patch.js did not load) every expression falls back to
 the original behavior: `!verifyDevice(x) && !nxCheck(x)` is the original `!verifyDevice(x)` when nxCheck is undefined.
@@ -29,6 +31,7 @@ if len(sys.argv) != 2:
     sys.exit(__doc__)
 WWW = os.path.join(sys.argv[1], "assets", "www")
 CHECKING = "Checking&hellip;"
+CONNECTING = "Connecting&hellip;"
 
 
 def read_text(path):
@@ -47,7 +50,8 @@ def badge(m):
     x, key = m.group(1), m.group(2)
     return ('<span class="item-nota" data-ng-show="!verifyDevice(%s) && !nxCheck(%s)" translate="%s"></span>'
             '<span class="item-nota nx-checking" data-ng-show="!verifyDevice(%s) && nxCheck(%s) === \'checking\'">%s</span>'
-            % (x, x, key, x, x, CHECKING))
+            '<span class="item-nota nx-checking nx-connecting" data-ng-show="!verifyDevice(%s) && nxCheck(%s) === \'retry\'">%s</span>'
+            % (x, x, key, x, x, CHECKING, x, x, CONNECTING))
 
 
 # 2. controls_home.html: a label that already waits for isLoadingDevice
@@ -57,9 +61,12 @@ CONTROLS_NEW = ('<span class="item-nota" data-ng-show="!verifyDevice(device) && 
                 'translate="CONTROLS_DEVICE_NOT_READY"></span>'
                 '<span class="item-nota nx-checking" '
                 'data-ng-show="!verifyDevice(device) && nxCheck(device) === \'checking\' && !isLoadingDevice(device.mac)">'
-                + CHECKING + '</span>')
+                + CHECKING + '</span>'
+                '<span class="item-nota nx-checking nx-connecting" '
+                'data-ng-show="!verifyDevice(device) && nxCheck(device) === \'retry\' && !isLoadingDevice(device.mac)">'
+                + CONNECTING + '</span>')
 
-# 3. device_detail.html: the state line; while not confirmed it says "Checking…" instead of "Not usable"
+# 3. device_detail.html: the state line; while not confirmed it says "Checking…" instead of "Not usable", and "Connecting…" during a new attempt
 RE_DETAIL = re.compile(r'(?m)^([ \t]*)<strong data-ng-show="!isDeviceReachable\(data\.device\)">')
 
 WORK = [
@@ -91,8 +98,9 @@ for rel, kind, expected in WORK:
     else:
         def detail(m):
             i = m.group(1)
-            return ('%s<strong class="nx-checking-text" data-ng-show="nxCheck(data.device) && !isDeviceReachable(data.device)">%s</strong>\n'
-                    '%s<strong data-ng-show="!nxCheck(data.device) && !isDeviceReachable(data.device)">' % (i, CHECKING, i))
+            return ('%s<strong class="nx-checking-text" data-ng-show="nxCheck(data.device) && nxCheck(data.device) !== \'retry\' && !isDeviceReachable(data.device)">%s</strong>\n'
+                    '%s<strong class="nx-checking-text nx-connecting" data-ng-show="nxCheck(data.device) === \'retry\' && !isDeviceReachable(data.device)">%s</strong>\n'
+                    '%s<strong data-ng-show="!nxCheck(data.device) && !isDeviceReachable(data.device)">' % (i, CHECKING, i, CONNECTING, i))
         t, n = RE_DETAIL.subn(detail, t)
     if n != expected:
         sys.exit("%s: expected %d occurrence(s), found %d" % (rel, expected, n))

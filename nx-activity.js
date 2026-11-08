@@ -729,6 +729,8 @@
     // line and the pill follow what other apps and phones do with the gate.
     var shown = null, pollTimer = null;
     function screenDevice() { return shown ? ctx.liveDevice(shown.homeId, shown.mac) : null; }
+    // the app is checking the accessory, or trying to connect to it again (nx-patch.js: nxCheck 'checking' or 'retry'): not the moment to ask it for more
+    function attemptRunning(device) { var c = $rootScope.nxCheck && $rootScope.nxCheck(device); return c === 'checking' || c === 'retry'; }
     function armPoll() { if (pollTimer == null && POLL_MS > 0) pollTimer = setTimeout(pollTick, POLL_MS); }
     function disarmPoll() { clearTimeout(pollTimer); pollTimer = null; }
     function pollTick() {
@@ -739,7 +741,7 @@
         armPoll();
         if (!visible() || isOpen) return;                                       // in the background, or the sheet has its own reading
         if (device.reachable === false) return;
-        if ($rootScope.nxCheck && $rootScope.nxCheck(device) === 'checking') return;
+        if (attemptRunning(device)) return;
         readIfStale(device, MIN_GAP_MS, 'poll', true);
       } catch (e) { log('activity', String(e)); }
     }
@@ -777,7 +779,7 @@
             var c = cache[device.mac];
             if (c && Date.now() - c.at < MAX_AGE && !(transient(device) && Date.now() - c.at > 20000)) return;
             if (device.reachable === false) return;
-            if ($rootScope.nxCheck && $rootScope.nxCheck(device) === 'checking') return;
+            if (attemptRunning(device)) return;
             if (inj.has('$state') && inj.get('$state').params && inj.get('$state').params.mac !== device.mac) return;     // gone from this screen
             refresh(device, null, { why: 'screen', quiet: true, retry: true });
           } catch (e) { log('activity', String(e)); }

@@ -4,6 +4,7 @@
 #   masker   masking of passwords in the LOG panel (node)
 #   jsdom    nx-patch.js in a simulated Angular/Cordova environment (node + jsdom: npm install)
 #   activity nx-activity.js: the statistics from the accessory's event log (node), and its sheet (jsdom)
+#   brand    the icon and the splash screen that patch-16-brand.py puts in the app (node)
 #   java     the logic of the native layer on a plain JVM, against android-all-10 (run ./get-tools.sh first)
 set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -22,6 +23,8 @@ else
 fi
 echo "== activity (nx-activity.js)"
 node test/activity.test.js | tail -1 || failed=1     # without jsdom it tests the statistics only and says so
+echo "== brand (the icon and the splash screen)"
+node test/brand.test.js | tail -1 || failed=1
 echo "== java (native layer)"
 if [ -f "$TOOLS/android-all-10.jar" ]; then
   T="$(mktemp -d)"; mkdir -p "$T/stubs" "$T/classes" "$T/test"

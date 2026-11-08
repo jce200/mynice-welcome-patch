@@ -325,11 +325,15 @@ const REAL = {
     // when not to read the log by itself
     const e1 = await environment({ reachable: false }); e1.navigate(DETAIL); await sleep(100);
     const e2 = await environment({ nxCheck: () => 'checking' }); e2.navigate(DETAIL); await sleep(100);
+    const e2r = await environment({ nxCheck: () => 'retry' }); e2r.navigate(DETAIL); await sleep(100);
+    const e2h = await environment({ nxCheck: () => 'hold' }); e2h.navigate(DETAIL); await sleep(100);
     const e3 = await environment(); e3.navigate('tabsController.favorites'); await sleep(100);
     const e4 = await environment({ state: { homeId: 1, mac: 'SOMEONE-ELSE' } }); e4.navigate(DETAIL); await sleep(100);
     const e5 = await environment(); e5.handlers['$stateChangeSuccess'].forEach((f) => f({}, { name: DETAIL }, undefined)); await sleep(100);
     ok('not for an accessory that is not reachable', e1.calls.logs === 0);
     ok('not while the app is still checking the accessory', e2.calls.logs === 0);
+    ok('not while the app is trying to connect to it again (nx18)', e2r.calls.logs === 0, String(e2r.calls.logs));
+    ok('...but a check of an accessory that was fine ("hold") does not stop it', e2h.calls.logs === 1, String(e2h.calls.logs));
     ok('not on other screens', e3.calls.logs === 0);
     ok('not when the screen has been left in the meantime', e4.calls.logs === 0);
     ok('no parameters, no reading, no error', e5.calls.logs === 0);
@@ -689,6 +693,9 @@ const REAL = {
     env.$rootScope.nxCheck = () => 'checking';
     await sleep(120);
     ok('poll: not while the app is still checking the accessory', env.calls.logs === r, String(env.calls.logs - r));
+    env.$rootScope.nxCheck = () => 'retry';
+    await sleep(120);
+    ok('poll: not while the app is trying to connect again (nx18)', env.calls.logs === r, String(env.calls.logs - r));
     delete env.$rootScope.nxCheck;
     await sleep(120);
     ok('poll: ...and on again afterwards', env.calls.logs > r);

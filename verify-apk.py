@@ -110,6 +110,24 @@ with zipfile.ZipFile(path) as z:
 if 'com.nice.patch.NxPlugin' not in cfg:
     errors.append('plugin Nx is not in config.xml')
 
+# 3a. nx18: the new icon and splash screen (patch-16): the adaptive icon with its layers, the theme, the picture that is not stretched
+with zipfile.ZipFile(path) as z:
+    names0 = set(z.namelist())
+    for n in ('res/mipmap-anydpi-v26/ic_launcher.xml', 'res/drawable/ic_launcher_foreground.xml', 'res/drawable/ic_launcher_background.xml',
+              'res/drawable/ic_launcher_monochrome.xml', 'res/drawable-port-xxhdpi/screen.png', 'res/mipmap-xxxhdpi/ic_launcher.png'):
+        if n not in names0:
+            errors.append('missing from the APK: %s (patch-16)' % n)
+    arsc = z.read('resources.arsc')
+    if b'NxTheme' not in arsc and 'NxTheme'.encode('utf-16le') not in arsc:
+        errors.append('the theme NxTheme is not in resources.arsc (patch-16)')
+    if 'SplashMaintainAspectRatio' not in cfg:
+        errors.append('config.xml has no SplashMaintainAspectRatio (patch-16): the splash picture would be stretched')
+    # the picture of the original app was a black one with white text (25 KB at 960 x 1600); the new one is a plain field with a logo: a PNG that is
+    # not a valid PNG, or an empty one, would show as a black or broken splash screen
+    for n in ('res/drawable-port-xxhdpi/screen.png', 'res/drawable-land-xxhdpi/screen.png', 'res/mipmap-xxxhdpi/ic_launcher.png'):
+        if n in names0 and not (z.read(n)[:8] == b'\x89PNG\r\n\x1a\n' and 1500 < len(z.read(n)) < 200000):
+            errors.append('%s is not a usable PNG (patch-16)' % n)
+
 # 3b. nx9: the skin, the font and the hook points in index.html, nx-patch.js and debuglog.js
 with zipfile.ZipFile(path) as z:
     names = set(z.namelist())
@@ -133,17 +151,23 @@ with zipfile.ZipFile(path) as z:
     for m in ('--nx-sub', '--nx-dot', 'data-nx-status', 'nx-sheet', 'wrapStatusBar', 'nxCheck'):
         if m not in js:
             errors.append('nx-patch.js is missing ' + m)
-    # nx11: the lists ask nxCheck and have a label for "Checking..."; the CSS styles it
+    # nx11: the lists ask nxCheck and have a label for "Checking..."; nx18: and one for "Connecting..." (a new attempt after "Not usable"); the CSS styles them
     for n in ('favorites/favorites.html', 'favorites/add_favorites.html', 'settings/settings_device.html',
               'settings/settings_scene_edit.html', 'system/controls_home.html', 'system/device_detail.html'):
-        if 'nxCheck' not in text('assets/www/templates/' + n):
+        t = text('assets/www/templates/' + n)
+        if 'nxCheck' not in t:
             errors.append('templates/%s does not ask nxCheck (patch-11)' % n)
-    for m in ('.nx-checking', 'nx-checking-text'):
+        if "=== 'retry'" not in t or 'Connecting&hellip;' not in t:
+            errors.append('templates/%s has no "Connecting..." label (patch-11, nx18)' % n)
+    for m in ('.nx-checking', 'nx-checking-text', '.nx-connecting', 'data-nx-status="connecting"', '@property --nx-dot-r'):
         if m not in css:
             errors.append('nx-expressive.css does not style ' + m)
+    if "'retry'" not in js or 'Connecting to the accessory' not in js:
+        errors.append('nx-patch.js does not know the state "retry" (nx18)')
     # isDeviceReachable writes ten debug lines per call: in the state line it must be evaluated once per digest, after nxCheck
     detail = text('assets/www/templates/system/device_detail.html')
-    if 'nxCheck(data.device) && !isDeviceReachable(data.device)' not in detail or '!isDeviceReachable(data.device) && ' in detail:
+    if "nxCheck(data.device) !== 'retry' && !isDeviceReachable(data.device)" not in detail or "nxCheck(data.device) === 'retry' && !isDeviceReachable(data.device)" not in detail \
+            or '!isDeviceReachable(data.device) && ' in detail:
         errors.append('device_detail.html: isDeviceReachable must come after nxCheck in the state line (patch-11)')
     # nx12: the extra command buttons and the theme choice
     for n, m in (('system/device_detail.html', 'nxExtra'), ('settings/device_4th_button.html', 'nxQuickToggle'), ('settings/settings.html', 'nxSetTheme')):

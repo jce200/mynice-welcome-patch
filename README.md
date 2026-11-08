@@ -68,6 +68,15 @@ Expressive look (light and dark).
 
   ![A gate that was blocked: the state shown as Open with the note reported: Opening, the pill Blocked, and the card in the activity sheet, light and dark](docs/screenshots/blocked.png)
 
+- **"Connecting…" while the app tries again.** After a failed check the screen used to say *Not usable* (and the chip *not reachable*) while the app was, behind it,
+  trying to connect again (when a screen is opened, when the app resumes, in the automatic recovery, or after *Reconnect*). Now the state line, the lists and the chip say
+  *Connecting…* during such an attempt, and go back to what came of it when it is over. The chip also no longer runs under the eye button.
+- **A new icon and splash screen.** The blue *N in a house* and the black *Welcome to your Nice World!* picture are replaced by an arched gate on the petrol blue of the skin, behind it
+  the *cookie* shape of the state icon: an adaptive icon (with a monochrome layer for themed icons), and a splash screen that is no longer stretched to the screen. Android 12 and
+  up show the same field first. Drawn by [brand/build-brand.py](brand/build-brand.py).
+
+  ![The new icon behind a circle, a squircle and a rounded square, on a light and a dark wallpaper, at 48 dp, as a themed icon, and the splash screen](docs/screenshots/brand.png)
+
 - **A new look.** Material 3 Expressive in a calm petrol blue: one color family for the surfaces and the buttons, a gate icon that
   changes shape with its state. It has a light and a dark palette; it is a CSS layer, and no function of the app changed.
 - **Light, dark or automatic.** Settings > Appearance > *Theme*. *Auto* uses what the WebView reports as the phone's scheme, which is
@@ -102,7 +111,7 @@ This way you don't have to trust a binary from someone else, and the app is sign
 ```
 ./get-tools.sh                               # once: downloads apktool and friends into ./tools, checked on SHA-256
 ./build.sh /path/to/MyNiceWelcome_2.2.0.apk
-# result: out/MyNiceWelcome_2.2.0_nx17.apk
+# result: out/MyNiceWelcome_2.2.0_nx18.apk
 ```
 
 The first build creates **your own signing key** in `keys/` (with a random password in `keys/password.txt`). Keep that folder

@@ -252,20 +252,27 @@
     // app's flag right now:
     //   'checking'  no result of this session yet and a check is running (or about to): "Checking…", neither good nor bad
     //   'hold'      the last result was "reachable" and the check that is running now has not failed for good: stay "usable"
+    //   'retry'     the last result was "not reachable" and a new attempt to connect is running: "Connecting…". (Until nx17 the screen
+    //               kept saying "Not usable" during such an attempt, and nothing showed that the app was still trying.)
     //   ''          nothing to add: the flag of the app is the confirmed state
     var seen = {};
     function runningSince(mac) {
       var t = busy[mac];
       return (t && Date.now() - t < STUCK) ? t : 0;
     }
+    // an attempt that is not one of the app's own checks: the automatic recovery, and the diagnosis and the reconnect of the status sheet
+    function attempting() { return !!((heal && heal.busy) || busyDiag); }
     function nxCheck(device) {
       var mac = device && device.mac;
       if (!mac) return '';
       var s = seen[mac];
-      if (runningSince(mac)) return s ? (s.ok ? 'hold' : '') : 'checking';
+      if (runningSince(mac)) return s ? (s.ok ? 'hold' : 'retry') : 'checking';
       if (!s && Date.now() - T0 < FIRST_WAIT) return 'checking';
+      if (attempting() && !(s && s.ok)) return 'retry';
       return '';
     }
+    // the views follow the flags above only when a digest runs, and these change outside of it (timers, the native layer)
+    function digestSoon() { try { $rootScope.$evalAsync(function () {}); } catch (e) {} }
     installVerify = function ($rs) {
       try {
         var cur = $rs.verifyDeviceRecheability;
@@ -507,7 +514,7 @@
     // Visible: a line under the title of every page (the status chip: --nx-sub and --nx-dot on <html>, styling in nx-expressive.css)
     // and, after a tap on it, a bottom sheet (the status sheet) with the route, the measurements and the actions. #nx-status is
     // the invisible element for screen readers (and for the keyboard): the same text, a click opens the sheet.
-    var DOTS = { ok: 'var(--nx-ok)', warn: 'var(--nx-warn)', bad: 'var(--md-sys-color-error)', info: 'var(--md-sys-color-primary)', unknown: 'var(--md-sys-color-outline)' };
+    var DOTS = { ok: 'var(--nx-ok)', warn: 'var(--nx-warn)', bad: 'var(--md-sys-color-error)', info: 'var(--md-sys-color-primary)', connecting: 'var(--md-sys-color-primary)', unknown: 'var(--md-sys-color-outline)' };
     var pill = null, panel = null, panelText = null, btnReconnect = null, btnUsers = null;
     var scrim = null, elHeadline = null, elExplanation = null, elRoute = null, elFacts = null;
     var sheetOpen = false, sheetData = null, busyDiag = false;
@@ -563,16 +570,20 @@
         var states = devs.map(function (x) {
           var c = nxCheck(x.device);
           if (c === 'checking') return 'checking';
+          if (c === 'retry') return 'retry';
           if (c === 'hold') return 'ok';
           return x.device.reachable === true ? 'ok' : x.device.reachable === false ? 'bad' : 'unknown';
         });
         var allOk = states.every(function (v) { return v === 'ok'; });
         var anyBad = states.some(function (v) { return v === 'bad'; });
         var anyChecking = states.some(function (v) { return v === 'checking'; });
+        var anyRetry = states.some(function (v) { return v === 'retry'; });
         var viaCloud = net.route === 'cloud';
         if (net.module) return cb({ level: 'info', text: 'Accessory Wi-Fi', net: net });
         // no verdict, neither good nor bad, as long as a result is missing: without Wi-Fi the Nice cloud may still work
-        if (anyChecking && !anyBad) return cb({ level: 'unknown', text: 'Accessory: checking…', net: net });
+        if (anyChecking && !anyBad && !anyRetry) return cb({ level: 'unknown', text: 'Accessory: checking…', net: net });
+        // a new attempt to connect is running: that is what the chip says, not the verdict of the attempt before it
+        if (anyRetry && !allOk) return cb({ level: 'connecting', text: 'Connecting to the accessory…', net: net });
         // Without Wi-Fi and without a VPN an accessory in the home network can only be reachable via the Nice cloud. An old
         // "reachable" flag then only counts if the app really chose the cloud for its last connection.
         if (!net.wifi && !net.vpn) {
@@ -602,6 +613,8 @@
     // a VPN that briefly interfered). If the accessory answers over Wi-Fi on TCP and TLS, we rebuild the app connection.
     // At most three times per outage, with at least 45 s in between, and never while the app itself is checking.
     var heal = { last: 0, n: 0, busy: false };
+    // the recovery is an attempt to connect: the labels and the chip say "Connecting…" while it runs, and say what came of it when it is over
+    function setHeal(b) { heal.busy = !!b; digestSoon(); refreshPill(); }
     function autoHeal(st) {
       try {
         if (st && st.level === 'ok') { heal.n = 0; return; }
@@ -614,16 +627,16 @@
         var d = allDevices()[0] && allDevices()[0].device;
         // Without Wi-Fi the app chooses the route itself (the Nice cloud); checking again is then enough, a reconnect does not help.
         if (!net.wifi) {
-          heal.busy = true; heal.last = now; heal.n++;
+          setHeal(true); heal.last = now; heal.n++;
           log('auto-recovery ' + heal.n + '/3: no Wi-Fi, the app chooses again (cloud)');
-          verifyAll(function () { heal.busy = false; refreshPill(); });
+          verifyAll(function () { setHeal(false); });
           return;
         }
         if (!d || !d.address) return;
         // If the phone is on a completely different network than the accessory's address (for example at someone else's home),
         // the accessory is not there and there is nothing to recover.
         if (net.ip && !sameNet24(net.ip, d.address)) return;
-        heal.busy = true; heal.last = now; heal.n++;
+        setHeal(true); heal.last = now; heal.n++;
         nx('probe', [d.address, 443, 4000, true], function (p) {
           if (!p || !p.ok) {
             // With a VPN the local route can be closed while the cloud works: since nx6 the app measures that itself when
@@ -631,10 +644,10 @@
             if (net.vpn) {
               log('auto-recovery ' + heal.n + '/3: the accessory does not respond locally (' + ((p && p.error) || '?') + ') and the VPN is on; ' +
                 'the app chooses again between local and cloud');
-              verifyAll(function () { heal.busy = false; refreshPill(); });
+              verifyAll(function () { setHeal(false); });
               return;
             }
-            heal.busy = false;
+            setHeal(false);
             log('auto-recovery: the accessory does not respond (' + ((p && p.error) || '?') + '), nothing to repair in the app');
             return;
           }
@@ -643,11 +656,11 @@
           nx('reconnect', [], function () {
             pushHints();
             setTimeout(function () {
-              verifyAll(function () { heal.busy = false; refreshPill(); });
+              verifyAll(function () { setHeal(false); });
             }, 2500);
-          }, function () { heal.busy = false; });
-        }, function () { heal.busy = false; });
-      } catch (e) { heal.busy = false; log('auto-recovery', String(e)); }
+          }, function () { setHeal(false); });
+        }, function () { setHeal(false); });
+      } catch (e) { setHeal(false); log('auto-recovery', String(e)); }
     }
 
     // a CSS string for content: var(--nx-sub): escape quotation marks and backslashes, drop line breaks
@@ -682,6 +695,7 @@
         pill.setAttribute('data-level', st.level);
         setHeaderStatus(st);
         if (sheetOpen) renderSheet();
+        digestSoon();
         autoHeal(st);
       });
     }
@@ -790,6 +804,8 @@
       if (btnReconnect) btnReconnect.disabled = b;
       if (btnUsers) btnUsers.disabled = b;
       if (sheetOpen) renderSheet();
+      digestSoon();
+      refreshPill();      // an attempt (the diagnosis, the reconnect) is running or over: "Connecting…" or the result
     }
     // the text for copying and sharing (under "Technical details"); opens the sheet if it is still closed
     function showText(lines) {
