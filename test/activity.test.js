@@ -111,6 +111,8 @@ const LOG = {
 
   ok('lastLine', A.lastLine(a, label) === 'Close · today 14:12 · Anna' && A.lastLine(a) === 'close · today 14:12 · Anna');
   ok('lastLine: nothing to say without commands', A.lastLine(none, label) === '' && A.lastLine(undefined, label) === '');
+  ok('lastLine: the time is worked out for the moment it is shown ("just now" does not stay)', A.lastLine(a, label, D(7, 14, 12, 40)) === 'Close · just now · Anna' && A.lastLine(a, label, D(7, 16, 0)) === 'Close · today 14:12 · Anna' &&
+    A.lastLine(a, label, D(8, 16, 0)) === 'Close · yesterday 14:12 · Anna');
   ok('lastLine: another day', A.lastLine(A.analyze({ deviceLogs: [{ source: 'busT4', type: 'MDBk', time: D(5, 17, 40) }] }, [], NOW), label) === 'Open and Block · ' + WD[new Date(D(5, 17, 40)).getDay()] + ' 17:40 · Gate controller');
 }
 
@@ -236,7 +238,9 @@ const REAL = {
   try { ({ JSDOM } = require('jsdom')); } catch (e) { console.log('   skipped: jsdom is missing (the sheet is not tested)'); finish(); return; }
 
   // scen: { logs (the answer), logsErr, failFrom, hang, pairings (activeUsers), pairingsErr, names ($translate), state ($state.params), nxCheck,
-  //         reachable, properties (the state of the gate), storage (what localStorage has at the start), prefetchMs, maxAge, timeoutMs, travelMs, afterMs, marginMs }
+  //         reachable, properties (the state of the gate), storage (what localStorage has at the start), prefetchMs, maxAge, timeoutMs, travelMs, afterMs, marginMs,
+  //         pollMs, eventMs, statusMs, resumeMs, retryMs, backoffMs, minGapMs, usersAge (the times of the readings in the background), pairingsRaw (the whole answer about the users) }
+  //       The object can be changed afterwards (scen.logs, scen.logsErr): the simulated accessory answers with what it holds at that moment.
   async function environment(scen) {
     scen = scen || {};
     const dom = new JSDOM('<!doctype html><html><body></body></html>', { url: 'http://localhost/', runScripts: 'outside-only', pretendToBeVisual: true });
@@ -259,12 +263,18 @@ const REAL = {
         if (scen.failFrom && calls.logs >= scen.failFrom) return Promise.reject({ code: 4 });       // from the N-th request on
         return scen.logsErr !== undefined ? Promise.reject(scen.logsErr) : scen.hang ? new Promise(() => {}) : Promise.resolve(scen.logs || LOG);
       },
-      pairings() { calls.pairings++; return scen.pairingsErr !== undefined ? Promise.reject(scen.pairingsErr) : Promise.resolve({ activeUsers: scen.pairings || USERS, waitingUsers: [] }); }
+      pairings() {
+        calls.pairings++;
+        if (scen.pairingsErr !== undefined) return Promise.reject(scen.pairingsErr);
+        return Promise.resolve(scen.pairingsRaw !== undefined ? scen.pairingsRaw : { activeUsers: scen.pairings || USERS, waitingUsers: [] });
+      }
     };
     const dev = { mac: '00:0B:6C:AA:BB:CC', homeId: 1, description: 'AABBCC', name: 'NiceIT4WIFIAABBCC', reachable: scen.reachable !== false, pairingUsername: 'Anna',
       properties: scen.properties || [{ value: 'closed' }, { value: '0' }], automations: [{ id: '1', type: 'sliding', product: 'ROBUS', services: [{ name: 'T4Action', permissions: 'w' }, { name: 'DoorAction', permissions: 'w' }],
         properties: [{ name: 'DoorStatus', permissions: 'r' }, { name: 'Obstruct', permissions: 'r' }] }] };
-    for (const k of ['travelMs', 'afterMs', 'marginMs']) if (scen[k] != null) w['__nxActivity' + k.charAt(0).toUpperCase() + k.slice(1)] = scen[k];
+    for (const k of ['travelMs', 'afterMs', 'marginMs', 'pollMs', 'eventMs', 'statusMs', 'resumeMs', 'retryMs', 'backoffMs', 'minGapMs', 'usersAge']) {
+      if (scen[k] != null) w['__nxActivity' + k.charAt(0).toUpperCase() + k.slice(1)] = scen[k];
+    }
     w.eval(SRC);
     const act = w.__nxActivity({ inj, $rootScope, NHK, log: (...a) => logs.push(a.join(' ')), toast: (m) => toasts.push(m), liveDevice: () => dev, findDevice: (mac) => (mac === dev.mac ? dev : null), copy: (t) => copied.push(t) });
     return { w, dev, act, handlers, logs, toasts, copied, calls, digests, $rootScope, document: w.document,
@@ -473,6 +483,11 @@ const REAL = {
     const logged = env.logs.length;
     env.$rootScope.nxState(env.dev); env.$rootScope.nxIcon(env.dev); env.$rootScope.nxSettled(env.dev);
     ok('state: ...and it says so once, not on every digest', env.logs.length === logged);
+    const said = () => env.logs.filter((l) => /^state: "opening" is out of date/.test(l)).length;
+    const first = said();
+    await read(env);
+    env.$rootScope.nxState(env.dev);
+    ok('state: ...nor each time the log is read again in the background (the decision is made again, the LOG is not told again)', first === 1 && said() === 1, first + ' ' + said());
     // a new event: the reading from before it knows nothing of it
     env.w.Date.now = () => NOW + 5000;
     env.act.onEvent({ mac: env.dev.mac, state: 'opening', obstruct: '0' });
@@ -579,6 +594,259 @@ const REAL = {
     ok('screen: ...and the pill says blocked', env.$rootScope.nxBlock(env.dev) === 'Blocked · since 14:10', env.$rootScope.nxBlock(env.dev));
     env.navigate(DETAIL);
     ok('screen: entering again decides again (the old decision is gone until the log has been read)', env.$rootScope.nxState(env.dev) === 'opening' || env.$rootScope.nxState(env.dev) === 'open');
+  }
+  // ---------------------------------------------------------------- another app, another phone: the log is read again
+  const hide = (env, yes) => Object.defineProperty(env.document, 'hidden', { configurable: true, get: () => yes });
+  {
+    // the case that was reported: this phone blocks the gate ("Open and Block"), later the official app gives "Release and Close". This app is not
+    // involved in that; the log of the accessory is the only place where it shows.
+    const t0 = D(7, 12, 0);
+    const scen = { logs: { deviceLogs: [{ source: 'CTRL-ANNA-0001', type: 'MDBk', time: t0 + 1000 }, { source: 'busT4', type: 'open', time: t0 + 2000 }] }, eventMs: 30, minGapMs: 0 };
+    const env = await environment(scen);
+    env.w.Date.now = () => t0;
+    env.act.onCommand(env.dev, 'MDBk', 'executeSecondaryCommand');
+    env.w.Date.now = () => t0 + 5000;
+    await read(env);
+    ok('other app: after the Block the pill and the line say so', env.$rootScope.nxBlock(env.dev) === 'Blocked · since just now' && env.$rootScope.nxLast(env.dev) === 'Open and Block · just now · Anna',
+      env.$rootScope.nxBlock(env.dev) + ' / ' + env.$rootScope.nxLast(env.dev));
+    scen.logs = { deviceLogs: scen.logs.deviceLogs.concat([{ source: 'CTRL-ANNA-0001', type: 'MDFh', time: t0 + 120000 }, { source: 'busT4', type: 'close', time: t0 + 121000 }]) };
+    env.w.Date.now = () => t0 + 123000;
+    ok('other app: nothing has told this app yet: the pill still says blocked', env.$rootScope.nxBlock(env.dev) === 'Blocked · since 12:00');
+    ok('other app: ...and the line no longer says "just now" two minutes later', env.$rootScope.nxLast(env.dev) === 'Open and Block · today 12:00 · Anna', env.$rootScope.nxLast(env.dev));
+    const before = env.calls.logs;
+    env.act.onEvent({ mac: env.dev.mac, state: 'closing', obstruct: '0' });
+    await sleep(120);
+    ok('other app: a report of the accessory (the gate moves) makes this app read the log again', env.calls.logs === before + 1, String(env.calls.logs - before));
+    ok('other app: ...and the pill is gone', env.$rootScope.nxBlock(env.dev) === '' && env.act.blockInfo(env.dev).blocked === false && env.act.blockInfo(env.dev).type === 'MDFh', JSON.stringify(env.act.blockInfo(env.dev)));
+    ok('other app: ...and the line says what the other app did', env.$rootScope.nxLast(env.dev) === 'Release and Close · just now · Anna', env.$rootScope.nxLast(env.dev));
+    ok('other app: ...and the LOG says that the log changed and why it was read', env.logs.some((l) => /^activity: \d+ device events, .* \(event\)$/.test(l)), env.logs.join(' | '));
+    const sheet = await environment({ logs: scen.logs });
+    sheet.w.Date.now = () => t0 + 123000;
+    sheet.act.open(sheet.dev); await sleep(60);
+    ok('other app: the sheet shows it too: not blocked', /Not blocked, as far as the log shows/.test(sheet.body().textContent) && /Release and Close/.test(sheet.body().textContent));
+  }
+  {
+    // events while the app is in the background are not read (the app is not looking); coming back does it
+    const scen = { eventMs: 20, resumeMs: 20, minGapMs: 0 };
+    const env = await environment(scen);
+    env.navigate(DETAIL); await sleep(60);
+    const n = env.calls.logs;
+    hide(env, true);
+    env.act.onEvent({ mac: env.dev.mac, state: 'open', obstruct: '0' }); await sleep(80);
+    ok('event: not while the app is in the background', env.calls.logs === n, String(env.calls.logs - n));
+    hide(env, false);
+    env.act.onEvent({ mac: env.dev.mac, state: 'open', obstruct: '0' }); env.act.onEvent({ mac: env.dev.mac, state: 'closed', obstruct: '0' }); await sleep(80);
+    ok('event: several reports in a row are one reading', env.calls.logs === n + 1, String(env.calls.logs - n));
+    env.act.onEvent({ mac: 'SOMEONE-ELSE', state: 'open' });
+    await sleep(60);
+    ok('event: a report of an accessory that is not known plans nothing', env.calls.logs === n + 1, String(env.calls.logs - n));
+  }
+  {
+    // a Release without movement gives no report of the state: the log is read on a timer as long as the screen is open
+    const t0 = D(7, 12, 0);
+    const scen = { logs: { deviceLogs: [{ source: 'CTRL-BEN-00002', type: 'MDBm', time: t0 }] }, pollMs: 40, minGapMs: 0, prefetchMs: 10 };
+    const env = await environment(scen);
+    env.w.Date.now = () => t0 + 300000;
+    await sleep(100);
+    ok('poll: nothing is read before the screen is opened', env.calls.logs === 0);
+    env.navigate(DETAIL);
+    await sleep(30);
+    ok('poll: the Block of someone else shows, as soon as the screen has been read', env.$rootScope.nxBlock(env.dev) === 'Blocked · since 12:00' && env.act.blockInfo(env.dev).who === 'Ben');
+    const n = env.calls.logs;
+    scen.logs = { deviceLogs: scen.logs.deviceLogs.concat([{ source: 'CTRL-ANNA-0001', type: 'MDEw', time: t0 + 20000 }]) };
+    env.w.Date.now = () => t0 + 330000;
+    await sleep(200);
+    ok('poll: as long as the screen is open the log is read again and again', env.calls.logs >= n + 2, String(env.calls.logs - n));
+    ok('poll: ...so a plain Release (nothing moves, no report) shows too', env.$rootScope.nxBlock(env.dev) === '' && env.act.blockInfo(env.dev).who === 'Anna', JSON.stringify(env.act.blockInfo(env.dev)));
+    hide(env, true);
+    const m = env.calls.logs;
+    await sleep(150);
+    ok('poll: not while the app is in the background', env.calls.logs === m, String(env.calls.logs - m));
+    hide(env, false);
+    await sleep(150);
+    ok('poll: ...and again when it is back', env.calls.logs > m);
+    env.dev.reachable = false;
+    const r = env.calls.logs;
+    await sleep(120);
+    ok('poll: not for an accessory that is not reachable', env.calls.logs === r, String(env.calls.logs - r));
+    env.dev.reachable = true;
+    env.$rootScope.nxCheck = () => 'checking';
+    await sleep(120);
+    ok('poll: not while the app is still checking the accessory', env.calls.logs === r, String(env.calls.logs - r));
+    delete env.$rootScope.nxCheck;
+    await sleep(120);
+    ok('poll: ...and on again afterwards', env.calls.logs > r);
+    env.act.open(env.dev); await sleep(60);
+    const s = env.calls.logs;
+    await sleep(150);
+    ok('poll: not while the sheet is open (it has its own Refresh)', env.calls.logs === s, String(env.calls.logs - s));
+    env.act.close(); await sleep(450);
+    env.navigate('tabsController.favorites');
+    const k = env.calls.logs;
+    await sleep(200);
+    ok('poll: stops when the screen is left', env.calls.logs === k, String(env.calls.logs - k));
+    env.navigate(DETAIL); await sleep(150);
+    ok('poll: ...and starts again on the next visit', env.calls.logs > k);
+  }
+  {
+    // a reading of a moment ago is not repeated by the timer
+    const env = await environment({ pollMs: 30 });
+    env.navigate(DETAIL); await sleep(200);
+    ok('poll: a reading that is younger than a few seconds is as good as a new one', env.calls.logs === 1, String(env.calls.logs));
+  }
+  {
+    // coming back to the app (Cordova: resume) reads the log, also when the page only says that it is visible again
+    const env = await environment({ resumeMs: 20, minGapMs: 0 });
+    env.navigate(DETAIL); await sleep(80);
+    const n = env.calls.logs;
+    env.document.dispatchEvent(new env.w.Event('resume')); await sleep(80);
+    ok('resume: coming back to the app reads the log', env.calls.logs === n + 1, String(env.calls.logs - n));
+    env.document.dispatchEvent(new env.w.Event('visibilitychange')); await sleep(80);
+    ok('resume: ...also when the page says that it is visible again', env.calls.logs === n + 2, String(env.calls.logs - n));
+    hide(env, true);
+    env.document.dispatchEvent(new env.w.Event('visibilitychange')); await sleep(80);
+    ok('resume: ...but not when it says that it is hidden', env.calls.logs === n + 2);
+    hide(env, false);
+    env.navigate('tabsController.favorites');
+    env.document.dispatchEvent(new env.w.Event('resume')); await sleep(80);
+    ok('resume: not on another screen', env.calls.logs === n + 2);
+    // the sheet was open when the app left: it is read again when the app comes back, and shows what the other app did
+    const t0 = D(7, 12, 0), scenS = { logs: { deviceLogs: [{ source: 'CTRL-ANNA-0001', type: 'MDBk', time: t0 }] }, resumeMs: 20, minGapMs: 0 };
+    const sh = await environment(scenS);
+    sh.w.Date.now = () => t0 + 300000;
+    sh.act.open(sh.dev); await sleep(60);
+    ok('resume: (the sheet is open and says blocked)', /nx-act-block nx-blocked/.test(sh.body().innerHTML));
+    scenS.logs = { deviceLogs: scenS.logs.deviceLogs.concat([{ source: 'CTRL-BEN-00002', type: 'MDEw', time: t0 + 120000 }]) };
+    sh.document.dispatchEvent(new sh.w.Event('resume')); await sleep(100);
+    ok('resume: ...and after coming back it is read again and says not blocked', sh.calls.logs === 2 && /Not blocked, as far as the log shows/.test(sh.body().textContent) && /Release · Ben/.test(sh.body().textContent), sh.calls.logs + ' ' + sh.body().textContent.slice(0, 120));
+    const quick = await environment({ resumeMs: 20 });
+    quick.navigate(DETAIL); await sleep(80);
+    quick.document.dispatchEvent(new quick.w.Event('resume')); await sleep(80);
+    ok('resume: a reading of a moment ago is not repeated', quick.calls.logs === 1, String(quick.calls.logs));
+    quick.w.Date.now = () => NOW + 3000;
+    quick.document.dispatchEvent(new quick.w.Event('resume')); await sleep(80);
+    ok('resume: ...but one of three seconds ago is (the gap after coming back is two seconds; for the timer it is five)', quick.calls.logs === 2, String(quick.calls.logs));
+  }
+  {
+    // the app asks the accessory for its state when the screen is entered and when it comes back: that is a moment to look at the log
+    const env = await environment({ statusMs: 20 });
+    env.navigate(DETAIL); await sleep(80);
+    const n = env.calls.logs, closed = { devices: [{ properties: [{ value: 'closed' }, { value: '0' }] }] };
+    env.act.onStatus(env.dev, closed); await sleep(60);
+    ok('status: a report right after a reading asks for nothing more', env.calls.logs === n, String(env.calls.logs - n));
+    env.w.Date.now = () => NOW + 31000;
+    env.act.onStatus(env.dev, closed); await sleep(60);
+    ok('status: an older reading is made again, whatever the state is', env.calls.logs === n + 1, String(env.calls.logs - n));
+    env.navigate('tabsController.favorites');
+    env.w.Date.now = () => NOW + 120000;
+    env.act.onStatus(env.dev, closed); await sleep(60);
+    ok('status: not for an accessory whose screen is not open', env.calls.logs === n + 1);
+    const hidden = await environment({ statusMs: 20 });
+    hidden.navigate(DETAIL); await sleep(80);
+    hide(hidden, true);
+    hidden.w.Date.now = () => NOW + 120000;
+    hidden.act.onStatus(hidden.dev, closed); await sleep(60);
+    ok('status: not while the app is in the background', hidden.calls.logs === 1, String(hidden.calls.logs));
+  }
+  {
+    // readings that fail: the LOG gets one line, one more attempt, and the timer waits
+    const scen = { logsErr: { code: 4 }, pollMs: 30, minGapMs: 50, retryMs: 40, backoffMs: 150 };
+    const env = await environment(scen);
+    env.navigate(DETAIL); await sleep(250);
+    const fails = env.logs.filter((l) => /^activity: could not read the log/.test(l));
+    ok('failure: the first one is in the LOG, with the reason for the reading', fails.length === 1 && /\(screen\) \{"code":4\}$/.test(fails[0]), fails.join(' | '));
+    ok('failure: ...one more attempt is made, and the timer waits after the failure', env.calls.logs === 2, String(env.calls.logs));
+    scen.logsErr = undefined;
+    env.w.Date.now = () => NOW + 500;                    // the waiting time is over
+    await sleep(100);
+    ok('failure: ...when it is over the timer reads again', env.calls.logs === 3 && !!env.act.cache[env.dev.mac], String(env.calls.logs));
+    ok('failure: ...and the LOG says that it works again, once', env.logs.filter((l) => l === 'activity: the log can be read again').length === 1, env.logs.join(' | '));
+    const e2 = await environment({ logsErr: { code: 3 }, eventMs: 20, retryMs: 40 });
+    e2.act.onEvent({ mac: e2.dev.mac, state: 'open', obstruct: '0' });
+    await sleep(35);
+    const one = e2.calls.logs;
+    await sleep(150);
+    ok('failure: a reading after a report that fails is tried once more', one === 1 && e2.calls.logs === 2, one + ' ' + e2.calls.logs);
+    await sleep(150);
+    ok('failure: ...and not a third time', e2.calls.logs === 2, String(e2.calls.logs));
+    e2.act.onEvent({ mac: e2.dev.mac, state: 'closed', obstruct: '0' });
+    await sleep(150);
+    ok('failure: ...a next report in the same run of failures is read once and not tried again (the accessory is not pestered)', e2.calls.logs === 3, String(e2.calls.logs));
+    const scen4 = { logsErr: { code: 3 }, eventMs: 20, retryMs: 40 };
+    const e4 = await environment(scen4);
+    e4.act.onEvent({ mac: e4.dev.mac, state: 'open', obstruct: '0' });
+    await sleep(35);
+    scen4.logsErr = undefined;                           // the accessory answers again before the second attempt
+    await sleep(100);
+    ok('failure: ...and the second attempt is the one that works', e4.calls.logs === 2 && !!e4.act.cache[e4.dev.mac] && e4.logs.indexOf('activity: the log can be read again') > -1, e4.calls.logs + ' ' + e4.logs.join(' | '));
+    // a failure of the reading that someone asked for is shown to them, whatever the background does
+    const e5 = await environment({ logsErr: { code: 3 }, eventMs: 20, retryMs: 40 });
+    e5.act.onEvent({ mac: e5.dev.mac, state: 'open', obstruct: '0' });
+    await sleep(35);
+    e5.act.open(e5.dev); await sleep(60);
+    ok('failure: the sheet tells about a failure by itself, also when the background has failed before', /Could not read the history/.test(e5.body().textContent) && e5.logs.filter((l) => /^activity: could not read the log/.test(l)).length >= 2, e5.logs.join(' | '));
+  }
+  {
+    // the users are for the names only: a reading in the background reuses them
+    const env = await environment({ eventMs: 20, minGapMs: 0 });
+    await read(env);
+    env.act.onEvent({ mac: env.dev.mac, state: 'open', obstruct: '0' }); await sleep(80);
+    ok('users: a reading in the background reuses the users it has', env.calls.logs === 2 && env.calls.pairings === 1, JSON.stringify(env.calls));
+    await read(env);
+    ok('users: ...a reading that someone asked for does not', env.calls.logs === 3 && env.calls.pairings === 2, JSON.stringify(env.calls));
+    const old = await environment({ eventMs: 20, usersAge: 0 });
+    await read(old);
+    old.act.onEvent({ mac: old.dev.mac, state: 'open', obstruct: '0' }); await sleep(80);
+    ok('users: ...and they are asked for again when they are older than that', old.calls.pairings === 2, JSON.stringify(old.calls));
+    const none = await environment({ eventMs: 20, pairingsRaw: {} });
+    await read(none);
+    none.act.onEvent({ mac: none.dev.mac, state: 'open', obstruct: '0' }); await sleep(80);
+    ok('users: an answer without users is not remembered either', none.calls.pairings === 2, JSON.stringify(none.calls));
+    const bad = await environment({ eventMs: 20, pairingsErr: { code: 5 } });
+    await read(bad);
+    bad.act.onEvent({ mac: bad.dev.mac, state: 'open', obstruct: '0' }); await sleep(80);
+    ok('users: users that could not be read are not remembered', bad.calls.pairings === 2, JSON.stringify(bad.calls));
+  }
+  {
+    // the LOG gets lines for a reading in the background only when the log has changed
+    const base = [{ source: 'CTRL-ANNA-0001', type: 'open', time: D(7, 9, 0) }];
+    const scen = { logs: { deviceLogs: base }, eventMs: 20, minGapMs: 0 };
+    const env = await environment(scen);
+    await read(env);
+    const n = env.logs.length;
+    env.act.onEvent({ mac: env.dev.mac, state: 'open', obstruct: '0' }); await sleep(80);
+    ok('LOG: a reading in the background that finds the same log adds nothing', env.calls.logs === 2 && env.logs.slice(n).filter((l) => /^activity:/.test(l)).length === 0, env.logs.slice(n).join(' | '));
+    scen.logs = { deviceLogs: base.concat([{ source: 'CTRL-ANNA-0001', type: 'MDEw', time: D(7, 10, 0) }]) };
+    env.act.onEvent({ mac: env.dev.mac, state: 'open', obstruct: '0' }); await sleep(80);
+    const added = env.logs.slice(n).filter((l) => /^activity:/.test(l));
+    ok('LOG: ...one that finds something new says so (what was found, and why it read)', added.length === 2 && /^activity: 2 device events, .* \(event\)$/.test(added[0]) && /^activity: device \[/.test(added[1]), added.join(' | '));
+    await read(env);
+    ok('LOG: a reading that someone asked for always says what it found', env.logs.filter((l) => /^activity: \d+ device events/.test(l)).length === 3);
+  }
+  {
+    // what counts, this phone or the log: the log wins when it was read after the command, also when the clock of the accessory is a bit behind
+    const t0 = D(7, 12, 0), rec = { '00:0B:6C:AA:BB:CC': { blocked: true, at: t0, code: 'MDBk', who: 'Anna' } };
+    const behind = await environment({ storage: { nxBlock: JSON.stringify(rec) },
+      logs: { deviceLogs: [{ source: 'CTRL-ANNA-0001', type: 'MDBk', time: t0 - 5000 }, { source: 'CTRL-BEN-00002', type: 'MDEw', time: t0 - 2000 }] } });
+    behind.w.Date.now = () => t0 + 90000;
+    await read(behind);
+    ok('block: a Release that came after this phone\'s Block but is dated before it (the accessory\'s clock is behind) counts', behind.$rootScope.nxBlock(behind.dev) === '' && behind.act.blockInfo(behind.dev).who === 'Ben', JSON.stringify(behind.act.blockInfo(behind.dev)));
+    const same = await environment({ storage: { nxBlock: JSON.stringify(rec) }, logs: { deviceLogs: [{ source: 'CTRL-BEN-00002', type: 'MDEw', time: t0 - 20000 }] } });
+    same.w.Date.now = () => t0 + 500;
+    await read(same);
+    ok('block: a reading taken in the same second cannot have this phone\'s Block yet: this phone counts', same.act.blockInfo(same.dev).blocked === true && same.act.blockInfo(same.dev).who === 'Anna' && same.act.blockInfo(same.dev).t === t0, JSON.stringify(same.act.blockInfo(same.dev)));
+    const far = await environment({ storage: { nxBlock: JSON.stringify(rec) }, logs: { deviceLogs: [{ source: 'CTRL-BEN-00002', type: 'MDEw', time: t0 - 600000 }] } });
+    far.w.Date.now = () => t0 + 90000;
+    await read(far);
+    ok('block: a Release from ten minutes before this phone\'s Block is not the answer to it: this phone counts', far.$rootScope.nxBlock(far.dev) === 'Blocked · since 12:00');
+    const mine = await environment({ storage: { nxBlock: JSON.stringify(rec) }, logs: { deviceLogs: [{ source: 'CTRL-ANNA-0001', type: 'MDBk', time: t0 + 1000 }, { source: 'busT4', type: 'open', time: t0 + 2000 }] } });
+    mine.w.Date.now = () => t0 + 90000;
+    await read(mine);
+    ok('block: the log with this phone\'s own Block says the same: blocked, since the time the accessory has', mine.$rootScope.nxBlock(mine.dev) === 'Blocked · since 12:00' && mine.act.blockInfo(mine.dev).who === 'Anna');
+    const later = await environment({ storage: { nxBlock: JSON.stringify(rec) }, logs: { deviceLogs: [{ source: 'CTRL-ANNA-0001', type: 'MDBk', time: t0 + 1000 }, { source: 'CTRL-BEN-00002', type: 'MDFh', time: t0 + 90000 }] } });
+    later.w.Date.now = () => t0 + 100000;
+    await read(later);
+    ok('block: a Release some time after it ends it (and says by whom)', later.$rootScope.nxBlock(later.dev) === '' && later.act.blockInfo(later.dev).who === 'Ben');
   }
   {
     // no accessory

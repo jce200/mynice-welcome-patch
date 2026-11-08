@@ -58,7 +58,10 @@ Expressive look (light and dark).
 - **Blocked, and a state that is out of date.** The accessory has no state for "blocked", so no Nice app shows it. The last Block or Release
   command (from this phone, and from every phone and schedule in the accessory's log) now shows as a pill "Blocked · since 09:37" under the state,
   with a question mark when the accessory has restarted since (whether a block survives that is not known). It is the last command and not a
-  measurement: do not rely on it as security. And when the accessory still reports "opening" or "closing" long after the movement
+  measurement: do not rely on it as security. It follows what other apps do: the official app, another phone or the schedule that blocks or
+  releases the gate shows up here too, because the accessory's log is read again when the gate moves, when this app comes back to the front,
+  and every 30 seconds while the accessory screen is open (a plain Block or Release moves nothing, so only the log can tell). And when the
+  accessory still reports "opening" or "closing" long after the movement
   (a gate that was opened with *Open and Block* kept showing "Opening"), and the log has nothing that stopped the gate since, the screen shows open
   or closed, with the note "reported: Opening". The LOG has what the accessory says (status requests and events), to find out why a state is wrong.
 
@@ -98,7 +101,7 @@ This way you don't have to trust a binary from someone else, and the app is sign
 ```
 ./get-tools.sh                               # once: downloads apktool and friends into ./tools, checked on SHA-256
 ./build.sh /path/to/MyNiceWelcome_2.2.0.apk
-# result: out/MyNiceWelcome_2.2.0_nx15.apk
+# result: out/MyNiceWelcome_2.2.0_nx16.apk
 ```
 
 The first build creates **your own signing key** in `keys/` (with a random password in `keys/password.txt`). Keep that folder

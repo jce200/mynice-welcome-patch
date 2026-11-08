@@ -224,11 +224,12 @@
       hasModuleEvents: moduleTimes.length > 0, echoes: echoes, lastMovement: lastMovement, block: block, logStart: logStart };
   }
 
-  // the line on the accessory screen: the last command, when and by whom
-  function lastLine(a, label) {
+  // the line on the accessory screen: the last command, when and by whom (now: the moment of showing it, so that "just now" does not stay
+  // on the screen for an hour; the moment of the reading when it is not given)
+  function lastLine(a, label, now) {
     var e = a && a.last && a.last.command;
     if (!e) return '';
-    return (label ? label(e.type) : e.type) + ' · ' + when(e.t, a.now) + (e.who ? ' · ' + e.who : '');
+    return (label ? label(e.type) : e.type) + ' · ' + when(e.t, now == null ? a.now : now) + (e.who ? ' · ' + e.who : '');
   }
 
   function esc(s) {
@@ -394,10 +395,22 @@
     var inj = ctx.inj, $rootScope = ctx.$rootScope, NHK = ctx.NHK;
     var log = ctx.log || function () {}, toast = ctx.toast || function () {};
     var PREFETCH_MS = window.__nxActivityPrefetchMs != null ? window.__nxActivityPrefetchMs : 2500;    // looking at the accessory screen this long: read the log
-    var MAX_AGE = window.__nxActivityMaxAge != null ? window.__nxActivityMaxAge : 10 * 60 * 1000;       // ...unless it was read less than this long ago
+    var MAX_AGE = window.__nxActivityMaxAge != null ? window.__nxActivityMaxAge : 30000;                // ...unless it was read less than this long ago
     var TIMEOUT = window.__nxActivityTimeoutMs != null ? window.__nxActivityTimeoutMs : 20000;          // the accessory does not answer
-    var cache = {};              // mac -> { at, a, line, raw }
+    // Another app, another phone or the schedule can block or release the gate at any moment, and the accessory does not tell: a plain Block or
+    // Release moves nothing, so there is no state event either. The only place where it shows is the log, so the log is read again:
+    var POLL_MS = window.__nxActivityPollMs != null ? window.__nxActivityPollMs : 30000;                // as long as the accessory screen is open, this often
+    var EVENT_MS = window.__nxActivityEventMs != null ? window.__nxActivityEventMs : 4000;              // after a report of the state (a gate that moves: someone gave a command)
+    var STATUS_MS = window.__nxActivityStatusMs != null ? window.__nxActivityStatusMs : 1500;           // after the app asked for the state (the screen was entered, the app resumed)
+    var RESUME_MS = window.__nxActivityResumeMs != null ? window.__nxActivityResumeMs : 2000;           // after the app came back to the front
+    var RETRY_MS = window.__nxActivityRetryMs != null ? window.__nxActivityRetryMs : 5000;              // once more, when such a reading failed
+    var BACKOFF_MS = window.__nxActivityBackoffMs != null ? window.__nxActivityBackoffMs : 120000;       // no readings on a timer after a failure for this long
+    var MIN_GAP_MS = window.__nxActivityMinGapMs != null ? window.__nxActivityMinGapMs : 5000;          // a reading younger than this is as good as a new one
+    var USERS_AGE = window.__nxActivityUsersAge != null ? window.__nxActivityUsersAge : 10 * 60 * 1000;  // the users change rarely: readings in the background reuse them
+    var cache = {};              // mac -> { at, a, raw, sig }
     var waiting = {};            // mac -> callbacks of a read that is running
+    var usersCache = {};         // mac -> { at, list }
+    var failedAt = {}, failures = {}, retried = {};       // mac -> when the last reading failed, how many in a row, whether the one more attempt was made
     var panel = null, scrim = null, body = null, sub = null, btnRefresh = null, copyRow = null;
     var isOpen = false, current = null, showAll = false;
 
@@ -422,9 +435,12 @@
       } catch (e) { return ''; }
     }
 
-    // the log and the users, both optional apart from the log itself; one answer or one failure
-    function fetchLog(device, done) {
-      var finished = false, res = null, users = null, left = 2;
+    // the log and the users, both optional apart from the log itself; one answer or one failure. A reading in the background (quiet) does not
+    // ask for the users again when it has them (they are for the names in the history only).
+    function fetchLog(device, quiet, done) {
+      var mac = device.mac, finished = false, res = null, users = null, left = 2;
+      var known = usersCache[mac], reuse = !!(quiet && known && Date.now() - known.at < USERS_AGE);
+      if (reuse) { users = known.list; left = 1; }
       function end(err) {
         if (finished) return;
         finished = true;
@@ -437,28 +453,62 @@
       try {
         NHK.logs(device).then(function (r) { res = r || {}; step(); }, function (e) { end(e || { message: 'Not allowed or not reachable' }); });
       } catch (e) { end({ message: String(e) }); return; }
+      if (reuse) return;
       try {
-        NHK.pairings(device).then(function (r) { users = r && r.activeUsers; step(); },
-          function (e) { log('activity: users not read', JSON.stringify(e)); step(); });     // without them the users show as "Other (...)"
+        NHK.pairings(device).then(function (r) {
+          users = r && r.activeUsers;
+          if (Array.isArray(users)) usersCache[mac] = { at: Date.now(), list: users };
+          step();
+        }, function (e) { log('activity: users not read', JSON.stringify(e)); step(); });     // without them the users show as "Other (...)"
       } catch (e) { step(); }
     }
-    function refresh(device, cb) {
+    // what changes on the screen when the log is new: the newest event, the last Block or Release, the health of the module
+    function sigOf(a) {
+      var e = a.events[0], b = a.block, h = a.health;
+      return a.events.length + '|' + (e ? e.t + e.type : '') + '|' + (b ? b.t + b.type : '') + '|' + h.restart.count + '|' + h.wifi.count + '|' + h.error.count + '|' + h.bus.count;
+    }
+    // opts: { why (what asked for it, for the LOG), quiet (a reading in the background: the LOG gets a line only when the log has changed, or
+    // when readings begin to fail, and the users are reused), retry (try once more, a little later, when it fails) }
+    function refresh(device, cb, opts) {
       var mac = device && device.mac;
       if (!mac) { if (cb) cb({ message: 'No accessory' }); return; }
       if (waiting[mac]) { if (cb) waiting[mac].push(cb); return; }
+      opts = opts || {};
+      var why = opts.why ? ' (' + opts.why + ')' : '', quiet = !!opts.quiet;
       waiting[mac] = cb ? [cb] : [];
-      fetchLog(device, function (err, res, users) {
+      fetchLog(device, quiet, function (err, res, users) {
         var cbs = waiting[mac] || [];
         delete waiting[mac];
-        if (err) { log('activity: could not read the log', JSON.stringify(err)); cbs.forEach(function (f) { f(err); }); return; }
-        var a = analyze(res, users, Date.now());
-        cache[mac] = { at: Date.now(), a: a, line: lastLine(a, label), raw: res };
-        log('activity: ' + a.events.length + ' device events, ' + (a.span ? a.span.count - a.events.length : 0) + ' module events, ' +
-          (a.span ? 'back ' + a.span.days + ' days' : 'no usable times') + (a.skipped ? ', ' + a.skipped + ' without a time' : ''));
-        log('activity: ' + summary(res));
+        if (err) {
+          failedAt[mac] = Date.now();
+          if (!quiet || !failures[mac]) log('activity: could not read the log' + why, JSON.stringify(err));      // a gate away from home would flood the LOG otherwise
+          failures[mac] = (failures[mac] || 0) + 1;
+          if (opts.retry && !retried[mac]) { retried[mac] = true; planReading(device, RETRY_MS, 'retry'); }
+          cbs.forEach(function (f) { f(err); });
+          return;
+        }
+        var a = analyze(res, users, Date.now()), sig = sigOf(a), changed = !cache[mac] || cache[mac].sig !== sig;
+        cache[mac] = { at: Date.now(), a: a, raw: res, sig: sig };
+        if (failures[mac] && quiet) log('activity: the log can be read again');
+        failures[mac] = 0; failedAt[mac] = 0; retried[mac] = false;
+        if (!quiet || changed) {
+          log('activity: ' + a.events.length + ' device events, ' + (a.span ? a.span.count - a.events.length : 0) + ' module events, ' +
+            (a.span ? 'back ' + a.span.days + ' days' : 'no usable times') + (a.skipped ? ', ' + a.skipped + ' without a time' : '') + why);
+          log('activity: ' + summary(res));
+        }
         cbs.forEach(function (f) { f(null, cache[mac]); });
       });
     }
+    // a reading in the background, unless one is running, one was taken a moment ago, or (a reading on a timer) the last one failed not long ago
+    function readIfStale(device, maxAge, why, backoff) {
+      var mac = device && device.mac, now = Date.now();
+      if (!mac || waiting[mac]) return;
+      var c = cache[mac];
+      if (c && now - c.at < maxAge) return;
+      if (backoff && failedAt[mac] && now - failedAt[mac] < BACKOFF_MS) return;
+      refresh(device, null, { why: why, quiet: true, retry: why !== 'poll' });
+    }
+    function visible() { try { return !document.hidden; } catch (e) { return true; } }
 
     // ------------------------------------------------------------ blocked or not, and the state of the gate
     var TRAVEL_MS = window.__nxActivityTravelMs != null ? window.__nxActivityTravelMs : 150000;        // a gate does not keep moving for longer than this
@@ -468,6 +518,7 @@
     var TRANSIENT = { opening: 1, closing: 1 };
     var timers = {};             // mac -> { after, travel }: readings that are planned
     var declaredLogged = {};
+    var settleLogged = {};       // mac -> what was said about a state that is out of date (a reading in the background replaces the cache, and the decision is made again)
     var movedAt = {};            // mac -> when the last event or command of this phone was seen: a reading from before that cannot say anything about it
 
     // The accessory has no state for "blocked". What is known is the last Block or Release command: the ones this phone gave (kept here, apart
@@ -482,11 +533,18 @@
       blockMem = o;
       try { window.localStorage.setItem(BLOCK_KEY, JSON.stringify(o)); } catch (e) { log('block: not saved', String(e)); }
     }
+    // What this phone did counts until the log can know better. The log can know better when it has a newer Block or Release (another phone, another
+    // app, the schedule), and also when it was read after this phone's command and has one from about that time or later: the accessory writes a
+    // command in its log at once, so that reading has this phone's command in it and the newest Block or Release is the one that counts, also
+    // when the clock of the accessory is a few seconds behind the clock of the phone.
+    var LOGGED_MS = 2000, SKEW_MS = 60000;
     function blockInfo(device) {
       var mac = device && device.mac;
       if (!mac) return null;
       var mine = readBlock()[mac], c = cache[mac], lg = c && c.a && c.a.block, best = null;
-      if (mine && typeof mine.at === 'number' && (!lg || mine.at >= lg.t)) best = { blocked: !!mine.blocked, t: mine.at, type: mine.code, who: mine.who || '', uncertain: false };
+      var hasMine = !!mine && typeof mine.at === 'number';
+      var logKnows = hasMine && !!lg && c.at >= mine.at + LOGGED_MS && lg.t >= mine.at - SKEW_MS;
+      if (hasMine && (!lg || (mine.at >= lg.t && !logKnows))) best = { blocked: !!mine.blocked, t: mine.at, type: mine.code, who: mine.who || '', uncertain: false };
       else if (lg) best = { blocked: lg.blocked, t: lg.t, type: lg.type, who: lg.who, uncertain: !!lg.uncertain };
       var restarted = c && c.a && c.a.health.restart.last;
       if (best && restarted != null && restarted > best.t) best.uncertain = true;      // the accessory restarted after it: not known whether the block survived
@@ -517,7 +575,10 @@
       var to = (raw === 'opening' && m.kind === 'open') ? 'open' : (raw === 'closing' && m.kind === 'close') ? 'closed' : null;
       if (!to) return null;
       c.settle = { raw: raw, to: to, since: m.t };
-      log('state: "' + raw + '" is out of date (the last movement in the log is ' + m.type + ', ' + when(m.t, now) + '); shown as ' + to);
+      if (settleLogged[mac] !== raw + '|' + m.t) {
+        settleLogged[mac] = raw + '|' + m.t;
+        log('state: "' + raw + '" is out of date (the last movement in the log is ' + m.type + ', ' + when(m.t, now) + '); shown as ' + to);
+      }
       return c.settle;
     }
     $rootScope.nxState = function (device) { var st = settledOf(device); return st ? st.to : rawValue(device); };
@@ -537,12 +598,15 @@
       return 'icon-' + (ICON_TYPES[a0 && a0.type] || 'i_undefined') + ' ' + st.to + ' status-' + (p && p[1] ? p[1].value : 'undefined');
     };
 
+    // a reading that is planned (the key says why; a new plan with the same key replaces the old one)
     function planReading(device, ms, key, onlyIf) {
       var mac = device && device.mac;
       if (!mac) return;
       var t = timers[mac] = timers[mac] || {};
       clearTimeout(t[key]);
-      t[key] = setTimeout(function () { try { if (!onlyIf || onlyIf()) refresh(device); } catch (e) { log('activity', String(e)); } }, ms);
+      t[key] = setTimeout(function () {
+        try { if (!onlyIf || onlyIf()) refresh(device, null, { why: key, quiet: true, retry: key !== 'retry' && key !== 'travel' }); } catch (e) { log('activity', String(e)); }
+      }, ms);
     }
     // a command that this phone gave: what was settled no longer holds, Block and Release are kept, the log is read a little later (it has the
     // command and the movement within a second) and, if the gate is still said to be moving after the travel time, once more
@@ -577,6 +641,10 @@
         var device = ctx.findDevice ? ctx.findDevice(ev && ev.mac) : null;
         log('state: event ' + (ev && ev.mac) + ' ' + (ev && ev.state) + ', obstruct ' + (ev && ev.obstruct));
         stateSeen(device, ev && ev.state, true);
+        // The gate moves, so someone gave it a command: this phone, another phone, another app (the official one), the schedule, a remote control.
+        // The command is in the log by now, and so is a Block or Release that came with it ("Release and Close"). A report that follows the
+        // first one (the end of the movement) replaces this plan, so that it is one reading in the end.
+        if (device) planReading(device, EVENT_MS, 'event', visible);
         digest();
       } catch (e) { log('activity', String(e)); }
     }
@@ -597,19 +665,67 @@
         stateSeen(device, st, false);
         // an "opening" or "closing" at the moment the screen is shown: the log decides whether that is still true (unless it was read a moment ago)
         var c = cache[device.mac];
-        if (TRANSIENT[st] && (!c || Date.now() - c.at > 20000)) refresh(device);
+        if (TRANSIENT[st] && (!c || Date.now() - c.at > 20000)) { refresh(device, null, { why: 'status', quiet: true, retry: true }); return; }
+        // Whatever it says: the app asks when the screen is entered and when the app comes back to the front, and something may have been done
+        // with the gate in the meantime (by another app, another phone, the schedule). The state the accessory reports does not tell whether it is
+        // blocked, the log does: read it, unless that was done a moment ago.
+        if (shown && shown.mac === device.mac) {
+          planReading(device, STATUS_MS, 'status', function () { var k = cache[device.mac]; return visible() && (!k || Date.now() - k.at >= MAX_AGE); });
+        }
       } catch (e) { log('activity', String(e)); }
     }
 
     // ------------------------------------------------------------ the line on the accessory screen
     $rootScope.nxActivity = function (device) { openSheet(device); };
-    $rootScope.nxLast = function (device) { var c = device && cache[device.mac]; return (c && c.line) || ''; };
-    // looking at the accessory screen for a moment reads the log once in a while, so that the line is there (read-only, like the app's own history page)
+    // the last command, from the log (the time is worked out now, not when the log was read)
+    $rootScope.nxLast = function (device) { var c = device && cache[device.mac]; return c ? lastLine(c.a, label, Date.now()) : ''; };
+
+    // The accessory screen that is open ({ homeId, mac }; null on other screens), and what is read while it is: the log, now and then, so that the
+    // line and the pill follow what other apps and phones do with the gate.
+    var shown = null, pollTimer = null;
+    function screenDevice() { return shown ? ctx.liveDevice(shown.homeId, shown.mac) : null; }
+    function armPoll() { if (pollTimer == null && POLL_MS > 0) pollTimer = setTimeout(pollTick, POLL_MS); }
+    function disarmPoll() { clearTimeout(pollTimer); pollTimer = null; }
+    function pollTick() {
+      pollTimer = null;
+      try {
+        var device = screenDevice();
+        if (!device) return;                                                    // the screen has been left: the next visit starts it again
+        armPoll();
+        if (!visible() || isOpen) return;                                       // in the background, or the sheet has its own reading
+        if (device.reachable === false) return;
+        if ($rootScope.nxCheck && $rootScope.nxCheck(device) === 'checking') return;
+        readIfStale(device, MIN_GAP_MS, 'poll', true);
+      } catch (e) { log('activity', String(e)); }
+    }
+    // the app comes back to the front (Cordova: resume): something may have been done with the gate meanwhile, by the official app for instance
+    // (a reading from before that is no use, so only one of the last two seconds is as good as a new one; the page that says "visible" and the
+    // event "resume" come together, and one reading serves both)
+    function comeBack() {
+      setTimeout(function () {
+        try {
+          if (!visible()) return;
+          if (isOpen && current) {                                              // the sheet was open when the app left: it shows what it showed then
+            var seen = cache[current.mac];
+            if (!seen || Date.now() - seen.at >= Math.min(MIN_GAP_MS, 2000)) load();
+            return;
+          }
+          var device = screenDevice();
+          if (device) readIfStale(device, Math.min(MIN_GAP_MS, 2000), 'resume');
+        } catch (e) { log('activity', String(e)); }
+      }, RESUME_MS);
+    }
+    document.addEventListener('resume', comeBack, false);
+    document.addEventListener('visibilitychange', function () { if (visible()) comeBack(); }, false);
+
+    // looking at the accessory screen for a moment reads the log (unless that was done a moment ago), so that the line is there; it is also where the
+    // reading on a timer starts (read-only, like the app's own history page)
     $rootScope.$on('$stateChangeSuccess', function (ev, toState, toParams) {
       try {
-        if (!/device-detail$/.test((toState && toState.name) || '') || !toParams) return;
-        var device = ctx.liveDevice(toParams.homeId, toParams.mac);
-        if (!device) return;
+        var device = (/device-detail$/.test((toState && toState.name) || '') && toParams) ? ctx.liveDevice(toParams.homeId, toParams.mac) : null;
+        if (!device) { shown = null; disarmPoll(); return; }
+        shown = { homeId: toParams.homeId, mac: device.mac };
+        armPoll();
         if (cache[device.mac]) cache[device.mac].settle = null;                          // a new look: decide again, from a fresh reading
         setTimeout(function () {
           try {
@@ -618,7 +734,7 @@
             if (device.reachable === false) return;
             if ($rootScope.nxCheck && $rootScope.nxCheck(device) === 'checking') return;
             if (inj.has('$state') && inj.get('$state').params && inj.get('$state').params.mac !== device.mac) return;     // gone from this screen
-            refresh(device);
+            refresh(device, null, { why: 'screen', quiet: true, retry: true });
           } catch (e) { log('activity', String(e)); }
         }, PREFETCH_MS);
       } catch (e) { log('activity', String(e)); }

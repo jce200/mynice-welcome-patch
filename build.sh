@@ -1,5 +1,5 @@
 #!/bin/bash
-# Builds the patched MyNice Welcome (build "nx15") from YOUR copy of the ORIGINAL APK (version 2.2.0).
+# Builds the patched MyNice Welcome (build "nx16") from YOUR copy of the ORIGINAL APK (version 2.2.0).
 #
 #   ./get-tools.sh                              (once: downloads apktool and friends into ./tools, checked on SHA-256)
 #   ./build.sh <original.apk> [output-dir]      (default output: ./out)
@@ -68,13 +68,13 @@ echo "== 5/7 aligning and signing"
 java -jar "$TOOLS/uber-signer.jar" -a "$OUT/unsigned.apk" --ks "$KS" --ksAlias mynice \
   --ksPass "$KSPASS" --ksKeyPass "$KSPASS" -o "$OUT/signed" --allowResign | grep -E "verified|Successfully" || true
 [ -f "$OUT/signed/unsigned-aligned-signed.apk" ] || { echo "signing failed (is the password of $KS correct?)" >&2; exit 1; }
-cp "$OUT/signed/unsigned-aligned-signed.apk" "$OUT/MyNiceWelcome_2.2.0_nx15.apk"
+cp "$OUT/signed/unsigned-aligned-signed.apk" "$OUT/MyNiceWelcome_2.2.0_nx16.apk"
 
 echo "== 6/7 checking the APK"
 if "$PYVENV" -c "import androguard, loguru" 2>/dev/null; then
-  "$PYVENV" -I "$HERE/verify-apk.py" "$OUT/MyNiceWelcome_2.2.0_nx15.apk" 2>&1 | grep -v '^$'
+  "$PYVENV" -I "$HERE/verify-apk.py" "$OUT/MyNiceWelcome_2.2.0_nx16.apk" 2>&1 | grep -v '^$'
 else
   echo "   skipped: androguard and loguru are not installed (pip install androguard loguru)"
 fi
 
-echo "== 7/7 done: $OUT/MyNiceWelcome_2.2.0_nx15.apk"
+echo "== 7/7 done: $OUT/MyNiceWelcome_2.2.0_nx16.apk"

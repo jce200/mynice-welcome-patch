@@ -1,8 +1,66 @@
 # Details and history
 
 This is the technical background to the [README.md](../README.md): why every change exists, with the diagnoses that led to them
-(nx3 through nx15: the project's build numbers). The example values (Wi-Fi `HomeWifi`, accessory `NiceIT4WIFIAABBCC`, user
+(nx3 through nx16: the project's build numbers). The example values (Wi-Fi `HomeWifi`, accessory `NiceIT4WIFIAABBCC`, user
 `homeuser`) stand in for whatever is different in your case. The data in this document comes from one phone and one IT4WIFI module.
+
+## What is new in nx16 (the pill and the line follow what other apps do with the gate)
+
+nx16 has version code 20201114 and installs over nx15 when it is signed with the same key. Nothing changed in the network layer
+(the native layer only reports `nx-16` as its version). Only `nx-activity.js` changed in the app (and the test harness).
+
+**What was reported.** "Open and Block" in this app, then "Release and Close" in the official MyNice app: the state showed *Closed* (the app asks
+the accessory when the screen is shown or resumed), but the pill still said *Blocked · since 12:00* and the line on the screen still said
+*Open and Block · just now* two minutes later. Reproduced in the harness with the nx15 file: after the report `closing` of the accessory the
+log was not read again (1 reading, pill and line unchanged).
+
+**Why.** The accessory has no state for "blocked", so the only place where a Block or Release shows is its event log, and nx15 read the log only when the
+accessory screen was entered (and then only if the last reading was more than 10 minutes old), 3 seconds after a command of this phone, and when
+the state was `opening` or `closing`. A report of the state that ends in a final state (`closed`, `open`) planned nothing, and a plain Block or
+Release (`MDBm`, `MDEw`) moves nothing, so the accessory reports nothing at all. The line "just now" was also worked out when the log was read and
+stayed on the screen as it was.
+
+**What is read now, and when** (all in the background, read-only, the same request as the history page of the app; the times can be set with
+`window.__nxActivityPollMs`, `...EventMs`, `...StatusMs`, `...ResumeMs`, `...RetryMs`, `...BackoffMs`, `...MinGapMs`, `...UsersAge`, `...MaxAge`, which the tests use):
+- **After a report of the state** (`newDeviceState`, any state): 4 seconds later. The gate moves, so someone gave a command, and the log has it, with a
+  Block or Release that came with it ("Release and Close"). Several reports in a row (closing, closed) are one reading. Not while the app is in the background.
+- **When the app is asked for the state** (the app does that when the screen is entered, when you swipe to another accessory and when the app
+  comes back): 1.5 seconds later, if the last reading is 30 seconds old or older, and only for the accessory whose screen is open.
+- **When the app comes back to the front** (Cordova `resume`, or the page becoming visible again): 2 seconds later, unless a reading is less than
+  2 seconds old. This is the case of the report: you leave for the official app and come back. When the activity sheet was open it is read again
+  instead (it would show what it showed when you left).
+- **On a timer, as long as the accessory screen is open:** every 30 seconds. This is the only way to see a plain Block or Release by another
+  app or phone while you look at the screen. It is not done while the app is in the background, while the activity sheet is open (it has its own
+  *Refresh*), for an accessory that is not reachable, or while the app is still checking the accessory. It stops when the screen is left.
+- A reading younger than 5 seconds (2 for coming back) is as good as a new one and is not repeated.
+- **Failures** are logged once per run (`activity: could not read the log (poll) {...}`), the reading is tried once more 5 seconds later when it was
+  planned by a report, a state request or the return of the app, and the timer waits 2 minutes after a failure; `activity: the log can be read
+  again` says when it works. A reading in the background asks for the users (for the names) only when it does not have them from the last 10
+  minutes. The LOG gets lines for a reading in the background only when the log has changed (the newest event, the last Block or Release, the health of the module),
+  with the reason in brackets: `activity: 85 device events, ... (event)`. A reading that someone asked for (the sheet) always says what it found.
+  The line `state: "opening" is out of date ...` is said once per decision (the same movement and the same report), not at every reading.
+
+**Which says it: this phone or the log.** The command that this phone gave is written down at once (the pill must not wait for the log), but the log wins
+as soon as it can know better: when it has a newer Block or Release, and also when it was read at least 2 seconds after the command and has a Block or
+Release from at most 60 seconds before it or later. The accessory writes a command in its log at once, so such a reading has the command of this
+phone in it and the newest Block or Release is the one that counts, also when the clock of the accessory is a few seconds behind the phone's (a Release
+from another phone just after the Block would be dated before it). A reading from the same second cannot have the command yet, and a Block or
+Release from long before the command (more than a minute) is not the answer to it: this phone counts then. This rests on the accessory logging
+every Block and Release (the app has texts for `MDBm` "Block" and `MDEw` "Release" for its history page, and `MDBk` and `MDFh` were seen in a real log); a
+plain Block that was never logged would not show.
+
+**The line on the screen** ("Open and Block · just now · Anna") is worked out when it is shown, not when the log was read, so "just now" becomes
+"today 12:00" after a minute (at the next screen update, at most 30 seconds later because of the timer).
+
+**What is not known.** All of this was run in the harness (headless Chromium, the real app, a simulated accessory whose log is changed by a script:
+`harness/steps-follow.cjs`) and in the tests, not on a real accessory. How quickly the official app's command reaches the log, and whether the
+accessory reports a state change for every command of another app, was not measured; the timer is the safety net for that. The timer reads the log
+every 30 seconds while you look at the accessory screen: if that ever disturbs the accessory (a slow or unreachable answer), the LOG shows it and
+the interval is one number (`POLL_MS`).
+
+Tests: `test/activity.test.js` has 256 checks (196 in nx15; new: a report, the timer, coming back, a state request, failures and the retry, the users,
+the LOG lines, and the precedence of this phone and the log, with the case of the report as the first test); the changes were also checked by breaking the
+code on purpose (twenty-one changes, each seen by a test). `test/nxpatch.test.js` is unchanged (256).
 
 ## What is new in nx15 (blocked, a state that is out of date, and the first corrections from a real log)
 
@@ -110,7 +168,7 @@ what is needed to adjust the labels to what a real accessory sends.
 **What it cannot do.** It shows the commands that the accessory logged, not every movement of the gate: whether a remote control or a key
 switch shows up depends on what the accessory logs (the source `busT4`). The times are the accessory's clock. It was written without the log
 of a real accessory in hand, from the model in the app. `harness/shim.js` has a made-up log (`CFG.activity`, `CFG.logs`) and
-`harness/steps-activity.cjs` taps through it; `test/activity.test.js` has 196 checks (the statistics without a browser, the sheet in jsdom),
+`harness/steps-activity.cjs` taps through it; `test/activity.test.js` has 256 checks (the statistics without a browser, the sheet and the readings in the background in jsdom),
 run in five time zones.
 
 ## What is new in nx13 (a log that keeps the lines that matter, and clearer messages when approving a user)
@@ -237,7 +295,7 @@ too (for example the plugin action `versie` is `version` now, the JSON key `gebo
 find in older notes or logs may differ.
 nx10 has version code 20201108 and installs over nx9 when it is signed with the same key.
 
-## Where does the app work? (nx15)
+## Where does the app work? (nx16)
 
 The app talks to the accessory in two ways: directly at its address on your home network (discovery via mDNS, then TLS on port 443;
 if mDNS fails, the IP safety net tries the saved address), and through the Nice cloud (`it4wifi.cloud.nice.niceappdomain.com`, port 7890)
@@ -447,7 +505,7 @@ Every patch checks that its anchor text occurs exactly once, so a different APK 
 | `skin/` | `nx-expressive.css` (the result that goes into the app) and `fonts-nx/`; the source is in `skin/src/`: `skin.css` (the app), `status.css` (the status sheet), `activity.css` (the activity sheet and its line), `tokens.css` (colors and spring curves, generated by `src/tools/build-tokens.mjs`), `shapes.json` (the polygons for the shapes, all 144 points), `build-css.py` assembles them. Edit the source and run `python3 skin/src/build-css.py`, never edit the result |
 | `harness/` | `screens.cjs` runs the real app (unpacked from the APK: `unzip -o <apk> "assets/www/*"`, next to the script as a folder `www`) in headless Chromium with a simulated Cordova bridge (`shim.js`) and takes screenshots of every page (light, and with `COLOR_SCHEME=dark` also dark, `PRE=` for an action such as `NX.diagnose()`, `CFG=` for a different network state); `sweep.sh` does 25 screens and makes a contact sheet; `make-screenshots.py` redoes the pictures in `docs/screenshots`. Requires Node with `playwright` and Python with PIL |
 | `get-tools.sh`, `test-all.sh` | downloading the tools with a SHA-256 check, and all tests in one go |
-| `test/` and `java/test/` | the tests (jsdom: `NODE_PATH=<folder with node_modules/jsdom> node test/nxpatch.test.js`, 256 checks; `node test/masker.test.js`; `node test/activity.test.js`, 196 checks of the activity statistics, the state and the sheet; `node test/skin.test.js` checks the CSS itself: no placeholders, braces, every variable defined, all shapes with the same number of points, icons, font and prefix) |
+| `test/` and `java/test/` | the tests (jsdom: `NODE_PATH=<folder with node_modules/jsdom> node test/nxpatch.test.js`, 256 checks; `node test/masker.test.js`; `node test/activity.test.js`, 256 checks of the activity statistics, the state, the readings in the background and the sheet; `node test/skin.test.js` checks the CSS itself: no placeholders, braces, every variable defined, all shapes with the same number of points, icons, font and prefix) |
 
 ## Signing key
 
