@@ -110,22 +110,28 @@ with zipfile.ZipFile(path) as z:
 if 'com.nice.patch.NxPlugin' not in cfg:
     errors.append('plugin Nx is not in config.xml')
 
-# 3a. nx18: the new icon and splash screen (patch-16): the adaptive icon with its layers, the theme, the picture that is not stretched
+# 3a. nx18/nx19: the new icon, the small icon of the notifications and the splash screen (patch-16): the adaptive icon with its layers, the theme, the picture that is
+#     not stretched, and the option that makes the push plugin use the small icon (it would take the launcher icon, an adaptive one with a background: a white blot)
 with zipfile.ZipFile(path) as z:
     names0 = set(z.namelist())
     for n in ('res/mipmap-anydpi-v26/ic_launcher.xml', 'res/drawable/ic_launcher_foreground.xml', 'res/drawable/ic_launcher_background.xml',
-              'res/drawable/ic_launcher_monochrome.xml', 'res/drawable-port-xxhdpi/screen.png', 'res/mipmap-xxxhdpi/ic_launcher.png'):
+              'res/drawable/ic_launcher_monochrome.xml', 'res/drawable-port-xxhdpi/screen.png', 'res/mipmap-xxxhdpi/ic_launcher.png') + \
+             tuple('res/drawable-%s/nx_stat.png' % d for d in ('mdpi', 'hdpi', 'xhdpi', 'xxhdpi', 'xxxhdpi')):
         if n not in names0:
             errors.append('missing from the APK: %s (patch-16)' % n)
     arsc = z.read('resources.arsc')
     if b'NxTheme' not in arsc and 'NxTheme'.encode('utf-16le') not in arsc:
         errors.append('the theme NxTheme is not in resources.arsc (patch-16)')
+    appjs = z.read('assets/www/js/app.min.js').decode('utf-8', 'replace') if 'assets/www/js/app.min.js' in names0 else ''
+    if 'PushNotification.init({android:{senderID:PUSH_SENDER_ID,icon:"nx_stat",iconColor:"#196585"}' not in appjs:
+        errors.append('app.min.js does not give the push plugin the small icon nx_stat (patch-16): the notifications would show the launcher icon as a white blot')
     if 'SplashMaintainAspectRatio' not in cfg:
         errors.append('config.xml has no SplashMaintainAspectRatio (patch-16): the splash picture would be stretched')
     # the picture of the original app was a black one with white text (25 KB at 960 x 1600); the new one is a plain field with a logo: a PNG that is
     # not a valid PNG, or an empty one, would show as a black or broken splash screen
-    for n in ('res/drawable-port-xxhdpi/screen.png', 'res/drawable-land-xxhdpi/screen.png', 'res/mipmap-xxxhdpi/ic_launcher.png'):
-        if n in names0 and not (z.read(n)[:8] == b'\x89PNG\r\n\x1a\n' and 1500 < len(z.read(n)) < 200000):
+    for n, least in (('res/drawable-port-xxhdpi/screen.png', 1500), ('res/drawable-land-xxhdpi/screen.png', 1500), ('res/mipmap-xxxhdpi/ic_launcher.png', 1500),
+                     ('res/drawable-xxxhdpi/nx_stat.png', 150)):       # (a white silhouette on transparent is a few hundred bytes)
+        if n in names0 and not (z.read(n)[:8] == b'\x89PNG\r\n\x1a\n' and least < len(z.read(n)) < 200000):
             errors.append('%s is not a usable PNG (patch-16)' % n)
 
 # 3b. nx9: the skin, the font and the hook points in index.html, nx-patch.js and debuglog.js

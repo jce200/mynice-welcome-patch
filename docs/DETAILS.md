@@ -1,8 +1,47 @@
 # Details and history
 
 This is the technical background to the [README.md](../README.md): why every change exists, with the diagnoses that led to them
-(nx3 through nx18: the project's build numbers). The example values (Wi-Fi `HomeWifi`, accessory `NiceIT4WIFIAABBCC`, user
+(nx3 through nx19: the project's build numbers). The example values (Wi-Fi `HomeWifi`, accessory `NiceIT4WIFIAABBCC`, user
 `homeuser`) stand in for whatever is different in your case. The data in this document comes from one phone and one IT4WIFI module.
+
+## What is new in nx19 (a new mark: strict, on a grid, and a small icon for the notifications)
+
+nx19 has version code 20201117 and installs over nx18 when it is signed with the same key. Nothing changed in the network layer
+(the native layer only reports `nx-19` as its version); the app's code only changes in one place (the icon of the notifications, below).
+
+**What was reported.** *"Very ugly logo, AI slop. It must be much sleeker and pixel perfect."* That was right. The mark of nx18 was a *cookie* (a polygon of the skin, smoothed into a wavy,
+lopsided blob) with a gate in it of thin pickets in four thicknesses, in a mid blue on a dark field: three nested shapes, details that vanish at 48 px, little contrast. It looked
+generated because it was a stack of defaults. Redone from nothing, on a grid.
+
+**The mark** (`brand/build-brand.py`): an arched picket gate. Six boards under one arch, a gap between the two leaves, one rail. White on one plain field (#003547, tone 20 of the ramp of the
+skin); two colors, no gradient, no shadow, no outline. It comes from five numbers and one circle: a board is 5, a gap between boards 3, the gap between the leaves 6, three boards per leaf, so
+it is 2 x (3 x 5 + 2 x 3) + 6 = 48 wide; the arch is the top of one circle of radius 24, and every board ends on it (an exact semicircle, not a smoothed polygon); the rail is 3. On the 108 grid of
+the adaptive icon every vertical edge lies on a whole unit (boards at x = 30, 38, 46 and 57, 65, 73), and the mark is centered on (54, 54) and stays inside the safe zone (its corners are 32.9 from the
+center, the limit is 33).
+- **What was tried and why it is not it:** the cookie with a gate in it (the blob is the sloppy part); horizontal slats next to a post (reads as a menu button); a solid arch with grooves (doors, a
+  wardrobe); boards without a rail (organ pipes); two rails (window panes); the mark in a disc (the mark gets small and the disc says nothing); a leaf between two posts (a selection frame). One rail
+  across six boards under an arch is the least that still says *gate*, also at 48 px.
+
+**Pixel perfect, as far as it can be.** The adaptive icon is a vector and the system draws it at any size, so there it means exact geometry on a grid. The PNG files have grids of their own, so that
+the vertical edges fall on whole pixels (decoded and checked in `test/brand.test.js`, not only looked at):
+- the icon for Android 7 and older: a grid of 48 (board 3, gap 1, between the leaves 2, rail 2), at 48, 96, 144 and 192 px = 1 to 4 pixels per unit;
+- the small icon of the notifications: a grid of 24 (board 2, gap 1, between the leaves 2, rail 1), at 24, 48, 72 and 96 px; white on transparent and nothing else; no half-transparent pixel on any vertical edge
+  (the row through the boards at 48 px reads `......####..####..####....####..####..####......`);
+- the splash screen: the mark at a whole, even number of pixels per unit (2, 4, 6, ...), so that the edges at half a unit are whole pixels too, exactly in the middle.
+Only the arch is anti-aliased: a curve cannot be otherwise. (hdpi, 72 px, and ldpi, 36 px, are 1.5 and 0.75 pixels per unit and cannot have whole-pixel edges.)
+
+**The icon of the notifications.** Found while redoing the icon, and it was a fault of nx18: the push plugin that the app uses takes the *launcher icon* as the small icon of a notification when the
+notification has no `icon` (`FCMService.setNotificationSmallIcon`: "no icon resource found - using application icon"). Android shows only the shape (the alpha channel) of a small icon. The icon of
+the original app had a transparent background, so the status bar showed the white *N in a house*; an adaptive icon has an opaque background, so the status bar would show a white blot. Now there is a
+small icon of its own, `res/drawable-*/nx_stat.png`, and `app.min.js` gives the plugin the options for it: `PushNotification.init({android:{senderID:PUSH_SENDER_ID,icon:"nx_stat",iconColor:"#196585"},...})`
+(`patch-16-brand.py`, one anchor that must occur exactly once; the plugin keeps the options and uses them for every notification, also when the app is closed; the color is the primary color of the skin).
+
+**Not seen on a phone.** The adaptive icon, the themed icon of Android 13, the splash screen of Android 12 and the notification were drawn and rendered in Chromium (the same geometry as the vector
+drawables), and the APK was checked for what Android will use (the launcher icon resolves to the adaptive icon, the main activity to `NxTheme`, the option for the small icon is in `app.min.js`), but
+there is no launcher in the harness and no push message. If the small icon in the status bar still shows the old *N* or a blot, the LOG of the app (`Push_FCMService`) says which icon it used.
+
+Tests: `test/brand.test.js` has 25 checks (the geometry in the vector drawables, the safe zone, the colors against `skin/src/tokens.css`, the decoded PNG files: sizes, whole pixels, white on transparent,
+the mark in the middle at an even number of pixels per unit, the agreement with the patch script); ten deliberate breaks of the files and the scripts were each caught.
 
 ## What is new in nx18 ("Connecting…", a new icon and splash screen)
 
@@ -31,7 +70,7 @@ flicker between *Not usable* and *Checking…*". That is turned around, as asked
 as its text): *Accessory not reachable · other Wi-Fi, VPN, m...* was cut off by the button. On a header with buttons on the right the chip now stops 48 px before the end
 of the title box and ends in an ellipsis (`.bar:has(.right-buttons > *) .title::after`; a WebView without `:has` keeps the old behavior).
 
-**The icon and the splash screen.** `brand/build-brand.py` draws them from what the skin already has (seed color #1E6A8A and its tones, the *cookie* shape of the state
+**The icon and the splash screen.** (The mark described here, a cookie with a gate in it, was replaced in nx19; the rest of this paragraph, the adaptive icon, the theme and the splash screen, still holds. See above.) `brand/build-brand.py` draws them from what the skin already has (seed color #1E6A8A and its tones, the *cookie* shape of the state
 icon) and a gate that is drawn there (an arched double gate with pickets); `patch-16-brand.py` puts the result in the app. The blue *N in a house* of Nice is gone from the
 launcher and the splash screen (the name of the app, the package and the permissions are as they were):
 - **Adaptive icon** (Android 8 and up; `res/mipmap-anydpi-v26/ic_launcher.xml`): a plain field of tone 20 (#003547) as the background, the cookie in the primary color (#196585)
@@ -386,7 +425,7 @@ too (for example the plugin action `versie` is `version` now, the JSON key `gebo
 find in older notes or logs may differ.
 nx10 has version code 20201108 and installs over nx9 when it is signed with the same key.
 
-## Where does the app work? (nx18)
+## Where does the app work? (nx19)
 
 The app talks to the accessory in two ways: directly at its address on your home network (discovery via mDNS, then TLS on port 443;
 if mDNS fails, the IP safety net tries the saved address), and through the Nice cloud (`it4wifi.cloud.nice.niceappdomain.com`, port 7890)
@@ -587,7 +626,7 @@ Every patch checks that its anchor text occurs exactly once, so a different APK 
 | `patch-13-theme.py` | nx12: `nx-theme.js` in `index.html` and the row *Appearance > Theme* in the settings (Auto, Light, Dark) |
 | `patch-14-activity.py` | nx14: `nx-activity.js` in the app (loaded before `nx-patch.js`) and the line on the accessory screen that opens the activity sheet |
 | `patch-15-state.py` | nx15: the state text and icon of the accessory screen ask `nxState` and `nxIcon` (the state settled from the log), a note under the state, and the pill of a blocked gate |
-| `patch-16-brand.py`, `brand/` | nx18: the new icon (adaptive, monochrome layer, PNG for older Android) and splash screens (`brand/res`, drawn by `brand/build-brand.py` from the colors and the shape of the skin; the generated files are committed, so building needs neither Node nor Chromium), the theme `NxTheme` and `SplashMaintainAspectRatio` |
+| `patch-16-brand.py`, `brand/` | nx18/nx19: the new icon (adaptive, monochrome layer, PNG for older Android), the small icon of the notifications and the splash screens (`brand/res`, drawn by `brand/build-brand.py` from the colors and the shape of the skin; the generated files are committed, so building needs neither Node nor Chromium), the theme `NxTheme` and `SplashMaintainAspectRatio` |
 | `patch-09-socket-fallback.py` | nx7: `socketFor` in `_openSocket` (EPERM fallback) and the VPN guard in both `bindNiceWifi` copies |
 | `patch-08-route-choice.py` | nx6: hooks in `ConnectionsManager`: `vetLocal` (vetting the local address), `noteRoute` (remembering the chosen route), `socketAddress` (name resolution with a fallback) |
 | `patch-07-vpn-binding.py` | nx4: skipping VPN networks in the bind loop, `Nx.wifiType`/`Nx.ctx` in the Wi-Fi receiver, the `__nxWrapVerify` hook in `app.min.js` |

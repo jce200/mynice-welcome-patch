@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Patch nx18 (brand): a new app icon and a new splash screen.
+"""Patch nx18/nx19 (brand): a new app icon, a small icon for the notifications, and a new splash screen.
 
 Usage: python patch-16-brand.py <apktool-output-dir>   (all or nothing; idempotent)
 
@@ -7,6 +7,9 @@ brand/build-brand.py draws them (the same colors and the cookie shape as the ski
   res/mipmap-*/ic_launcher.png            the icon of Android 7 and older (the original had the blue N in a house of Nice)
   res/mipmap-anydpi-v26/ic_launcher.xml   the adaptive icon of Android 8 and up (background, foreground, and a monochrome layer for the themed icons of Android 13)
   res/drawable/ic_launcher_*.xml          its layers (vector drawables)
+  res/drawable-*/nx_stat.png              the small icon of the notifications (white on transparent, 24 dp). Without it the push plugin takes the launcher icon, and an adaptive icon
+                                          has a background: in the status bar Android shows only the shape of an icon, so that would be a white blot
+  assets/www/js/app.min.js                PushNotification.init gets icon: "nx_stat" and iconColor (the primary color of the skin): the plugin keeps these and uses them for every notification
   res/drawable-{port,land}-*/screen.png   the splash screen of the Cordova plugin (the original was "Welcome to your Nice World!", white on black)
   res/values/nx_brand.xml, values-v31/    the color of the field and the theme NxTheme: the theme of the activity, as before (Theme.DeviceDefault.NoActionBar) but with that
                                           color as the color of the window, and, from Android 12, as the color and the icon of the splash screen that the system shows first
@@ -25,6 +28,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 SRC = os.path.join(HERE, "brand", "res")
 OUT = sys.argv[1]
 MANIFEST = os.path.join(OUT, "AndroidManifest.xml")
+APP = os.path.join(OUT, "assets", "www", "js", "app.min.js")
 CONFIG = os.path.join(OUT, "res", "xml", "config.xml")
 RES = os.path.join(OUT, "res")
 
@@ -32,6 +36,8 @@ OLD_THEME = 'android:theme="@android:style/Theme.DeviceDefault.NoActionBar"'
 NEW_THEME = 'android:theme="@style/NxTheme"'
 DELAY = '<preference name="SplashScreenDelay" value="3000" />'
 ASPECT = '<preference name="SplashMaintainAspectRatio" value="true" />'
+PUSH_OLD = 'PushNotification.init({android:{senderID:PUSH_SENDER_ID},ios:'
+PUSH_NEW = 'PushNotification.init({android:{senderID:PUSH_SENDER_ID,icon:"nx_stat",iconColor:"#196585"},ios:'
 
 
 def read_text(path):
@@ -42,7 +48,7 @@ def write_text(path, text):
     open(path, "w", encoding="utf-8", newline="").write(text)
 
 
-for p in (MANIFEST, CONFIG, SRC):
+for p in (MANIFEST, CONFIG, APP, SRC):
     if not os.path.exists(p):
         sys.exit("not found: " + p + (" (run brand/build-brand.py)" if p == SRC else ""))
 files = []
@@ -50,21 +56,29 @@ for d, _, names in os.walk(SRC):
     for n in sorted(names):
         files.append(os.path.relpath(os.path.join(d, n), SRC))
 files.sort()
-if len(files) < 20 or not any(f.endswith("ic_launcher.xml") for f in files) or not any(f.endswith("screen.png") for f in files):
+if len(files) < 25 or not any(f.endswith("ic_launcher.xml") for f in files) or not any(f.endswith("screen.png") for f in files) or not any(f.endswith("nx_stat.png") for f in files):
     sys.exit("brand/res is incomplete (%d files): run brand/build-brand.py" % len(files))
 
 manifest = read_text(MANIFEST)
 config = read_text(CONFIG)
-if "NxTheme" in manifest or ASPECT in config or os.path.exists(os.path.join(RES, "mipmap-anydpi-v26", "ic_launcher.xml")):
-    sys.exit("already patched (nx18 brand)")
+app = read_text(APP)
+if "NxTheme" in manifest or ASPECT in config or "nx_stat" in app or os.path.exists(os.path.join(RES, "mipmap-anydpi-v26", "ic_launcher.xml")):
+    sys.exit("already patched (nx18/nx19 brand)")
 if manifest.count(OLD_THEME) != 1:
     sys.exit("AndroidManifest.xml: expected 1 activity theme %s, found %d" % (OLD_THEME, manifest.count(OLD_THEME)))
 if config.count(DELAY) != 1:
     sys.exit("config.xml: expected 1 %s, found %d" % (DELAY, config.count(DELAY)))
-# the pictures that are replaced must be there (the folders of the original: a different name would leave the old picture next to the new one)
-missing = [f for f in files if f.endswith(".png") and not os.path.isfile(os.path.join(RES, f))]
+if app.count(PUSH_OLD) != 1:
+    sys.exit("app.min.js: expected 1 %s, found %d" % (PUSH_OLD, app.count(PUSH_OLD)))
+# the pictures that are replaced must be there (the folders of the original: a different name would leave the old picture next to the new one);
+# the small icon is new: nothing of that name may be there
+replaced = [f for f in files if f.endswith("screen.png") or f.endswith("ic_launcher.png")]
+missing = [f for f in replaced if not os.path.isfile(os.path.join(RES, f))]
 if missing:
     sys.exit("the original app has no " + ", ".join(missing[:3]) + " to replace (other names? check the decoded res folder)")
+taken = [f for f in files if f.endswith("nx_stat.png") and os.path.exists(os.path.join(RES, f))]
+if taken:
+    sys.exit("already there: " + ", ".join(taken))
 
 # everything matched: only now write
 for f in files:
@@ -73,4 +87,6 @@ for f in files:
     shutil.copyfile(os.path.join(SRC, f), dst)
 write_text(MANIFEST, manifest.replace(OLD_THEME, NEW_THEME))
 write_text(CONFIG, config.replace(DELAY, DELAY + "\n    " + ASPECT))
-print("patched (nx18 brand): %d files in res/ (icon, adaptive icon, splash screens, theme), AndroidManifest.xml (NxTheme), config.xml (SplashMaintainAspectRatio)" % len(files))
+write_text(APP, app.replace(PUSH_OLD, PUSH_NEW))
+print("patched (nx19 brand): %d files in res/ (icon, adaptive icon, small icon, splash screens, theme), AndroidManifest.xml (NxTheme), config.xml (SplashMaintainAspectRatio), "
+      "app.min.js (the icon of the notifications)" % len(files))
