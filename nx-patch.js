@@ -1216,12 +1216,50 @@
     window.addEventListener('offline', function () { setTimeout(refreshPill, 1500); });
 
     // nx14: the history of the accessory in a sheet (nx-activity.js): $rootScope.nxActivity and nxLast for the accessory screen
+    function findDevice(mac) {
+      try {
+        var hs = HS.homes || [];
+        for (var i = 0; i < hs.length; i++) {
+          var ds = hs[i].devices || [];
+          for (var j = 0; j < ds.length; j++) if (ds[j].mac == mac) return ds[j];
+        }
+      } catch (e) {}
+      return null;
+    }
     var activity = null;
     try {
       if (typeof window.__nxActivity === 'function') {
-        activity = window.__nxActivity({ inj: inj, $rootScope: $rootScope, NHK: NHK, log: log, toast: toast, liveDevice: liveDevice, copy: copyText });
+        activity = window.__nxActivity({ inj: inj, $rootScope: $rootScope, NHK: NHK, log: log, toast: toast, liveDevice: liveDevice, findDevice: findDevice, copy: copyText });
       }
     } catch (e) { log('activity', String(e)); }
+    // nx15: what the accessory says about its state (status requests and events, in the LOG), and the commands that this phone gives (Block and
+    // Release are remembered, the log is read again after a command). The app's own functions are called as before; these only look along.
+    if (activity) {
+      try {
+        var wrap = function (name, after) {
+          var orig = NHK[name];
+          if (typeof orig !== 'function' || orig.__nx) return;
+          var w = function () {
+            var p = orig.apply(NHK, arguments), args = arguments;
+            try { after(args, p); } catch (e) { log('wrapper ' + name, String(e)); }
+            return p;
+          };
+          w.__nx = true;
+          NHK[name] = w;
+        };
+        wrap('status', function (args, p) {
+          var d = args[0];
+          p.then(function (res) { activity.onStatus(d, res); }, function (err) { log('state: status request failed', d && d.mac, JSON.stringify(err)); });
+        });
+        ['executePrimaryCommand', 'executeSecondaryCommand'].forEach(function (name) {
+          wrap(name, function (args, p) {
+            var d = args[0], code = args[2];
+            p.then(function () { activity.onCommand(d, String(code), name); }, function (err) { log(name + ' failed', code, JSON.stringify(err)); });
+          });
+        });
+        window.addEventListener('newDeviceState', function (e) { activity.onEvent(e); }, false);
+      } catch (e) { log('state wrappers', String(e)); }
+    }
 
     window.NX = { diagnose: diagnose, reconnect: reconnect, checkWaitingUsers: checkWaitingUsers, refresh: refreshPill, open: openSheet, close: closeSheet,
       theme: function (mode) { if (mode) $rootScope.nxSetTheme(mode); return themeNow; },

@@ -112,16 +112,16 @@ ok('no placeholders ({{...}}) left', !/\{\{|\}\}/.test(css));
 }
 
 {
-  // the classes that the template patches (patch-11 "Checking...", patch-12 extra buttons, patch-13 theme, patch-14 activity) put in the app
+  // the classes that the template patches (patch-11 "Checking...", patch-12 extra buttons, patch-13 theme, patch-14 activity, patch-15 state) put in the app
   // have a rule, and nx-patch.js and nx-activity.js offer every function that those templates ask for
   const js = fs.readFileSync(path.join(__dirname, '..', 'nx-patch.js'), 'utf8') + fs.readFileSync(path.join(__dirname, '..', 'nx-activity.js'), 'utf8');
-  const patches = ['patch-11-checking-state.py', 'patch-12-extra-commands.py', 'patch-13-theme.py', 'patch-14-activity.py'].map((f) => fs.readFileSync(path.join(__dirname, '..', f), 'utf8'));
+  const patches = ['patch-11-checking-state.py', 'patch-12-extra-commands.py', 'patch-13-theme.py', 'patch-14-activity.py', 'patch-15-state.py'].map((f) => fs.readFileSync(path.join(__dirname, '..', f), 'utf8'));
   const classes = Array.from(new Set(patches.flatMap((t) => Array.from(t.matchAll(/class=\\?"([^"\\]*nx-[^"\\]*)\\?"/g)).flatMap((m) => m[1].split(/\s+/)).filter((k) => /^nx-[a-z-]+$/.test(k)))));
   const without = classes.filter((k) => !new RegExp('\\.' + k + '(?![\\w-])').test(css));
   ok('the classes of the template patches have a rule (' + classes.join(', ') + ')', classes.length >= 8 && without.length === 0, without.join(', '));
   const asked = Array.from(new Set(patches.flatMap((t) => Array.from(t.matchAll(/\b(nx[A-Z][A-Za-z]*)\b/g)).map((m) => m[1]))));
   const offered = asked.filter((n) => !new RegExp('\\$(?:rootScope|rs)\\.' + n + '\\s*=').test(js));
-  ok('nx-patch.js and nx-activity.js offer what the patched templates ask (' + asked.join(', ') + ')', asked.length >= 11 && offered.length === 0, offered.join(', '));
+  ok('nx-patch.js and nx-activity.js offer what the patched templates ask (' + asked.join(', ') + ')', asked.length >= 15 && offered.length === 0, offered.join(', '));
   ok('the "Checking..." animations stand still with reduced motion', /prefers-reduced-motion[^{]*\{[^}]*nx-checking:before[^}]*animation:\s*none/.test(css) && /prefers-reduced-motion[^{]*\{[^}]*nx-checking-text[^}]*animation:\s*none/.test(css));
 }
 {

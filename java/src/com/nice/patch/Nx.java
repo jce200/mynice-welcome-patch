@@ -51,7 +51,7 @@ public final class Nx {
     private Nx() { }
 
     static final String TAG = "NX";
-    public static final String PATCH_VERSION = "nx-14";
+    public static final String PATCH_VERSION = "nx-15";
 
     /** Log channel to the LOG panel in the app (see NxPlugin 'logStream'). */
     static volatile CallbackContext logCb;

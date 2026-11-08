@@ -1,8 +1,66 @@
 # Details and history
 
 This is the technical background to the [README.md](../README.md): why every change exists, with the diagnoses that led to them
-(nx3 through nx14: the project's build numbers). The example values (Wi-Fi `HomeWifi`, accessory `NiceIT4WIFIAABBCC`, user
+(nx3 through nx15: the project's build numbers). The example values (Wi-Fi `HomeWifi`, accessory `NiceIT4WIFIAABBCC`, user
 `homeuser`) stand in for whatever is different in your case. The data in this document comes from one phone and one IT4WIFI module.
+
+## What is new in nx15 (blocked, a state that is out of date, and the first corrections from a real log)
+
+nx15 has version code 20201113 and installs over nx14 when it is signed with the same key. Nothing changed in the network layer
+(the native layer only reports `nx-15` as its version).
+
+**What a log from a real accessory showed** (copied from the activity sheet; the names and IDs are left out here):
+- The events of the module are written `Power ON`, `T4 device not found` and `T4 device found`, with the source `boot`; an entry has no `idx`.
+  nx14 only knew `device not found`, so the row "Gate controller not found" said 0 although the log had one. The app's own history page
+  matches a part of the text (`indexOf`), and so does this now.
+- The log begins with the start of the accessory (the oldest entry is `Power ON`, some hours before): events are forgotten at a restart.
+  The note under the history says so when the oldest entry is a start.
+- Every command of a phone is followed within a second by the same movement from `busT4`: `MDFh` ("Release and Close") at 11:40:20 and `close` at
+  11:40:21, `MDBk` ("Open and Block") at 10:15:02 and `open` at 10:15:03 (example times). `busT4` is the gate controller on the bus reporting what it does, for
+  whatever reason it does it. nx14 counted both and called the second "Automation". Now a movement that `busT4` reports within 5 seconds of a command
+  of the same kind (a phone, the schedule, an input) is folded into that command, one repeat per command. What is left of `busT4` is shown as
+  "Gate controller": a remote control, a switch, the gate closing by itself, or the controller telling its state when the accessory starts
+  (a `stop` right after "T4 device found"). So the line on the screen, the tiles and "who" now name the phone and count once.
+- While the accessory starts it cannot see the gate controller yet (`T4 device not found`, a moment later `found`). That is not a fault: a "not found"
+  within two minutes after a start is not counted in "Gate controller lost" (the row says "only while the accessory was starting").
+- The T4 commands of the phones are in the log, with the phone's controller ID: the Block and Release commands below are built on that.
+
+**Blocked.** The accessory has no property for it (`DoorStatus` and `Obstruct` only; `T4Action` is write-only), so no Nice app shows it. What is
+known is the last Block command (`MDBk` Open and Block, `MDBl` Close and Block, `MDBm` Block) or Release command (`MDEw` Release, `MDE5` Release and
+Open, `MDFh` Release and Close):
+- Commands that this phone gives are written down when they succeed (`nx-patch.js` wraps `executePrimaryCommand` and `executeSecondaryCommand` of the
+  app's service and tells `nx-activity.js`; kept in `localStorage` under `nxBlock`, apart from the app's data). The commands of every phone and of
+  the schedule are in the log. The newer of the two counts.
+- A pill "Blocked · since 09:37" under the state, and a card in the activity sheet (amber, with the command and who). With a question mark
+  ("Blocked?") when the accessory has restarted after the last Block command: whether a block survives that is not known. After a Release the
+  pill is gone, and the sheet says "Not blocked, as far as the log shows". Without any Block or Release command it says nothing.
+- It is the last command and not a measurement, and it does not see a block that was lifted at the gate controller itself (a key switch, another
+  device on the bus), or commands that were forgotten at a restart of the accessory. It must not be used as security; the card says so.
+
+**A state that is out of date.** The accessory screen reads the state when it is shown or resumed (`status`) and after that only gets events
+(`newDeviceState`); nothing in between (no polling). On a real gate that had been opened with "Open and Block" the screen showed "Opening" while the
+gate was open, and the official app showed "Opened". Whether the accessory itself reports "opening" on a status request or the final event went
+missing is not known yet, so the LOG now records what it says: `state: status of <mac> says [DoorStatus=..., Obstruct=...]` for every status request,
+`state: event <mac> <state>, obstruct <n>` for every event, and once per session what the accessory declares
+(`state: the accessory declares services [...] properties [...]`, to see whether there is more than the state and the obstruction).
+The safety net, in `nx-activity.js` (`nxState`, `nxIcon`, `nxSettled`, used by `patch-15-state.py` in `device_detail.html`):
+- A report of "opening" (or "closing") is shown as open (closed) when the newest event in the log that can have moved or stopped the gate (open, close, stop,
+  step by step, block, obstruction; a repeat of the gate controller is folded) is an opening (closing) that is more than 150 seconds old, and the
+  log was read after the latest event or command and less than two minutes ago. A stop, a block or an obstruction after it, or a closing after an
+  opening, means that nothing is settled.
+- The icon follows (the app's own class, `icon-i_gat005 open status-0`), and a small note says what was reported ("reported: Opening").
+- The decision is only valid while the report stays the same. An event of the accessory, a command of this phone and a new look at the screen clear it.
+  The log is read again 3 seconds after a command (it has the command and the movement within a second, which also makes the line on the screen
+  right: in nx14 it stayed on the previous command until the screen was entered again), when the screen is entered with "opening" or "closing", and
+  once more after the travel time plus 8 seconds when the gate is still said to move.
+- Not tested on a real accessory: how often the accessory reports a stale "opening", and why.
+
+**Small screens.** The extra lines (activity line, note, pill) cost height. The gate icon and the state text shrink in steps below 780, 720, 660 and
+620 pixels of height; checked with the harness (`harness/steps-state.cjs`, the worst case: blocked, note, line) at heights from 568 to 915, with
+Stop completely in view from 600 pixels up (below that the commands area scrolls).
+
+Tests: `test/activity.test.js` (196 checks, with a log in the structure of the real one, with made-up names and IDs; also in five time zones) and the
+wrappers in `test/nxpatch.test.js` (256); the tests were also checked by breaking the code on purpose (five changes, each seen by a test).
 
 ## What is new in nx14 (Activity: the history of the accessory)
 
@@ -52,7 +110,7 @@ what is needed to adjust the labels to what a real accessory sends.
 **What it cannot do.** It shows the commands that the accessory logged, not every movement of the gate: whether a remote control or a key
 switch shows up depends on what the accessory logs (the source `busT4`). The times are the accessory's clock. It was written without the log
 of a real accessory in hand, from the model in the app. `harness/shim.js` has a made-up log (`CFG.activity`, `CFG.logs`) and
-`harness/steps-activity.cjs` taps through it; `test/activity.test.js` has 117 checks (the statistics without a browser, the sheet in jsdom),
+`harness/steps-activity.cjs` taps through it; `test/activity.test.js` has 196 checks (the statistics without a browser, the sheet in jsdom),
 run in five time zones.
 
 ## What is new in nx13 (a log that keeps the lines that matter, and clearer messages when approving a user)
@@ -179,7 +237,7 @@ too (for example the plugin action `versie` is `version` now, the JSON key `gebo
 find in older notes or logs may differ.
 nx10 has version code 20201108 and installs over nx9 when it is signed with the same key.
 
-## Where does the app work? (nx14)
+## Where does the app work? (nx15)
 
 The app talks to the accessory in two ways: directly at its address on your home network (discovery via mDNS, then TLS on port 443;
 if mDNS fails, the IP safety net tries the saved address), and through the Nice cloud (`it4wifi.cloud.nice.niceappdomain.com`, port 7890)
@@ -364,7 +422,7 @@ is a reset of the accessory.
 ## Building and the files
 
 See [README.md](../README.md) for the steps (`./get-tools.sh`, then `./build.sh <original.apk>`). The script unpacks the original APK,
-applies `patch-01-wifi-binding.py` through `patch-14-activity.py`, builds the Java layer (`java/src/com/nice/patch`) into `classes2.dex`,
+applies `patch-01-wifi-binding.py` through `patch-15-state.py`, builds the Java layer (`java/src/com/nice/patch`) into `classes2.dex`,
 adds it, aligns, signs with your key in `keys/` and checks the result (`verify-apk.py`, if `androguard` and `loguru` are installed).
 Every patch checks that its anchor text occurs exactly once, so a different APK version is not silently patched wrongly.
 
@@ -379,6 +437,7 @@ Every patch checks that its anchor text occurs exactly once, so a different APK 
 | `patch-12-extra-commands.py` | nx12: the ticked commands as buttons on the accessory screen and a list with ticks instead of the radio list (two templates; they ask `nxExtra` and `nxQuickToggle` from `nx-patch.js`) |
 | `patch-13-theme.py` | nx12: `nx-theme.js` in `index.html` and the row *Appearance > Theme* in the settings (Auto, Light, Dark) |
 | `patch-14-activity.py` | nx14: `nx-activity.js` in the app (loaded before `nx-patch.js`) and the line on the accessory screen that opens the activity sheet |
+| `patch-15-state.py` | nx15: the state text and icon of the accessory screen ask `nxState` and `nxIcon` (the state settled from the log), a note under the state, and the pill of a blocked gate |
 | `patch-09-socket-fallback.py` | nx7: `socketFor` in `_openSocket` (EPERM fallback) and the VPN guard in both `bindNiceWifi` copies |
 | `patch-08-route-choice.py` | nx6: hooks in `ConnectionsManager`: `vetLocal` (vetting the local address), `noteRoute` (remembering the chosen route), `socketAddress` (name resolution with a fallback) |
 | `patch-07-vpn-binding.py` | nx4: skipping VPN networks in the bind loop, `Nx.wifiType`/`Nx.ctx` in the Wi-Fi receiver, the `__nxWrapVerify` hook in `app.min.js` |
@@ -388,7 +447,7 @@ Every patch checks that its anchor text occurs exactly once, so a different APK 
 | `skin/` | `nx-expressive.css` (the result that goes into the app) and `fonts-nx/`; the source is in `skin/src/`: `skin.css` (the app), `status.css` (the status sheet), `activity.css` (the activity sheet and its line), `tokens.css` (colors and spring curves, generated by `src/tools/build-tokens.mjs`), `shapes.json` (the polygons for the shapes, all 144 points), `build-css.py` assembles them. Edit the source and run `python3 skin/src/build-css.py`, never edit the result |
 | `harness/` | `screens.cjs` runs the real app (unpacked from the APK: `unzip -o <apk> "assets/www/*"`, next to the script as a folder `www`) in headless Chromium with a simulated Cordova bridge (`shim.js`) and takes screenshots of every page (light, and with `COLOR_SCHEME=dark` also dark, `PRE=` for an action such as `NX.diagnose()`, `CFG=` for a different network state); `sweep.sh` does 25 screens and makes a contact sheet; `make-screenshots.py` redoes the pictures in `docs/screenshots`. Requires Node with `playwright` and Python with PIL |
 | `get-tools.sh`, `test-all.sh` | downloading the tools with a SHA-256 check, and all tests in one go |
-| `test/` and `java/test/` | the tests (jsdom: `NODE_PATH=<folder with node_modules/jsdom> node test/nxpatch.test.js`, 241 checks; `node test/masker.test.js`; `node test/activity.test.js`, 117 checks of the activity statistics and sheet; `node test/skin.test.js` checks the CSS itself: no placeholders, braces, every variable defined, all shapes with the same number of points, icons, font and prefix) |
+| `test/` and `java/test/` | the tests (jsdom: `NODE_PATH=<folder with node_modules/jsdom> node test/nxpatch.test.js`, 256 checks; `node test/masker.test.js`; `node test/activity.test.js`, 196 checks of the activity statistics, the state and the sheet; `node test/skin.test.js` checks the CSS itself: no placeholders, braces, every variable defined, all shapes with the same number of points, icons, font and prefix) |
 
 ## Signing key
 

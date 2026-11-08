@@ -16,7 +16,14 @@
 {{P}} .nx-last-chev { width: 20px; height: 20px; -webkit-mask: var(--nx-i-chevron) center / contain no-repeat; mask: var(--nx-i-chevron) center / contain no-repeat; }
 {{P}} .nx-last-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-/* a short screen (360x640): the gate icon and the state text give way a little, so that Open, Close and Stop stay in view with the line above them */
+/* A lower screen: the gate icon and the state text give way a little in three steps, so that Open, Close and Stop stay completely in view with the
+   extra lines (the activity line, and when it applies the note under the state and the pill of a blocked gate). Checked at 568 to 915 pixels high. */
+@media (max-height: 780px) {
+  {{P}} .device-icon { width: 140px; height: 140px; margin: 4px auto 0; }
+  {{P}} .device-icon i { font-size: 70px !important; }
+  {{P}} .device-info .device-row:first-child { margin: 2px 0 8px; }
+  {{P}} .device-info .device-row:first-child strong, {{P}} .device-info .device-row:first-child strong span { font-size: 40px; line-height: 46px; }
+}
 @media (max-height: 720px) {
   {{P}} .device-icon { width: 128px; height: 128px; margin: 2px auto 0; }
   {{P}} .device-icon i { font-size: 64px !important; }
@@ -24,6 +31,19 @@
   {{P}} .device-info .device-row:first-child strong, {{P}} .device-info .device-row:first-child strong span { font-size: 36px; line-height: 42px; }
   {{P}} .device-info .device-row:not(:first-child) { margin-bottom: 4px; }
   {{P}} .nx-last { min-height: 36px; padding-top: 4px; padding-bottom: 4px; }
+}
+@media (max-height: 660px) {
+  {{P}} .device-icon { width: 104px; height: 104px; margin: 0 auto; }
+  {{P}} .device-icon i { font-size: 52px !important; }
+  {{P}} .device-info .device-row:first-child { margin: 0 0 4px; }
+  {{P}} .device-info .device-row:first-child strong, {{P}} .device-info .device-row:first-child strong span { font-size: 32px; line-height: 38px; }
+  {{P}} .device-info .device-row:not(:first-child) { margin-bottom: 2px; padding-top: 4px; padding-bottom: 4px; }
+  {{P}} .nx-last { min-height: 32px; }
+}
+
+@media (max-height: 620px) {
+  {{P}} .device-info .device-row:not(:first-child) { padding-top: 2px; padding-bottom: 2px; }
+  {{P}} .nx-last { min-height: 28px; padding-top: 2px; padding-bottom: 2px; }
 }
 
 /* ---------------------------------------------------------------- the sheet */
@@ -117,3 +137,36 @@
 {{P}} .nx-tl-who { max-width: 38vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; font-size: 13px; color: var(--md-sys-color-on-surface-variant); }
 {{P}} .nx-sheet button.nx-act-all { display: block; width: 100%; flex: none; margin: 8px 0 0; }
 {{P}} .nx-act-footer { grid-template-columns: 1fr; }
+
+/* ---------------------------------------------------------------- the state settled from the log, and a gate that was blocked */
+/* a small note under the state ("reported: Opening") while the state is settled */
+{{P}} .device-info .device-row:first-child .nx-settled {
+  display: block; margin-top: 2px; font-size: 13px; line-height: 18px; font-weight: 500; letter-spacing: 0; color: var(--md-sys-color-on-surface-variant);
+  font-variation-settings: 'wdth' 100;
+}
+/* the pill under the state when the last Block command was not followed by a Release */
+{{P}} .device-info .device-row.nx-block-row { display: flex; justify-content: center; max-width: none; margin: 0 0 8px; padding: 0; background: none; border-radius: 0; }
+{{P}} .nx-block {
+  display: inline-flex; align-items: center; gap: 8px; max-width: 94%; padding: 6px 16px 6px 12px; border-radius: 18px;
+  background: var(--nx-warn-container); color: var(--nx-on-warn-container); font-size: 14px; line-height: 20px; font-weight: 650;
+}
+{{P}} .nx-block > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+{{P}} .nx-block-icon { flex: 0 0 auto; width: 18px; height: 18px; background: currentColor; -webkit-mask: var(--nx-i-lock) center / contain no-repeat; mask: var(--nx-i-lock) center / contain no-repeat; }
+@media (max-height: 720px) {
+  {{P}} .device-info .device-row.nx-block-row { margin-bottom: 4px; }
+  {{P}} .nx-block { padding-top: 3px; padding-bottom: 3px; }
+}
+@media (max-height: 660px) {
+  {{P}} .device-info .device-row.nx-block-row { margin-bottom: 2px; }
+  {{P}} .nx-block { padding-top: 1px; padding-bottom: 1px; }
+  {{P}} .device-info .device-row:first-child .nx-settled { margin-top: 0; line-height: 16px; font-size: 12px; }
+}
+/* in the sheet: a card above the tiles (amber when blocked) */
+{{P}} .nx-card.nx-act-block { display: flex; align-items: flex-start; gap: 14px; margin: 0 0 8px; padding: 16px; }
+{{P}} .nx-act-block .nx-block-icon { width: 24px; height: 24px; margin-top: 1px; color: var(--md-sys-color-on-surface-variant); }
+{{P}} .nx-act-block > div { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+{{P}} .nx-act-block b { font-size: 16px; line-height: 22px; font-weight: 650; color: var(--md-sys-color-on-surface); }
+{{P}} .nx-act-block span { font-size: 14px; line-height: 20px; color: var(--md-sys-color-on-surface-variant); overflow-wrap: anywhere; }
+{{P}} .nx-act-block em { margin-top: 4px; font-style: normal; font-size: 12px; line-height: 18px; color: var(--md-sys-color-on-surface-variant); overflow-wrap: anywhere; }
+{{P}} .nx-card.nx-act-block.nx-blocked { background: var(--nx-warn-container); }
+{{P}} .nx-act-block.nx-blocked .nx-block-icon, {{P}} .nx-act-block.nx-blocked b, {{P}} .nx-act-block.nx-blocked span, {{P}} .nx-act-block.nx-blocked em { color: var(--nx-on-warn-container); }

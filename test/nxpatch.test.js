@@ -24,7 +24,8 @@ function home(devices) {
 // scen: { homes, net, probe, reachable: [sequence], reachableDefault, waiting, approveOk, loadCloud,
 //         graceMs (auto-recovery; off by default), lateVerify (verify only exists later), verifyMs, preXhr(w),
 //         names ({ DEVICE_COMMAND_x: 'text' } for $translate), withGo ($state and $rootScope.go),
-//         approveErr (what approving a user fails with), pairingsErr (what looking for waiting users fails with) }
+//         approveErr (what approving a user fails with), pairingsErr (what looking for waiting users fails with),
+//         activity ({ logs, status, commandFails }: load nx-activity.js and let the service read the log, give its status and run commands) }
 async function environment(scen) {
   const dom = new JSDOM('<!doctype html><html><body></body></html>', { url: 'http://localhost/', runScripts: 'outside-only', pretendToBeVisual: true });
   const w = dom.window;
@@ -83,6 +84,14 @@ async function environment(scen) {
   const $q = { when: (v) => Promise.resolve(v), defer() { const d = {}; d.promise = new Promise((a, b) => { d.resolve = a; d.reject = b; }); return d; } };
   const $timeout = (fn, ms) => setTimeout(fn, Math.min(ms || 0, 30));
   const $ionicPopup = { confirm(opts) { popups.push(opts); return Promise.resolve(scen.popupAnswer !== false); } };
+  if (scen.activity) {                          // nx14/nx15: nx-activity.js is loaded before nx-patch.js (as in index.html), and the service can read the log and give commands
+    const A = scen.activity;
+    NHK.logs = () => Promise.resolve(A.logs || { deviceLogs: [], interfaceLogs: [] });
+    NHK.status = () => Promise.resolve(A.status || { devices: [{ properties: [{ name: 'DoorStatus', value: 'closed' }, { name: 'Obstruct', value: '0' }] }] });
+    NHK.executePrimaryCommand = () => (A.commandFails ? Promise.reject({ code: 5 }) : Promise.resolve({}));
+    NHK.executeSecondaryCommand = NHK.executePrimaryCommand;
+    w.eval(fs.readFileSync(path.join(__dirname, '..', 'nx-activity.js'), 'utf8'));
+  }
   const services = { $rootScope, $q, $timeout, NHKPluginService: NHK, HomeService: HS, $ionicPopup };
   const goCalls = [];
   if (scen.names) services.$translate = { instant: (k) => scen.names[k] || k };            // nx12: names of the commands
@@ -560,6 +569,49 @@ function sheet(env) { return env.document.getElementById('nx-sheet'); }
     env.w.NX.checkWaitingUsers(true); await sleep(100);
     env.w.NX.checkWaitingUsers(true); await sleep(300);
     ok('nx13 toast: two in a row leave one on screen', snacks(env).length === 1, JSON.stringify(snacks(env)));
+  }
+
+
+  // ---------------------------------------------------------------- nx15: what the accessory says about its state, and the commands of this phone
+  {
+    const env = await environment({ homes: [home([device()])], net: { wifi: true, ssid: 'HomeWifi' }, activity: {} });
+    const dev = env.HS.homes[0].devices[0];
+    ok('nx15: the activity sheet is offered to the app and to the console', typeof env.$rootScope.nxActivity === 'function' && typeof env.$rootScope.nxState === 'function' && typeof env.$rootScope.nxBlock === 'function' && typeof env.w.NX.activity === 'function');
+    ok('nx15: the service functions are wrapped (and say so)', env.NHK.status.__nx === true && env.NHK.executeSecondaryCommand.__nx === true && env.NHK.executePrimaryCommand.__nx === true);
+    const res = await env.NHK.status(dev);
+    await sleep(30);
+    ok('nx15: the answer of a status request is passed on unchanged', res.devices[0].properties[0].value === 'closed');
+    ok('nx15: ...and what the accessory says is in the LOG', env.logs.some((l) => /^\[NX\] state: status of 00:0B:6C:AA:BB:CC says \[DoorStatus=closed, Obstruct=0\]$/.test(l)), env.logs.slice(-3).join('|'));
+    ok('nx15: ...with the properties that it declares (the device of these tests has none)', !env.logs.some((l) => /state: the accessory declares/.test(l)));
+    ok('nx15: a block is not shown before there is a Block command', env.$rootScope.nxBlock(dev) === '');
+    await env.NHK.executeSecondaryCommand(dev, '1', 'MDBk');
+    await sleep(30);
+    ok('nx15: a Block command of this phone is remembered', /^Blocked · since /.test(env.$rootScope.nxBlock(dev)), env.$rootScope.nxBlock(dev));
+    ok('nx15: ...and in the LOG', env.logs.indexOf('[NX] block: blocked (MDBk)') > -1);
+    await env.NHK.executePrimaryCommand(dev, '1', 'open');
+    await sleep(30);
+    ok('nx15: a primary command does not change it', /^Blocked · since /.test(env.$rootScope.nxBlock(dev)));
+    await env.NHK.executeSecondaryCommand(dev, '1', 'MDEw');
+    await sleep(30);
+    ok('nx15: a Release ends it', env.$rootScope.nxBlock(dev) === '');
+    env.w.dispatchEvent(Object.assign(new env.w.Event('newDeviceState'), { mac: dev.mac, state: 'opening', obstruct: '0' }));
+    ok('nx15: an event of the accessory about the state is in the LOG', env.logs.indexOf('[NX] state: event 00:0B:6C:AA:BB:CC opening, obstruct 0') > -1, env.logs.slice(-2).join('|'));
+  }
+  {
+    const env = await environment({ homes: [home([device()])], net: { wifi: true, ssid: 'HomeWifi' }, activity: { commandFails: true } });
+    const dev = env.HS.homes[0].devices[0];
+    let failed = false;
+    await env.NHK.executeSecondaryCommand(dev, '1', 'MDBk').then(() => {}, () => { failed = true; });
+    await sleep(30);
+    ok('nx15: a command that fails still fails for the app (the rejection is passed on)', failed === true);
+    ok('nx15: ...and is not remembered as a block, and the LOG has the reason', env.$rootScope.nxBlock(dev) === '' && env.logs.some((l) => /^\[NX\] executeSecondaryCommand failed MDBk \{"code":5\}$/.test(l)), env.logs.slice(-2).join('|'));
+  }
+  {
+    const env = await environment({ homes: [home([device()])], net: { wifi: true, ssid: 'HomeWifi' } });
+    ok('nx15: without nx-activity.js nothing is wrapped and nothing breaks', typeof env.w.NX.activity === 'function' && env.NHK.executeSecondaryCommand === undefined && env.$rootScope.nxState === undefined);
+    let threw = false;
+    try { env.w.NX.activity(); } catch (e) { threw = true; }
+    ok('nx15: ...and the console function does nothing', threw === false);
   }
 
   // ---------------------------------------------------------------- double Next

@@ -18,6 +18,7 @@
   var MIN_TIME = Date.UTC(2015, 0, 1);     // a module whose clock was never set reports 1970 or 2000: that is no time
   var DAY = 86400000;
   var MAX_EVENTS = 5000;                   // more than this is not read (the newest are kept)
+  var ECHO_MS = 5000;                      // the gate controller repeats a command it was given within this time as a movement of its own
   var WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -39,6 +40,10 @@
     MDBm: 'Block', MDEw: 'Release', MDE5: 'Release and Open', MDFh: 'Release and Close'
   };
 
+  // the commands that block the automation, and those that release it (the T4 codes of "Open and Block", "Close and Block", "Block" and
+  // "Release", "Release and Open", "Release and Close")
+  var BLOCKING = { MDBk: 1, MDBl: 1, MDBm: 1 }, RELEASING = { MDEw: 1, MDE5: 1, MDFh: 1 };
+
   function kindOf(type) {
     var t = type == null ? '' : String(type);
     return KIND_OF[t] || KIND_OF[t.toLowerCase()] || 'other';
@@ -53,7 +58,8 @@
     if (t === 'power on' || t === 'boot') return 'restart';
     if (t === 'wifi loss') return 'wifi';
     if (t === 'error') return 'error';
-    if (t === 'device not found') return 'bus';
+    if (t.indexOf('device not found') > -1) return 'bus';        // the module writes "T4 device not found" (the app's own filter also matches a part of the text)
+    if (t.indexOf('device found') > -1) return 'busfound';
     return null;
   }
 
@@ -69,10 +75,11 @@
     return n;
   }
 
-  // who or what gave the command: the app's own rules (busT4 = automation, scheduler, a user's phone by its controller ID)
+  // who or what gave the command: the app's own rules (busT4 = the gate controller on the bus, which the app calls "Autom.", scheduler, a user's
+  // phone by its controller ID)
   function whoOf(source, users) {
     var s = source == null ? '' : String(source);
-    if (s === 'busT4') return 'Automation';
+    if (s === 'busT4') return 'Gate controller';
     if (s === 'scheduler') return 'Schedule';
     if (s === 'input') return 'Input';
     if (!s) return 'Unknown';
@@ -121,6 +128,21 @@
     });
     events.sort(function (a, b) { return b.t - a.t; });                                // newest first
     if (events.length > MAX_EVENTS) events.length = MAX_EVENTS;
+    // The gate controller (source busT4) reports every movement it makes, also the one that a phone, a schedule or an input has just asked
+    // for: "Open and Block" from a phone is followed within a second by an "open" from busT4. That is the same movement, so it is folded into
+    // the command (a command takes at most one). What is left of busT4 is what nobody asked for through the accessory: a remote control, a switch,
+    // the gate closing by itself, or the controller telling its state when the accessory starts.
+    var echoes = 0, k;
+    var oldest = events.slice().reverse();                                             // oldest first
+    for (var ei = 0; ei < oldest.length; ei++) {
+      var be = oldest[ei];
+      if (be.source !== 'busT4' || !(be.kind === 'open' || be.kind === 'close' || be.kind === 'stop')) continue;
+      for (k = ei - 1; k >= 0 && be.t - oldest[k].t <= ECHO_MS; k--) {
+        var cmd = oldest[k];
+        if (cmd.source !== 'busT4' && !cmd.echoed && cmd.kind === be.kind) { cmd.echoed = true; be.echo = true; echoes++; break; }
+      }
+    }
+    events = events.filter(function (e) { return !e.echo; });
     var commands = events.filter(function (e) { return isCommand(e.kind); });
     var obstructions = events.filter(function (e) { return e.kind === 'obstruction'; });
 
@@ -149,9 +171,18 @@
       if (!last.open && commands[i].kind === 'open') last.open = commands[i];
       if (!last.close && commands[i].kind === 'close') last.close = commands[i];
     }
+    // the newest event that can have moved or stopped the gate (a stop, a block or an obstruction after an opening means it did not simply open)
+    var MOVES = { open: 1, close: 1, stop: 1, step: 1, block: 1, obstruction: 1 }, lastMovement = null;
+    for (i = 0; i < events.length; i++) if (MOVES[events[i].kind]) { lastMovement = events[i]; break; }
+    // the newest Block or Release command: all the accessory can tell about blocking (it has no state for it)
+    var block = null;
+    for (i = 0; i < events.length; i++) {
+      var bt = events[i].type;
+      if (BLOCKING[bt] || RELEASING[bt]) { block = { blocked: !!BLOCKING[bt], t: events[i].t, type: bt, who: events[i].who, uncertain: false }; break; }
+    }
 
     // the module itself: restarts (a power-on and the boot after it count once), Wi-Fi drops, errors, the gate controller that was not found
-    var health = { restart: { count: 0, last: null }, wifi: { count: 0, last: null }, error: { count: 0, last: null }, bus: { count: 0, last: null } };
+    var health = { restart: { count: 0, last: null, first: null }, wifi: { count: 0, last: null }, error: { count: 0, last: null }, bus: { count: 0, last: null, atStart: 0 } };
     var moduleTimes = [], mevents = [];
     asList(res && res.interfaceLogs).forEach(function (it) {
       if (!it || typeof it !== 'object') return;
@@ -164,25 +195,33 @@
     mevents.sort(function (a, b) { return a.t - b.t; });
     var lastRestart = null;
     mevents.forEach(function (e) {
+      if (e.k === 'busfound') return;
       var h = health[e.k];
       if (e.k === 'restart') {
         var again = lastRestart != null && e.t - lastRestart < 120000;
         lastRestart = e.t;
         if (again) { h.last = e.t; return; }
+        if (h.first == null) h.first = e.t;
       }
+      // right after a start the module cannot see the gate controller yet ("T4 device not found", then "found"): that is not a fault
+      if (e.k === 'bus' && lastRestart != null && e.t - lastRestart < 120000) { h.atStart++; return; }
       h.count++;
       h.last = e.t;
     });
+    // a restart after the last Block or Release command: whether the block survived it is not known
+    if (block && health.restart.last != null && health.restart.last > block.t) block.uncertain = true;
 
     // how far back the log goes (all events with a usable time)
     var span = null, lo = null, hi = null;
     events.forEach(function (e) { if (lo == null || e.t < lo) lo = e.t; if (hi == null || e.t > hi) hi = e.t; });
     moduleTimes.forEach(function (t) { if (lo == null || t < lo) lo = t; if (hi == null || t > hi) hi = t; });
     if (lo != null) span = { oldest: lo, newest: hi, count: events.length + moduleTimes.length, days: Math.max(1, Math.round((hi - lo) / DAY)) };
+    // the log seems to begin when the accessory last started (the oldest entry is that start): older events are forgotten at a restart
+    var logStart = (span && health.restart.first != null && Math.abs(span.oldest - health.restart.first) < 120000) ? health.restart.first : null;
 
     return { now: now, events: events, commands: commands, obstructions: obstructions, days: days, hours: hours,
       peak: peak >= 0 ? { hour: peak, count: peakCount } : null, byWho: byWho, totals: totals, last: last, health: health, span: span, skipped: skipped,
-      hasModuleEvents: moduleTimes.length > 0 };
+      hasModuleEvents: moduleTimes.length > 0, echoes: echoes, lastMovement: lastMovement, block: block, logStart: logStart };
   }
 
   // the line on the accessory screen: the last command, when and by whom
@@ -206,6 +245,17 @@
     if (!a.span) {
       return '<div class="nx-card nx-act-empty"><b>Nothing in the log yet</b><span>The accessory has no events with a usable time. ' +
         'Give it a command and look again.</span></div>';
+    }
+
+    // ---- blocked? Only what the last Block or Release command says: the accessory itself has no state for it
+    var bl = opts.block !== undefined ? opts.block : a.block;
+    if (bl && bl.blocked) {
+      h.push('<div class="nx-card nx-act-block nx-blocked"><i class="nx-block-icon" aria-hidden="true"></i><div><b>Blocked' + (bl.uncertain ? '?' : '') + '</b><span>since ' +
+        esc(when(bl.t, now)) + ' \u00b7 ' + esc(label(bl.type)) + (bl.who ? ' \u00b7 ' + esc(bl.who) : '') + '</span><em>The last Block command, not a measurement: a block that was lifted at ' +
+        'the gate controller itself is not seen here.' + (bl.uncertain ? ' The accessory restarted after it, and whether a block survives that is not known.' : '') + '</em></div></div>');
+    } else if (bl) {
+      h.push('<div class="nx-card nx-act-block"><i class="nx-block-icon" aria-hidden="true"></i><div><b>Not blocked, as far as the log shows</b><span>last Release command ' +
+        esc(when(bl.t, now)) + ' \u00b7 ' + esc(label(bl.type)) + (bl.who ? ' \u00b7 ' + esc(bl.who) : '') + '</span></div></div>');
     }
 
     // ---- tiles
@@ -262,10 +312,10 @@
 
     // ---- the Wi-Fi module
     var hl = a.health;
-    function hrow(k, icon, title, bad) {         // bad: how a count above zero looks (warn or fail)
+    function hrow(k, icon, title, bad, none) {   // bad: how a count above zero looks (warn or fail); none: what to say at zero
       var c = hl[k];
       return '<li class="nx-fact ' + (c.count ? 'nx-s-' + bad : 'nx-s-ok') + '"><span class="nx-fi nx-i-' + icon + '"></span><div><b>' + esc(title) + '</b><span>' +
-        esc(c.count ? 'last ' + when(c.last, now) : 'none in the log') + '</span></div><em>' + c.count + '</em></li>';
+        esc(c.count ? 'last ' + when(c.last, now) : none || 'none in the log') + '</span></div><em>' + c.count + '</em></li>';
     }
     h.push('<h3 class="nx-act-h">Wi-Fi module</h3>');
     if (a.hasModuleEvents) {
@@ -273,7 +323,7 @@
         hrow('restart', 'restart', 'Restarts', 'warn') +
         hrow('wifi', 'wifioff', 'Wi-Fi lost', 'warn') +
         hrow('error', 'warn', 'Errors', 'fail') +
-        hrow('bus', 'gate', 'Gate controller not found', 'warn') + '</ul>');
+        hrow('bus', 'gate', 'Gate controller lost', 'warn', hl.bus.atStart ? 'only while the accessory was starting' : 'none in the log') + '</ul>');
     } else {
       h.push('<div class="nx-card nx-act-empty"><span>The log has no events of the module itself.</span></div>');
     }
@@ -298,6 +348,8 @@
     // ---- where this comes from
     h.push('<p class="nx-act-note">From the accessory’s own event log, as in the app’s Historian, with the accessory’s clock. ' +
       'It keeps a limited number of events: ' + plural(a.span.count, 'event') + ', from ' + esc(when(a.span.oldest, now)) + ' (about ' + plural(a.span.days, 'day') + ').' +
+      (a.logStart ? ' The log begins when the accessory started (' + esc(when(a.logStart, now)) + '): it seems to forget older events at a restart.' : '') +
+      (a.echoes ? ' ' + plural(a.echoes, 'movement') + ' that the gate controller reported right after a command ' + (a.echoes === 1 ? 'is' : 'are') + ' shown once, with the command.' : '') +
       (a.skipped ? ' ' + plural(a.skipped, 'entry', 'entries') + ' without a usable time left out.' : '') + '</p>');
     return h.join('');
   }
@@ -322,7 +374,7 @@
   function rawText(res, now) {
     function row(it) {
       var t = toMs(it && it.time, null);
-      return (t == null ? '(no time)' : ymdhms(t)) + ' | ' + String(it && it.type) + ' | ' + String(it && it.source) + ' | ' + String(it && it.id) + '/' + String(it && it.idx);
+      return (t == null ? '(no time)' : ymdhms(t)) + ' | ' + String(it && it.type) + ' | ' + String(it && it.source) + ' | ' + String(it && it.id) + '/' + (it && it.idx != null ? String(it.idx) : '-');
     }
     var dev = asList(res && res.deviceLogs), ifc = asList(res && res.interfaceLogs);
     return 'Accessory event log, read ' + new Date(now == null ? Date.now() : now).toISOString() + '\n' +
@@ -408,6 +460,147 @@
       });
     }
 
+    // ------------------------------------------------------------ blocked or not, and the state of the gate
+    var TRAVEL_MS = window.__nxActivityTravelMs != null ? window.__nxActivityTravelMs : 150000;        // a gate does not keep moving for longer than this
+    var AFTER_MS = window.__nxActivityAfterMs != null ? window.__nxActivityAfterMs : 3000;             // the log is read this long after a command
+    var MARGIN_MS = window.__nxActivityMarginMs != null ? window.__nxActivityMarginMs : 8000;          // ...and this long after the travel time, if the gate is still said to move
+    var BLOCK_KEY = 'nxBlock';
+    var TRANSIENT = { opening: 1, closing: 1 };
+    var timers = {};             // mac -> { after, travel }: readings that are planned
+    var declaredLogged = {};
+    var movedAt = {};            // mac -> when the last event or command of this phone was seen: a reading from before that cannot say anything about it
+
+    // The accessory has no state for "blocked". What is known is the last Block or Release command: the ones this phone gave (kept here, apart
+    // from the app's data) and the ones in the log (every phone, the schedule). The newer of the two counts.
+    var blockMem = null;
+    function readBlock() {
+      if (blockMem) return blockMem;
+      try { var o = JSON.parse(window.localStorage.getItem(BLOCK_KEY) || '{}'); blockMem = (o && typeof o === 'object' && !Array.isArray(o)) ? o : {}; } catch (e) { blockMem = {}; }
+      return blockMem;
+    }
+    function writeBlock(o) {
+      blockMem = o;
+      try { window.localStorage.setItem(BLOCK_KEY, JSON.stringify(o)); } catch (e) { log('block: not saved', String(e)); }
+    }
+    function blockInfo(device) {
+      var mac = device && device.mac;
+      if (!mac) return null;
+      var mine = readBlock()[mac], c = cache[mac], lg = c && c.a && c.a.block, best = null;
+      if (mine && typeof mine.at === 'number' && (!lg || mine.at >= lg.t)) best = { blocked: !!mine.blocked, t: mine.at, type: mine.code, who: mine.who || '', uncertain: false };
+      else if (lg) best = { blocked: lg.blocked, t: lg.t, type: lg.type, who: lg.who, uncertain: !!lg.uncertain };
+      var restarted = c && c.a && c.a.health.restart.last;
+      if (best && restarted != null && restarted > best.t) best.uncertain = true;      // the accessory restarted after it: not known whether the block survived
+      return best;
+    }
+    function sinceText(t) { var w = when(t, Date.now()); return w.indexOf('today ') === 0 ? w.slice(6) : w; }
+    // the pill on the accessory screen ('' when there is nothing to say)
+    $rootScope.nxBlock = function (device) {
+      var b = blockInfo(device);
+      return (b && b.blocked) ? 'Blocked' + (b.uncertain ? '?' : '') + ' · since ' + sinceText(b.t) : '';
+    };
+
+    // The state that the accessory reports can be out of date. A gate does not take minutes to open: a report of "opening" (or "closing") that
+    // began longer ago than that, with nothing in the accessory's log that stopped, blocked or reversed it since, is stale. The gate has finished:
+    // it is open (or closed). It was seen with a gate that was opened with "Open and Block": the app stayed on "Opening". The state is shown as
+    // settled, with a note, only while the report stays the same; an event of the accessory or a command from this phone clears it.
+    function rawValue(device) { var p = device && device.properties; return p && p[0] ? p[0].value : undefined; }
+    function transient(device) { var v = rawValue(device); return v != null && !!TRANSIENT[String(v)]; }
+    function settledOf(device) {
+      var mac = device && device.mac;
+      if (!mac || !transient(device)) return null;
+      var raw = String(rawValue(device)), c = cache[mac];
+      if (!c) return null;
+      if (c.settle && c.settle.raw === raw) return c.settle;
+      var now = Date.now(), m = c.a && c.a.lastMovement;
+      if (c.at < (movedAt[mac] || 0)) return null;                                   // the reading is older than the latest event or command: it knows nothing of that
+      if (now - c.at > 120000 || !m || now - m.t < TRAVEL_MS) return null;           // only on a recent reading, and when the movement is long over
+      var to = (raw === 'opening' && m.kind === 'open') ? 'open' : (raw === 'closing' && m.kind === 'close') ? 'closed' : null;
+      if (!to) return null;
+      c.settle = { raw: raw, to: to, since: m.t };
+      log('state: "' + raw + '" is out of date (the last movement in the log is ' + m.type + ', ' + when(m.t, now) + '); shown as ' + to);
+      return c.settle;
+    }
+    $rootScope.nxState = function (device) { var st = settledOf(device); return st ? st.to : rawValue(device); };
+    $rootScope.nxSettled = function (device) {
+      var st = settledOf(device);
+      if (!st) return '';
+      var key = 'DEVICE_STATE_' + st.raw, name = '';
+      try { name = inj.has('$translate') ? inj.get('$translate').instant(key) : ''; } catch (e) {}
+      return 'reported: ' + ((name && name !== key) ? name : st.raw);
+    };
+    var ICON_TYPES = { sectional: 'i_gat006', 'up-and-over': 'i_gat002', swing: 'i_gat003', sliding: 'i_gat005', barrier: 'i_gat001' };
+    // the class of the icon in the app's own form ("icon-i_gat005 open status-0"), only when the state is settled: otherwise the app's own function decides
+    $rootScope.nxIcon = function (device) {
+      var st = settledOf(device);
+      if (!st) return '';
+      var a0 = device.automations && device.automations[0], p = device.properties;
+      return 'icon-' + (ICON_TYPES[a0 && a0.type] || 'i_undefined') + ' ' + st.to + ' status-' + (p && p[1] ? p[1].value : 'undefined');
+    };
+
+    function planReading(device, ms, key, onlyIf) {
+      var mac = device && device.mac;
+      if (!mac) return;
+      var t = timers[mac] = timers[mac] || {};
+      clearTimeout(t[key]);
+      t[key] = setTimeout(function () { try { if (!onlyIf || onlyIf()) refresh(device); } catch (e) { log('activity', String(e)); } }, ms);
+    }
+    // a command that this phone gave: what was settled no longer holds, Block and Release are kept, the log is read a little later (it has the
+    // command and the movement within a second) and, if the gate is still said to be moving after the travel time, once more
+    function onCommand(device, code, kind) {
+      try {
+        var mac = device && device.mac;
+        if (!mac) return;
+        if (cache[mac]) cache[mac].settle = null;
+        movedAt[mac] = Date.now();
+        if (BLOCKING[code] || RELEASING[code]) {
+          var all = readBlock();
+          all[mac] = { blocked: !!BLOCKING[code], at: Date.now(), code: code, who: device.pairingUsername || '' };
+          writeBlock(all);
+          log('block: ' + (BLOCKING[code] ? 'blocked' : 'released') + ' (' + code + ')');
+        }
+        digest();
+        planReading(device, AFTER_MS, 'after');
+        planReading(device, TRAVEL_MS + MARGIN_MS, 'travel', function () { return transient(device); });
+      } catch (e) { log('activity', String(e)); }
+    }
+    // a report of the accessory about the state, as an event (the app is connected) or as the answer to a status request
+    function stateSeen(device, state, fromEvent) {
+      try {
+        if (!device) return;
+        if (fromEvent) { movedAt[device.mac] = Date.now(); if (cache[device.mac]) cache[device.mac].settle = null; }
+        if (TRANSIENT[state]) planReading(device, TRAVEL_MS + MARGIN_MS, 'travel', function () { return transient(device); });
+        else if (timers[device.mac]) clearTimeout(timers[device.mac].travel);
+      } catch (e) {}
+    }
+    function onEvent(ev) {
+      try {
+        var device = ctx.findDevice ? ctx.findDevice(ev && ev.mac) : null;
+        log('state: event ' + (ev && ev.mac) + ' ' + (ev && ev.state) + ', obstruct ' + (ev && ev.obstruct));
+        stateSeen(device, ev && ev.state, true);
+        digest();
+      } catch (e) { log('activity', String(e)); }
+    }
+    // what the accessory says when the app asks for its status, in the LOG (the properties it declares only once): this is what is needed to see
+    // whether it reports more than the state and the obstruction, and what it says when the app shows something odd
+    function onStatus(device, res) {
+      try {
+        if (!device) return;
+        var props = asList(res && res.devices && res.devices[0] && res.devices[0].properties);
+        log('state: status of ' + device.mac + ' says [' + props.map(function (p) { return (p && p.name ? p.name + '=' : '') + (p ? p.value : '?'); }).join(', ') + ']');
+        if (!declaredLogged[device.mac] && device.automations && device.automations[0]) {
+          declaredLogged[device.mac] = true;
+          var a0 = device.automations[0];
+          var names = function (list) { return asList(list).map(function (p) { return p && p.name ? p.name + (p.permissions ? ' ' + p.permissions : '') : '?'; }).join(', '); };
+          log('state: the accessory declares services [' + names(a0.services) + '] properties [' + names(a0.properties) + '], type ' + a0.type + ', product ' + a0.product);
+        }
+        var st = props[0] && props[0].value;
+        stateSeen(device, st, false);
+        // an "opening" or "closing" at the moment the screen is shown: the log decides whether that is still true (unless it was read a moment ago)
+        var c = cache[device.mac];
+        if (TRANSIENT[st] && (!c || Date.now() - c.at > 20000)) refresh(device);
+      } catch (e) { log('activity', String(e)); }
+    }
+
     // ------------------------------------------------------------ the line on the accessory screen
     $rootScope.nxActivity = function (device) { openSheet(device); };
     $rootScope.nxLast = function (device) { var c = device && cache[device.mac]; return (c && c.line) || ''; };
@@ -417,10 +610,11 @@
         if (!/device-detail$/.test((toState && toState.name) || '') || !toParams) return;
         var device = ctx.liveDevice(toParams.homeId, toParams.mac);
         if (!device) return;
+        if (cache[device.mac]) cache[device.mac].settle = null;                          // a new look: decide again, from a fresh reading
         setTimeout(function () {
           try {
             var c = cache[device.mac];
-            if (c && Date.now() - c.at < MAX_AGE) return;
+            if (c && Date.now() - c.at < MAX_AGE && !(transient(device) && Date.now() - c.at > 20000)) return;
             if (device.reachable === false) return;
             if ($rootScope.nxCheck && $rootScope.nxCheck(device) === 'checking') return;
             if (inj.has('$state') && inj.get('$state').params && inj.get('$state').params.mac !== device.mac) return;     // gone from this screen
@@ -511,7 +705,7 @@
       if (c) {
         var a = c.a;
         sub.textContent = name + (a.span ? (name ? ' · ' : '') + plural(a.span.count, 'event') + ', ' + plural(a.span.days, 'day') : '');
-        body.innerHTML = renderHtml(a, label, { all: showAll });
+        body.innerHTML = renderHtml(a, label, { all: showAll, block: blockInfo(current) });
       } else if (error) {
         sub.textContent = name;
         body.innerHTML = '<div class="nx-card nx-act-error"><b>Could not read the history</b><span>' + esc(errorText(error) || 'The accessory did not answer.') +
@@ -571,6 +765,7 @@
       }, 420);
     }
 
-    return { open: openSheet, close: closeSheet, refresh: refresh, cache: cache, isOpen: function () { return isOpen; } };
+    return { open: openSheet, close: closeSheet, refresh: refresh, cache: cache, isOpen: function () { return isOpen; },
+      onCommand: onCommand, onStatus: onStatus, onEvent: onEvent, blockInfo: blockInfo };
   };
 })();

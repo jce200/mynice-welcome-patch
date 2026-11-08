@@ -35,20 +35,25 @@
       devices: [{ properties: [{ value: CFG.state || 'closed' }, { value: CFG.obstruct || '0' }] }] };
   }
   var verifyCount = 0;
-  // nx14: the event log of the accessory (made up). CFG.activity: 'none' (an empty log), 'error' (reading fails), 'slow' (answers after 4 s);
-  // CFG.logs: a log of your own ({ interfaceLogs, deviceLogs }). The default is the last 12 days of a household: two people (Anna and Ben)
-  // who open and close the gate on workdays, a schedule that closes it at 22:00, a few commands from a remote control (source busT4),
-  // two obstructions, a restart, three Wi-Fi drops and a moment in which the module did not find the gate controller.
+  // nx14: the event log of the accessory (made up). CFG.activity: 'none' (an empty log), 'error' (reading fails), 'slow' (answers after 4 s),
+  // 'blocked' (the last thing in the log is an "Open and Block" of 20 minutes ago); CFG.logs: a log of your own ({ interfaceLogs, deviceLogs }).
+  // The default is the last 12 days of a household: two people (Anna and Ben) who open and close the gate on workdays, a schedule that closes
+  // it at 22:00, a few commands from a remote control (source busT4), two obstructions, a restart, three Wi-Fi drops and a moment in which the
+  // module did not find the gate controller. As on a real accessory the gate controller (busT4) repeats every command of a phone as a
+  // movement a second later, and a module event is written as "T4 device not found".
   var USERS = [{ id: 1, controllerID: 'CTRL-ANNA-0001', username: 'Anna', desc: 'Pixel', perm: 'admin', notify: true },
                { id: 2, controllerID: 'CTRL-BEN-00002', username: 'Ben', desc: 'Galaxy', perm: 'user', notify: false }];
-  function sampleLogs() {
+  function sampleLogs(blocked) {
     var seed = 11;
     function rnd() { seed = (seed * 16807) % 2147483647; return seed / 2147483647; }
     var now = Date.now(), midnight = new Date(now); midnight.setHours(0, 0, 0, 0);
     var dev = [], ifc = [], n = 0;
     function at(day, h, m, sec) { return midnight.getTime() - day * 86400000 + ((h * 60 + m) * 60 + (sec || 0)) * 1000; }
     function add(list, t, source, type, device) { if (t <= now) list.push({ deviceId: device ? '1' : '', source: source, type: type, time: t, idx: String(++n), id: String(n) }); }
-    function pair(day, h, m, source, gap) { add(dev, at(day, h, m, 5), source, 'open', true); add(dev, at(day, h, m + (gap || 2), 20), source, 'close', true); }
+    function pair(day, h, m, source, gap) {
+      add(dev, at(day, h, m, 5), source, 'open', true); add(dev, at(day, h, m + (gap || 2), 20), source, 'close', true);
+      if (source !== 'busT4') { add(dev, at(day, h, m, 6), 'busT4', 'open', true); add(dev, at(day, h, m + (gap || 2), 21), 'busT4', 'close', true); }       // the gate controller's own report
+    }
     for (var day = 11; day >= 0; day--) {
       var dow = new Date(at(day, 12, 0)).getDay(), work = dow >= 1 && dow <= 5;
       if (work) {
@@ -65,15 +70,20 @@
     }
     add(dev, at(9, 7, 31, 40), 'busT4', 'obstruction', true);
     add(dev, at(3, 17, 52, 12), 'busT4', 'obstruction', true);
-    add(ifc, at(7, 2, 0, 0), '', 'Power ON'); add(ifc, at(7, 2, 0, 9), '', 'boot');
+    add(ifc, at(7, 2, 0, 0), 'boot', 'Power ON'); add(ifc, at(7, 2, 0, 30), 'boot', 'T4 device not found'); add(ifc, at(7, 2, 0, 31), 'boot', 'T4 device found');
     add(ifc, at(6, 3, 14), '', 'wifi loss'); add(ifc, at(6, 3, 15), '', 'connect'); add(ifc, at(2, 4, 40), '', 'wifi loss'); add(ifc, at(2, 4, 41), '', 'connect');
-    add(ifc, at(1, 13, 5), '', 'wifi loss'); add(ifc, at(4, 5, 0), '', 'device not found'); add(ifc, at(4, 5, 1), '', 'device found');
+    add(ifc, at(1, 13, 5), '', 'wifi loss'); add(ifc, at(4, 5, 0), '', 'T4 device not found'); add(ifc, at(4, 5, 1), '', 'T4 device found');
     for (var k = 0; k < 8; k++) add(ifc, at(k, 6, 30 + k), '', 'connect');
+    if (blocked) {                                              // the newest thing in the log: a phone blocks the gate (and the controller reports the opening)
+      var tb = now - 20 * 60000;
+      dev = dev.filter(function (e) { return e.time < tb - 60000; });
+      add(dev, tb, 'CTRL-ANNA-0001', 'MDBk', true); add(dev, tb + 1000, 'busT4', 'open', true);
+    }
     return { interfaceLogs: ifc, deviceLogs: dev };
   }
   function activityAnswer() {
     if (CFG.activity === 'error') return { fail: { code: 3 } };
-    var data = CFG.logs || (CFG.activity === 'none' ? { interfaceLogs: [], deviceLogs: [] } : sampleLogs());
+    var data = CFG.logs || (CFG.activity === 'none' ? { interfaceLogs: [], deviceLogs: [] } : sampleLogs(CFG.activity === 'blocked'));
     return CFG.activity === 'slow' ? { delay: 4000, then: data } : data;
   }
   var NATIVE = {
@@ -117,14 +127,14 @@
     'NetworkStatus.getConnectionInfo': function () { return 'wifi'; },
     'Globalization.getPreferredLanguage': function () { return { value: CFG.lang || 'en-US' }; },
     'Globalization.getLocaleName': function () { return { value: CFG.lang || 'en-US' }; },
-    'Nx.version': function () { return 'nx-14'; },
+    'Nx.version': function () { return 'nx-15'; },
     'Nx.logStream': function () { return { keep: true, none: true }; },
     'Nx.setHints': function () { return {}; },
     'Nx.release': function () { return {}; },
     'Nx.reconnect': function () { return {}; },
     'Nx.checkSucceeded': function () { return {}; },
     'Nx.checkFailed': function () { return {}; },
-    'Nx.netState': function () { return CFG.net || { version: 'nx-14', sdk: 37, wifi: true, ssid: 'HomeWifi', ip: '192.168.1.172', validated: true, cellular: false, vpn: false, module: false, defaultType: 'wifi', route: 'local', routeAgeSeconds: 4 }; },
+    'Nx.netState': function () { return CFG.net || { version: 'nx-15', sdk: 37, wifi: true, ssid: 'HomeWifi', ip: '192.168.1.172', validated: true, cellular: false, vpn: false, module: false, defaultType: 'wifi', route: 'local', routeAgeSeconds: 4 }; },
     'Nx.probe': function () { return CFG.probe || { ok: true, tcpMs: 14, tlsMs: 380, bound: true, cloud: { ok: true, dns: '63.182.6.157', dnsMs: 12, tcpMs: 20 } }; }
   };
   function answer(callbackId, r) {

@@ -55,6 +55,15 @@ Expressive look (light and dark).
 
   ![The line on the accessory screen and the activity sheet: tiles, commands per day, who, busy hours, the Wi-Fi module and the history, light and dark](docs/screenshots/activity.png)
 
+- **Blocked, and a state that is out of date.** The accessory has no state for "blocked", so no Nice app shows it. The last Block or Release
+  command (from this phone, and from every phone and schedule in the accessory's log) now shows as a pill "Blocked · since 09:37" under the state,
+  with a question mark when the accessory has restarted since (whether a block survives that is not known). It is the last command and not a
+  measurement: do not rely on it as security. And when the accessory still reports "opening" or "closing" long after the movement
+  (a gate that was opened with *Open and Block* kept showing "Opening"), and the log has nothing that stopped the gate since, the screen shows open
+  or closed, with the note "reported: Opening". The LOG has what the accessory says (status requests and events), to find out why a state is wrong.
+
+  ![A gate that was blocked: the state shown as Open with the note reported: Opening, the pill Blocked, and the card in the activity sheet, light and dark](docs/screenshots/blocked.png)
+
 - **A new look.** Material 3 Expressive in a calm petrol blue: one color family for the surfaces and the buttons, a gate icon that
   changes shape with its state. It has a light and a dark palette; it is a CSS layer, and no function of the app changed.
 - **Light, dark or automatic.** Settings > Appearance > *Theme*. *Auto* uses what the WebView reports as the phone's scheme, which is
@@ -89,7 +98,7 @@ This way you don't have to trust a binary from someone else, and the app is sign
 ```
 ./get-tools.sh                               # once: downloads apktool and friends into ./tools, checked on SHA-256
 ./build.sh /path/to/MyNiceWelcome_2.2.0.apk
-# result: out/MyNiceWelcome_2.2.0_nx14.apk
+# result: out/MyNiceWelcome_2.2.0_nx15.apk
 ```
 
 The first build creates **your own signing key** in `keys/` (with a random password in `keys/password.txt`). Keep that folder

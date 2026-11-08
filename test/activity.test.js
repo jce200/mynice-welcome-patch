@@ -37,9 +37,11 @@ const label = (t) => ({ open: 'Open', close: 'Close', obstruction: 'Obstruction'
 
   ok('healthKindOf: restarts, Wi-Fi, errors, the gate controller', A.healthKindOf('Power ON') === 'restart' && A.healthKindOf('boot') === 'restart' && A.healthKindOf('wifi loss') === 'wifi' &&
     A.healthKindOf('error') === 'error' && A.healthKindOf('device not found') === 'bus');
-  ok('healthKindOf: the rest is no health event', A.healthKindOf('connect') === null && A.healthKindOf('pair') === null && A.healthKindOf('device found') === null && A.healthKindOf(undefined) === null);
+  ok('healthKindOf: the module writes "T4 device not found" and "T4 device found"', A.healthKindOf('T4 device not found') === 'bus' && A.healthKindOf('device not found') === 'bus' &&
+    A.healthKindOf('T4 device found') === 'busfound' && A.healthKindOf('device found') === 'busfound');
+  ok('healthKindOf: the rest is no health event', A.healthKindOf('connect') === null && A.healthKindOf('pair') === null && A.healthKindOf(undefined) === null);
 
-  ok('whoOf: the app\'s own rules for busT4, scheduler and input', A.whoOf('busT4', USERS) === 'Automation' && A.whoOf('scheduler', USERS) === 'Schedule' && A.whoOf('input', USERS) === 'Input');
+  ok('whoOf: the app\'s own rules for busT4, scheduler and input', A.whoOf('busT4', USERS) === 'Gate controller' && A.whoOf('scheduler', USERS) === 'Schedule' && A.whoOf('input', USERS) === 'Input');
   ok('whoOf: a user by controller ID', A.whoOf('CTRL-ANNA-0001', USERS) === 'Anna' && A.whoOf('CTRL-BEN-00002', USERS) === 'Ben');
   ok('whoOf: a shortened ID (with a dash) is the controller ID without its last five characters', A.whoOf('CTRL-ANNA', USERS) === 'Anna' && A.whoOf('CTRL-BEN-', USERS) === 'Ben');
   ok('whoOf: someone unknown, and no users at all', A.whoOf('ZZZZ1234abcd', USERS) === 'Other (ZZZZ1234)' && A.whoOf('ZZZZ1234abcd') === 'Other (ZZZZ1234)' && A.whoOf('', USERS) === 'Unknown' && A.whoOf(null, USERS) === 'Unknown');
@@ -87,7 +89,7 @@ const LOG = {
   ok('analyze: commands and obstructions apart', a.commands.length === 6 && a.obstructions.length === 1 && a.obstructions[0].t === D(4, 7, 31));
   ok('analyze: totals', a.totals.h24 === 4 && a.totals.d7 === 6 && a.totals.d30 === 6 && a.totals.all === 6, JSON.stringify(a.totals));
   ok('analyze: the last command, the last opening and the last closing', a.last.command.t === D(7, 14, 12) && a.last.open.t === D(7, 14, 10) && a.last.close.t === D(7, 14, 12));
-  ok('analyze: who, most first, ties alphabetical', JSON.stringify(a.byWho) === JSON.stringify([{ who: 'Anna', count: 2 }, { who: 'Ben', count: 2 }, { who: 'Automation', count: 1 }, { who: 'Schedule', count: 1 }]), JSON.stringify(a.byWho));
+  ok('analyze: who, most first, ties alphabetical', JSON.stringify(a.byWho) === JSON.stringify([{ who: 'Anna', count: 2 }, { who: 'Ben', count: 2 }, { who: 'Gate controller', count: 1 }, { who: 'Schedule', count: 1 }]), JSON.stringify(a.byWho));
   ok('analyze: the busiest hour', a.peak && a.peak.hour === 14 && a.peak.count === 2 && a.hours.length === 24 && a.hours.reduce((x, y) => x + y, 0) === 6, JSON.stringify(a.peak));
   ok('analyze: fourteen days, today last, consecutive', a.days.length === 14 && a.days.every((d, i) => i === 0 || d.n === a.days[i - 1].n + 1));
   const today = a.days[13], yesterday = a.days[12], d5 = a.days[11];     // 5 November
@@ -109,7 +111,76 @@ const LOG = {
 
   ok('lastLine', A.lastLine(a, label) === 'Close · today 14:12 · Anna' && A.lastLine(a) === 'close · today 14:12 · Anna');
   ok('lastLine: nothing to say without commands', A.lastLine(none, label) === '' && A.lastLine(undefined, label) === '');
-  ok('lastLine: another day', A.lastLine(A.analyze({ deviceLogs: [{ source: 'busT4', type: 'MDBk', time: D(5, 17, 40) }] }, [], NOW), label) === 'Open and Block · ' + WD[new Date(D(5, 17, 40)).getDay()] + ' 17:40 · Automation');
+  ok('lastLine: another day', A.lastLine(A.analyze({ deviceLogs: [{ source: 'busT4', type: 'MDBk', time: D(5, 17, 40) }] }, [], NOW), label) === 'Open and Block · ' + WD[new Date(D(5, 17, 40)).getDay()] + ' 17:40 · Gate controller');
+}
+
+// ------------------------------------------------------------------------------------------------ a log as a real accessory sends it
+// The structure of a log that was copied from a real accessory (made-up names, IDs and times): the module events are written "T4 device not found" and
+// have the source "boot"; the log begins with the start of the accessory; every command of a phone is followed within a second by the same
+// movement from the gate controller (busT4); the field idx is missing.
+const NOW2 = D(8, 11, 7, 50);
+const REAL = {
+  interfaceLogs: [
+    { source: 'boot', type: 'Power ON', time: D(8, 4, 47, 16), id: '1' },
+    { source: 'boot', type: 'T4 device not found', time: D(8, 4, 47, 48), id: '2' },
+    { source: 'boot', type: 'T4 device found', time: D(8, 4, 47, 48), id: '3' }
+  ],
+  deviceLogs: [
+    { source: 'busT4', type: 'stop', time: D(8, 4, 47, 48), id: '1' },
+    { source: 'CTRL-ANNA-0001', type: 'MDFh', time: D(8, 9, 15, 34), id: '2' },
+    { source: 'busT4', type: 'close', time: D(8, 9, 15, 35), id: '3' },
+    { source: 'CTRL-ANNA-0001', type: 'MDBk', time: D(8, 10, 48, 16), id: '4' },
+    { source: 'busT4', type: 'open', time: D(8, 10, 48, 17), id: '5' }
+  ]
+};
+{
+  const a = A.analyze(REAL, USERS, NOW2);
+  ok('real log: the gate controller\'s repeat of a command is folded into it (3 events, 2 folded)', a.events.length === 3 && a.echoes === 2 && a.commands.length === 3,
+    a.events.map((e) => e.type + '/' + e.who).join(' ') + ' echoes ' + a.echoes);
+  ok('real log: the line says the last command, by the phone and not by "automation"', A.lastLine(a, label) === 'Open and Block · today 10:48 · Anna', A.lastLine(a, label));
+  ok('real log: who, without double counting', JSON.stringify(a.byWho) === JSON.stringify([{ who: 'Anna', count: 2 }, { who: 'Gate controller', count: 1 }]), JSON.stringify(a.byWho));
+  ok('real log: last opened and closed are by the phone', a.last.open.who === 'Anna' && a.last.open.t === D(8, 10, 48, 16) && a.last.close.who === 'Anna' && a.last.close.t === D(8, 9, 15, 34));
+  ok('real log: the gate controller that is not found while the accessory starts is no fault', a.health.bus.count === 0 && a.health.bus.atStart === 1 && a.health.restart.count === 1, JSON.stringify(a.health));
+  ok('real log: the log begins at the start of the accessory', a.logStart === D(8, 4, 47, 16) && a.span.oldest === D(8, 4, 47, 16), JSON.stringify([a.logStart, a.span]));
+  ok('real log: the last Block command (10:48) is newer than the last Release (09:15): blocked', a.block && a.block.blocked === true && a.block.type === 'MDBk' && a.block.who === 'Anna' && a.block.t === D(8, 10, 48, 16) && !a.block.uncertain, JSON.stringify(a.block));
+  ok('real log: the last movement is the opening (the repeat is folded)', a.lastMovement.kind === 'open' && a.lastMovement.type === 'MDBk' && a.lastMovement.t === D(8, 10, 48, 16));
+  const html = A.renderHtml(a, label);
+  ok('real log: the sheet says blocked, with the command and who', /nx-act-block nx-blocked/.test(html) && /<b>Blocked<\/b>/.test(html) && /Open and Block · Anna/.test(html) && /not a measurement/.test(html), html.slice(0, 400));
+  ok('real log: the module row says that it only happened while starting, and the note says where the log begins and what was folded',
+    /only while the accessory was starting/.test(html) && /The log begins when the accessory started \(today 04:47\)/.test(html) && /2 movements that the gate controller reported right after a command are shown once/.test(html), html.slice(-700));
+  ok('real log: the history lists three entries and none of the repeats', (html.match(/class="nx-tl-row/g) || []).length === 3);
+  const raw = A.rawText(REAL, NOW2);
+  ok('real log: the raw text has "-" where idx is missing, never "undefined"', raw.indexOf('undefined') === -1 && /\| 4\/-/.test(raw));
+
+  // a restart after the Block command: whether the block survived is not known
+  const later = JSON.parse(JSON.stringify(REAL));
+  later.interfaceLogs.push({ source: 'boot', type: 'Power ON', time: D(8, 11, 0, 0), id: '9' });
+  const al = A.analyze(later, USERS, NOW2);
+  ok('a restart after the Block command makes it uncertain', al.block.blocked === true && al.block.uncertain === true && /<b>Blocked\?<\/b>/.test(A.renderHtml(al, label)) && /whether a block survives that is not known/.test(A.renderHtml(al, label)));
+  // released afterwards
+  const rel = JSON.parse(JSON.stringify(REAL));
+  rel.deviceLogs.push({ source: 'CTRL-BEN-00002', type: 'MDEw', time: D(8, 10, 55, 0), id: '6' });
+  const ar = A.analyze(rel, USERS, NOW2), rh = A.renderHtml(ar, label);
+  ok('a Release after the Block: not blocked, as far as the log shows', ar.block.blocked === false && ar.block.who === 'Ben' && /Not blocked, as far as the log shows/.test(rh) && !/nx-blocked/.test(rh));
+  ok('no Block or Release command at all: nothing is said about it', A.analyze({ deviceLogs: [{ source: 'busT4', type: 'open', time: D(8, 9, 0, 0) }] }, [], NOW2).block === null && !/nx-act-block/.test(A.renderHtml(A.analyze({ deviceLogs: [{ source: 'busT4', type: 'open', time: D(8, 9, 0, 0) }] }, [], NOW2), label)));
+
+  // folding the repeats: the rules
+  const f = (events) => A.analyze({ deviceLogs: events }, USERS, NOW2);
+  const ph = (type, sec) => ({ source: 'CTRL-ANNA-0001', type, time: D(8, 9, 0, sec) }), bus = (type, sec) => ({ source: 'busT4', type, time: D(8, 9, 0, sec) });
+  ok('folding: a repeat of the same kind within five seconds is folded', f([ph('open', 0), bus('open', 4)]).events.length === 1);
+  ok('folding: later than five seconds it is a movement of its own (a remote control)', f([ph('open', 0), bus('open', 6)]).events.length === 2);
+  ok('folding: another kind is not a repeat', f([ph('close', 0), bus('open', 1)]).events.length === 2);
+  ok('folding: a command takes only one repeat', f([ph('open', 0), bus('open', 1), bus('open', 2)]).events.length === 2);
+  ok('folding: two commands, two repeats', f([ph('open', 0), ph('open', 2), bus('open', 3), bus('open', 4)]).events.length === 2);
+  ok('folding: a repeat without a command stays (the controller telling its state, a remote control)', f([bus('stop', 0)]).events.length === 1 && f([bus('stop', 0)]).events[0].who === 'Gate controller');
+  ok('folding: a T4 command and its repeat (Release and Close, then close)', f([ph('MDFh', 0), bus('close', 1)]).events.length === 1);
+  ok('folding: the repeat before the command is no repeat', f([bus('open', 0), ph('open', 1)]).events.length === 2);
+  ok('folding: the schedule and inputs are folded too', f([{ source: 'scheduler', type: 'close', time: D(8, 22, 0, 0) }, { source: 'busT4', type: 'close', time: D(8, 22, 0, 1) }]).events.length === 1);
+
+  // the gate controller lost while it runs is a fault; the one that is lost while it starts is not
+  const lost = A.analyze({ interfaceLogs: [{ type: 'Power ON', time: D(8, 3, 0, 0) }, { type: 'T4 device not found', time: D(8, 3, 0, 30) }, { type: 'T4 device found', time: D(8, 3, 0, 31) },
+    { type: 'T4 device not found', time: D(8, 6, 0, 0) }, { type: 'T4 device found', time: D(8, 6, 1, 0) }] }, [], NOW2);
+  ok('the gate controller lost while running counts, the one at start-up does not', lost.health.bus.count === 1 && lost.health.bus.atStart === 1 && lost.health.bus.last === D(8, 6, 0, 0), JSON.stringify(lost.health.bus));
 }
 
 // ------------------------------------------------------------------------------------------------ the HTML of the sheet
@@ -120,7 +191,7 @@ const LOG = {
   ok('html: obstructions show as a warning when there are some', /nx-t-obst nx-t-warn/.test(html) && !/nx-t-warn/.test(A.renderHtml(A.analyze({ deviceLogs: [{ source: 'busT4', type: 'open', time: D(7, 7, 0) }] }, [], NOW), label)));
   ok('html: fourteen bars, today marked', (html.match(/class="nx-col/g) || []).length === 14 && /nx-col nx-today/.test(html) && /<small class="nx-today">/.test(html));
   ok('html: who and the busy hours', html.indexOf('>Who<') > -1 && html.indexOf('Anna') > -1 && html.indexOf('>Busy hours<') > -1 && html.indexOf('Busiest around 14:00') > -1 && (html.match(/<i class="(nx-peak)?"/g) || []).length === 24);
-  ok('html: the Wi-Fi module with its counts', html.indexOf('Wi-Fi module') > -1 && /Restarts<\/b><span>last/.test(html) && /<em>2<\/em>/.test(html) && html.indexOf('Gate controller not found') > -1);
+  ok('html: the Wi-Fi module with its counts', html.indexOf('Wi-Fi module') > -1 && /Restarts<\/b><span>last/.test(html) && /<em>2<\/em>/.test(html) && html.indexOf('Gate controller lost') > -1);
   ok('html: history with day headers, newest first', html.indexOf('>Today<') > -1 && html.indexOf('>Yesterday<') > -1 && html.indexOf('Open and Block') > -1 && html.indexOf('nx-k-obstruction') > -1);
   ok('html: where the data comes from', /From the accessory/.test(html) && /1 entry without a usable time/.test(html), html.slice(-300));
   ok('html: no "show all" button when everything is shown', html.indexOf('nx-act-all') === -1);
@@ -165,11 +236,12 @@ const LOG = {
   try { ({ JSDOM } = require('jsdom')); } catch (e) { console.log('   skipped: jsdom is missing (the sheet is not tested)'); finish(); return; }
 
   // scen: { logs (the answer), logsErr, failFrom, hang, pairings (activeUsers), pairingsErr, names ($translate), state ($state.params), nxCheck,
-  //         reachable, prefetchMs, maxAge, timeoutMs }
+  //         reachable, properties (the state of the gate), storage (what localStorage has at the start), prefetchMs, maxAge, timeoutMs, travelMs, afterMs, marginMs }
   async function environment(scen) {
     scen = scen || {};
     const dom = new JSDOM('<!doctype html><html><body></body></html>', { url: 'http://localhost/', runScripts: 'outside-only', pretendToBeVisual: true });
     const w = dom.window;
+    for (const k of Object.keys(scen.storage || {})) w.localStorage.setItem(k, scen.storage[k]);
     w.Date.now = () => NOW;                                   // the whole sheet agrees on "now"
     w.__nxActivityPrefetchMs = scen.prefetchMs != null ? scen.prefetchMs : 20;
     w.__nxActivityTimeoutMs = scen.timeoutMs != null ? scen.timeoutMs : 400;
@@ -189,9 +261,12 @@ const LOG = {
       },
       pairings() { calls.pairings++; return scen.pairingsErr !== undefined ? Promise.reject(scen.pairingsErr) : Promise.resolve({ activeUsers: scen.pairings || USERS, waitingUsers: [] }); }
     };
-    const dev = { mac: '00:0B:6C:AA:BB:CC', homeId: 1, description: 'AABBCC', name: 'NiceIT4WIFIAABBCC', reachable: scen.reachable !== false };
+    const dev = { mac: '00:0B:6C:AA:BB:CC', homeId: 1, description: 'AABBCC', name: 'NiceIT4WIFIAABBCC', reachable: scen.reachable !== false, pairingUsername: 'Anna',
+      properties: scen.properties || [{ value: 'closed' }, { value: '0' }], automations: [{ id: '1', type: 'sliding', product: 'ROBUS', services: [{ name: 'T4Action', permissions: 'w' }, { name: 'DoorAction', permissions: 'w' }],
+        properties: [{ name: 'DoorStatus', permissions: 'r' }, { name: 'Obstruct', permissions: 'r' }] }] };
+    for (const k of ['travelMs', 'afterMs', 'marginMs']) if (scen[k] != null) w['__nxActivity' + k.charAt(0).toUpperCase() + k.slice(1)] = scen[k];
     w.eval(SRC);
-    const act = w.__nxActivity({ inj, $rootScope, NHK, log: (...a) => logs.push(a.join(' ')), toast: (m) => toasts.push(m), liveDevice: () => dev, copy: (t) => copied.push(t) });
+    const act = w.__nxActivity({ inj, $rootScope, NHK, log: (...a) => logs.push(a.join(' ')), toast: (m) => toasts.push(m), liveDevice: () => dev, findDevice: (mac) => (mac === dev.mac ? dev : null), copy: (t) => copied.push(t) });
     return { w, dev, act, handlers, logs, toasts, copied, calls, digests, $rootScope, document: w.document,
       navigate(name, params) { (handlers['$stateChangeSuccess'] || []).forEach((f) => f({}, { name }, params || { homeId: 1, mac: dev.mac })); },
       sheet() { return w.document.getElementById('nx-activity'); },
@@ -246,6 +321,7 @@ const LOG = {
     ok('the sheet shows the result', /Last opened/.test(env.body().textContent) && /Anna/.test(env.body().textContent) && !env.sheet().classList.contains('nx-busy'));
     ok('...with the name and size of the log under the title', /^AABBCC · 15 events, 7 days$/.test(env.document.getElementById('nx-act-sub').textContent), env.document.getElementById('nx-act-sub').textContent);
     ok('...and copying is possible now', env.sheet().querySelector('.nx-more').style.display === '');
+    for (let i = 0; i < 40 && !env.sheet().classList.contains('nx-open'); i++) await sleep(25);       // two animation frames: how long that takes depends on the machine
     ok('...and the sheet is open (after its animation frames)', env.act.isOpen() && env.sheet().classList.contains('nx-open') && env.document.querySelector('.nx-scrim').classList.contains('nx-open'));
     const bars = env.body().querySelectorAll('.nx-col').length, tiles = env.body().querySelectorAll('.nx-tile').length;
     ok('...with 14 bars and 4 tiles', bars === 14 && tiles === 4, bars + ' ' + tiles);
@@ -332,6 +408,177 @@ const LOG = {
     const env = await environment({ logs: { deviceLogs: [{ source: 'X-1', type: 'open', time: D(7, 9, 0) }] }, pairings: [{ controllerID: 'X-1', username: '<img src=x onerror="window.__pwned=1">' }] });
     env.act.open(env.dev); await sleep(60);
     ok('a name with markup stays text in the sheet', env.body().querySelectorAll('img').length === 0 && env.w.__pwned === undefined && /<img src=x/.test(env.body().textContent));
+  }
+
+  // ---------------------------------------------------------------- blocked or not
+  {
+    const env = await environment();
+    env.w.Date.now = () => D(7, 9, 37, 16);
+    env.act.onCommand(env.dev, 'MDBk', 'executeSecondaryCommand');
+    env.w.Date.now = () => D(7, 9, 50);
+    ok('block: a Block command of this phone shows as blocked, since when', env.$rootScope.nxBlock(env.dev) === 'Blocked · since 09:37', env.$rootScope.nxBlock(env.dev));
+    const stored = JSON.parse(env.w.localStorage.getItem('nxBlock') || '{}')[env.dev.mac] || {};
+    ok('block: ...kept in the storage, apart from the app\'s own data', stored.blocked === true && stored.code === 'MDBk' && stored.who === 'Anna' && stored.at === D(7, 9, 37, 16), JSON.stringify(stored));
+    ok('block: ...and in the LOG', env.logs.indexOf('block: blocked (MDBk)') > -1, env.logs.join(' | '));
+    env.act.onCommand(env.dev, 'open', 'executePrimaryCommand');
+    ok('block: another command does not change it', env.$rootScope.nxBlock(env.dev) === 'Blocked · since 09:37');
+    env.act.onCommand(env.dev, 'MDFh', 'executeSecondaryCommand');
+    ok('block: a Release command ends it', env.$rootScope.nxBlock(env.dev) === '' && env.act.blockInfo(env.dev).blocked === false && env.logs.indexOf('block: released (MDFh)') > -1);
+    ok('block: a command without accessory does nothing', (env.act.onCommand(null, 'MDBk', 'x'), env.act.onCommand({}, 'MDBk', 'x'), env.$rootScope.nxBlock(null) === '' && env.$rootScope.nxBlock({}) === ''));
+  }
+  {
+    const rec = { '00:0B:6C:AA:BB:CC': { blocked: true, at: D(7, 9, 37, 16), code: 'MDBl', who: 'Anna' } };
+    const env = await environment({ storage: { nxBlock: JSON.stringify(rec) } });
+    ok('block: what an earlier session remembered is there', env.$rootScope.nxBlock(env.dev) === 'Blocked · since 09:37');
+    const e2 = await environment({ storage: { nxBlock: '{not json' } });
+    ok('block: a broken storage is no block and no error', e2.$rootScope.nxBlock(e2.dev) === '');
+    const e3 = await environment({ storage: { nxBlock: '[1,2]' } });
+    ok('block: a storage with the wrong shape is no block', e3.$rootScope.nxBlock(e3.dev) === '');
+    // the log is newer than this phone: another phone released it
+    const e4 = await environment({ storage: { nxBlock: JSON.stringify({ '00:0B:6C:AA:BB:CC': { blocked: true, at: D(7, 9, 0), code: 'MDBk', who: 'Anna' } }) },
+      logs: { deviceLogs: [{ source: 'CTRL-BEN-00002', type: 'MDEw', time: D(7, 10, 0) }] } });
+    ok('block: before the log is read, what this phone did counts', e4.$rootScope.nxBlock(e4.dev) === 'Blocked · since 09:00');
+    await new Promise((r) => e4.act.refresh(e4.dev, r));
+    ok('block: a Release by another phone, newer, in the log ends it', e4.$rootScope.nxBlock(e4.dev) === '' && e4.act.blockInfo(e4.dev).who === 'Ben', JSON.stringify(e4.act.blockInfo(e4.dev)));
+    // this phone is newer than the log
+    const e5 = await environment({ storage: { nxBlock: JSON.stringify({ '00:0B:6C:AA:BB:CC': { blocked: true, at: D(7, 12, 0), code: 'MDBk', who: 'Anna' } }) },
+      logs: { deviceLogs: [{ source: 'CTRL-BEN-00002', type: 'MDEw', time: D(7, 10, 0) }] } });
+    await new Promise((r) => e5.act.refresh(e5.dev, r));
+    ok('block: what this phone did after the log\'s Release counts', e5.$rootScope.nxBlock(e5.dev) === 'Blocked · since 12:00');
+    // another phone blocked it, and this phone has never done anything
+    const e6 = await environment({ logs: { deviceLogs: [{ source: 'CTRL-BEN-00002', type: 'MDBm', time: D(7, 11, 0) }] } });
+    await new Promise((r) => e6.act.refresh(e6.dev, r));
+    ok('block: a Block by another phone in the log shows too', e6.$rootScope.nxBlock(e6.dev) === 'Blocked · since 11:00' && e6.act.blockInfo(e6.dev).who === 'Ben');
+    // a restart of the accessory after the block: not known whether it survived
+    const e7 = await environment({ storage: { nxBlock: JSON.stringify({ '00:0B:6C:AA:BB:CC': { blocked: true, at: D(7, 9, 0), code: 'MDBk', who: 'Anna' } }) },
+      logs: { deviceLogs: [], interfaceLogs: [{ source: 'boot', type: 'Power ON', time: D(7, 10, 0) }] } });
+    await new Promise((r) => e7.act.refresh(e7.dev, r));
+    ok('block: a restart of the accessory after it makes it a question mark', e7.$rootScope.nxBlock(e7.dev) === 'Blocked? · since 09:00', e7.$rootScope.nxBlock(e7.dev));
+    // and the sheet says it
+    e6.act.open(e6.dev); await sleep(60);
+    ok('block: the sheet has the card for it', /nx-act-block nx-blocked/.test(e6.body().innerHTML) && /Block · Ben/.test(e6.body().textContent), e6.body().textContent.slice(0, 160));
+  }
+
+  // ---------------------------------------------------------------- a state that is out of date
+  const mov = (ageMs, extra) => ({ deviceLogs: [{ source: 'CTRL-ANNA-0001', type: 'MDBk', time: NOW - ageMs }, { source: 'busT4', type: 'open', time: NOW - ageMs + 1000 }].concat(extra || []) });
+  const read = (env) => new Promise((r) => env.act.refresh(env.dev, r));
+  {
+    const env = await environment({ properties: [{ value: 'opening' }, { value: '0' }], logs: mov(20 * 60000), names: { DEVICE_STATE_opening: 'Opening' } });
+    ok('state: before the log has been read the reported state stays', env.$rootScope.nxState(env.dev) === 'opening' && env.$rootScope.nxIcon(env.dev) === '' && env.$rootScope.nxSettled(env.dev) === '');
+    await read(env);
+    ok('state: "opening" while the log says the gate was opened twenty minutes ago is shown as open', env.$rootScope.nxState(env.dev) === 'open', String(env.$rootScope.nxState(env.dev)));
+    ok('state: ...with the icon of the app in the same form', env.$rootScope.nxIcon(env.dev) === 'icon-i_gat005 open status-0', env.$rootScope.nxIcon(env.dev));
+    ok('state: ...and a note with what the accessory reported, in the app\'s own word', env.$rootScope.nxSettled(env.dev) === 'reported: Opening', env.$rootScope.nxSettled(env.dev));
+    ok('state: ...and the LOG says why', env.logs.some((l) => /^state: "opening" is out of date \(the last movement in the log is MDBk, today 14:10\); shown as open$/.test(l)), env.logs.join(' | '));
+    const logged = env.logs.length;
+    env.$rootScope.nxState(env.dev); env.$rootScope.nxIcon(env.dev); env.$rootScope.nxSettled(env.dev);
+    ok('state: ...and it says so once, not on every digest', env.logs.length === logged);
+    // a new event: the reading from before it knows nothing of it
+    env.w.Date.now = () => NOW + 5000;
+    env.act.onEvent({ mac: env.dev.mac, state: 'opening', obstruct: '0' });
+    ok('state: an event of the accessory clears it (the reading is older than the event)', env.$rootScope.nxState(env.dev) === 'opening' && env.$rootScope.nxIcon(env.dev) === '' && env.$rootScope.nxSettled(env.dev) === '');
+    ok('state: ...and the event is in the LOG', env.logs.indexOf('state: event 00:0B:6C:AA:BB:CC opening, obstruct 0') > -1);
+    await read(env);
+    ok('state: ...until the log has been read again', env.$rootScope.nxState(env.dev) === 'open');
+    env.w.Date.now = () => NOW + 10000;
+    env.act.onCommand(env.dev, 'open', 'executePrimaryCommand');
+    ok('state: a command from this phone clears it too', env.$rootScope.nxState(env.dev) === 'opening');
+    // the report changes: the decision is for the old report only
+    await read(env);
+    env.dev.properties = [{ value: 'open' }, { value: '0' }];
+    ok('state: a report of "open" is shown as it is', env.$rootScope.nxState(env.dev) === 'open' && env.$rootScope.nxIcon(env.dev) === '' && env.$rootScope.nxSettled(env.dev) === '');
+  }
+  {
+    const recent = await environment({ properties: [{ value: 'opening' }, { value: '0' }], logs: mov(60000) });
+    await read(recent);
+    ok('state: an opening of a minute ago may still be going on: not settled', recent.$rootScope.nxState(recent.dev) === 'opening' && recent.$rootScope.nxSettled(recent.dev) === '');
+    const wrongWay = await environment({ properties: [{ value: 'closing' }, { value: '0' }], logs: mov(20 * 60000) });
+    await read(wrongWay);
+    ok('state: "closing" after an opening is not settled (nothing explains it)', wrongWay.$rootScope.nxState(wrongWay.dev) === 'closing');
+    const stopped = await environment({ properties: [{ value: 'opening' }, { value: '0' }], logs: mov(20 * 60000, [{ source: 'CTRL-ANNA-0001', type: 'stop', time: NOW - 10 * 60000 }]) });
+    await read(stopped);
+    ok('state: a stop after the opening: not settled', stopped.$rootScope.nxState(stopped.dev) === 'opening');
+    const obstructed = await environment({ properties: [{ value: 'opening' }, { value: '0' }], logs: mov(20 * 60000, [{ source: 'busT4', type: 'obstruction', time: NOW - 10 * 60000 }]) });
+    await read(obstructed);
+    ok('state: an obstruction after the opening: not settled', obstructed.$rootScope.nxState(obstructed.dev) === 'opening');
+    const blockedMid = await environment({ properties: [{ value: 'opening' }, { value: '0' }], logs: mov(20 * 60000, [{ source: 'CTRL-ANNA-0001', type: 'MDBm', time: NOW - 10 * 60000 }]) });
+    await read(blockedMid);
+    ok('state: a Block after the opening (it can stop the gate half way): not settled', blockedMid.$rootScope.nxState(blockedMid.dev) === 'opening');
+    const closing = await environment({ properties: [{ value: 'closing' }, { value: '1' }], logs: { deviceLogs: [{ source: 'scheduler', type: 'close', time: NOW - 30 * 60000 }] } });
+    await read(closing);
+    ok('state: "closing" after a closing long ago is shown as closed, with the obstruction flag as it was', closing.$rootScope.nxState(closing.dev) === 'closed' && closing.$rootScope.nxIcon(closing.dev) === 'icon-i_gat005 closed status-1' && closing.$rootScope.nxSettled(closing.dev) === 'reported: closing', closing.$rootScope.nxIcon(closing.dev));
+    const open = await environment({ properties: [{ value: 'open' }, { value: '0' }], logs: mov(20 * 60000) });
+    await read(open);
+    ok('state: a state that is not moving is left alone', open.$rootScope.nxState(open.dev) === 'open' && open.$rootScope.nxIcon(open.dev) === '' && open.$rootScope.nxSettled(open.dev) === '');
+    const none = await environment({ properties: [] });
+    ok('state: no state at all, no error', none.$rootScope.nxState(none.dev) === undefined && none.$rootScope.nxIcon(none.dev) === '' && none.$rootScope.nxState(null) === undefined);
+    const old = await environment({ properties: [{ value: 'opening' }, { value: '0' }], logs: mov(20 * 60000) });
+    await read(old);
+    old.w.Date.now = () => NOW + 10 * 60000;
+    old.dev.properties = [{ value: 'closing' }, { value: '0' }];
+    ok('state: when the report changes the old decision does not apply', old.$rootScope.nxState(old.dev) === 'closing');
+  }
+  {
+    // a state report: what the accessory says goes into the LOG, and "opening" asks for a fresh reading of the log
+    const env = await environment({ logs: mov(20 * 60000) });
+    const res = { devices: [{ properties: [{ name: 'DoorStatus', value: 'open' }, { name: 'Obstruct', value: '0' }] }] };
+    env.act.onStatus(env.dev, res);
+    ok('status: what the accessory says is in the LOG', env.logs.indexOf('state: status of 00:0B:6C:AA:BB:CC says [DoorStatus=open, Obstruct=0]') > -1, env.logs.join(' | '));
+    ok('status: ...and which services and properties it declares, once', env.logs.filter((l) => /^state: the accessory declares services \[T4Action w, DoorAction w\] properties \[DoorStatus r, Obstruct r\], type sliding, product ROBUS$/.test(l)).length === 1);
+    env.act.onStatus(env.dev, { devices: [{ properties: [{ value: 'closed' }, { value: '0' }] }] });
+    ok('status: ...without names the values stand alone, and the declaration is not repeated', env.logs.indexOf('state: status of 00:0B:6C:AA:BB:CC says [closed, 0]') > -1 && env.logs.filter((l) => /^state: the accessory declares/.test(l)).length === 1);
+    ok('status: a state that is not moving asks for nothing', env.calls.logs === 0);
+    env.act.onStatus(env.dev, { devices: [{ properties: [{ value: 'opening' }, { value: '0' }] }] });
+    await sleep(60);
+    ok('status: "opening" asks for a fresh reading of the log', env.calls.logs === 1, String(env.calls.logs));
+    env.act.onStatus(env.dev, { devices: [{ properties: [{ value: 'opening' }, { value: '0' }] }] });
+    await sleep(60);
+    ok('status: ...but not again within twenty seconds', env.calls.logs === 1);
+    env.w.Date.now = () => NOW + 30000;
+    env.act.onStatus(env.dev, { devices: [{ properties: [{ value: 'closing' }, { value: '0' }] }] });
+    await sleep(60);
+    ok('status: ...and again after that', env.calls.logs === 2, String(env.calls.logs));
+    let threw = false;
+    try { env.act.onStatus(null, res); env.act.onStatus(env.dev, undefined); env.act.onStatus(env.dev, {}); } catch (e) { threw = true; }
+    ok('status: nothing, or rubbish, does not throw', threw === false);
+  }
+  {
+    // after a command: the log is read a little later, and again when the travel time is over if the gate is still said to move
+    const env = await environment({ properties: [{ value: 'opening' }, { value: '0' }], logs: mov(20 * 60000), afterMs: 25, travelMs: 40, marginMs: 30 });
+    env.act.onCommand(env.dev, 'open', 'executePrimaryCommand');
+    await sleep(55);
+    ok('command: the log is read a little later', env.calls.logs === 1, String(env.calls.logs));
+    await sleep(100);
+    ok('command: ...and once more after the travel time, because the gate is still said to be moving', env.calls.logs === 2, String(env.calls.logs));
+    const fine = await environment({ properties: [{ value: 'open' }, { value: '0' }], logs: mov(20 * 60000), afterMs: 25, travelMs: 40, marginMs: 30 });
+    fine.act.onCommand(fine.dev, 'open', 'executePrimaryCommand');
+    await sleep(160);
+    ok('command: ...but not when the gate is no longer said to be moving', fine.calls.logs === 1, String(fine.calls.logs));
+    // events: "opening" plans a reading for when the travel is over; the end of the movement cancels it
+    const ev = await environment({ properties: [{ value: 'opening' }, { value: '0' }], logs: mov(20 * 60000), travelMs: 40, marginMs: 30 });
+    ev.act.onEvent({ mac: ev.dev.mac, state: 'opening', obstruct: '0' });
+    await sleep(120);
+    ok('event: "opening" while the gate keeps being said to open makes a reading after the travel time', ev.calls.logs === 1, String(ev.calls.logs));
+    const ev2 = await environment({ properties: [{ value: 'opening' }, { value: '0' }], logs: mov(20 * 60000), travelMs: 40, marginMs: 30 });
+    ev2.act.onEvent({ mac: ev2.dev.mac, state: 'opening', obstruct: '0' });
+    ev2.dev.properties = [{ value: 'open' }, { value: '0' }];
+    ev2.act.onEvent({ mac: ev2.dev.mac, state: 'open', obstruct: '0' });
+    await sleep(120);
+    ok('event: "open" cancels it', ev2.calls.logs === 0, String(ev2.calls.logs));
+    let threw2 = false;
+    try { ev2.act.onEvent({ mac: 'SOMEONE-ELSE', state: 'opening' }); ev2.act.onEvent(undefined); ev2.act.onEvent({}); } catch (e) { threw2 = true; }
+    ok('event: an event of another accessory, or none, does not throw', threw2 === false);
+  }
+  {
+    // the line and the pill when the state is settled, in the real sequence of the accessory screen: the screen is entered, the status says "opening"
+    const env = await environment({ properties: [{ value: 'opening' }, { value: '0' }], logs: mov(20 * 60000), prefetchMs: 20 });
+    env.navigate(DETAIL);
+    await sleep(120);
+    ok('screen: entering the screen with an old "opening" reads the log, and the state follows', env.calls.logs === 1 && env.$rootScope.nxState(env.dev) === 'open', env.calls.logs + ' ' + env.$rootScope.nxState(env.dev));
+    ok('screen: ...and the line says the last command of the phone, not of the "automation"', env.$rootScope.nxLast(env.dev) === 'Open and Block · today 14:10 · Anna', env.$rootScope.nxLast(env.dev));
+    ok('screen: ...and the pill says blocked', env.$rootScope.nxBlock(env.dev) === 'Blocked · since 14:10', env.$rootScope.nxBlock(env.dev));
+    env.navigate(DETAIL);
+    ok('screen: entering again decides again (the old decision is gone until the log has been read)', env.$rootScope.nxState(env.dev) === 'opening' || env.$rootScope.nxState(env.dev) === 'open');
   }
   {
     // no accessory

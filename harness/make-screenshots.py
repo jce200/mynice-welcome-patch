@@ -6,7 +6,8 @@ Usage (from this folder, with the app unpacked into ./www, see README.md):
 
 Writes overview.png (favorites, device page and status sheet, light above dark), status-states.png (the status sheet in five
 situations), extras-theme.png (the extra buttons, the page where they are ticked, the theme row, and the buttons in dark) and activity.png
-(the line on the accessory screen and the activity sheet, light above dark).
+(the line on the accessory screen and the activity sheet, light above dark) and blocked.png (a gate that was blocked, with a state that
+the accessory still reports as "opening").
 Everything on them is made up (accessory AABBCC, Wi-Fi HomeWifi); there is nothing of a real installation in them.
 Needs Node with `playwright` (screens.cjs) and Python with PIL."""
 import json
@@ -24,7 +25,7 @@ MAC = '00:0B:6C:AA:BB:CC'
 DETAIL = f'#/tabs/favorites-device-detail/1/{MAC}'
 
 # the shapes that the native layer (Nx.netState / Nx.probe) returns; shim.js has the same defaults
-NET = {'version': 'nx-14', 'sdk': 37, 'wifi': True, 'ssid': 'HomeWifi', 'ip': '192.168.1.172', 'validated': True, 'cellular': False,
+NET = {'version': 'nx-15', 'sdk': 37, 'wifi': True, 'ssid': 'HomeWifi', 'ip': '192.168.1.172', 'validated': True, 'cellular': False,
        'vpn': False, 'module': False, 'defaultType': 'wifi', 'route': 'local', 'routeAgeSeconds': 4}
 CLOUD_OK = {'ok': True, 'dns': '63.182.6.157', 'dnsMs': 12, 'tcpMs': 60}
 STATES = {
@@ -97,5 +98,14 @@ def steps(label, script, scheme):
 activity = grid([steps('ov-activity-' + scheme, 'steps-activity.cjs', scheme) for scheme in ('light', 'dark')], 0.4)
 activity.save(os.path.join(OUT, 'activity.png'), optimize=True)
 
-for name, im in (('overview.png', overview), ('status-states.png', strip), ('extras-theme.png', extras), ('activity.png', activity)):
+# nx15: a gate that was opened with "Open and Block", and a status that still says "opening"
+def blocked_shots(label, scheme):
+    env = dict(os.environ, DSF='2', WAIT='1200', COLOR_SCHEME=scheme, CFG='{"activity":"blocked","state":"opening"}', SCRIPT='steps-state.cjs')
+    subprocess.run(['node', 'screens.cjs', label, '#/tabs/favorites'], cwd=HERE, env=env, check=True, capture_output=True, timeout=240)
+    return [Image.open(os.path.join(HERE, 'shots', label, n + '.png')).convert('RGB') for n in ('device', 'sheet')]
+light, dark = blocked_shots('ov-blocked-light', 'light'), blocked_shots('ov-blocked-dark', 'dark')
+blocked = grid([[light[0], light[1], dark[0], dark[1]]], 0.5)
+blocked.save(os.path.join(OUT, 'blocked.png'), optimize=True)
+
+for name, im in (('overview.png', overview), ('status-states.png', strip), ('extras-theme.png', extras), ('activity.png', activity), ('blocked.png', blocked)):
     print(name, im.size, os.path.getsize(os.path.join(OUT, name)) // 1024, 'KB')

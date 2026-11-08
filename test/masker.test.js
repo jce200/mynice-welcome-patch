@@ -40,7 +40,7 @@ cases.forEach(function (g) {
 var isNoise = require('../debuglog.js').isNoise;
 var NOISY = ['scene getHome: ', 'scene getDevice: ', 'devices.forEach: ', 'getDevice scene home.device: ', 'ICONA: ', 'updateDevice scene ',
   ' - updateHome -  >>> homes-home: ', 'this.homes[index] ,  home >>> ', 'updateHome forEach home[0].devices.length'];
-var STAYS = ['updateDevice', 'pairings ERROR ', 'userApproved ERROR ', 'getUsersPermissions ERROR ', 'verify ERROR ', '[NX] new user: allowed', '[NX] waiting users',
+var STAYS = ['[NX]', '[NX] state: status of', '[NX] block: blocked (MDBk)', 'state: event', 'updateDevice', 'pairings ERROR ', 'userApproved ERROR ', 'getUsersPermissions ERROR ', 'verify ERROR ', '[NX] new user: allowed', '[NX] waiting users',
   'newUser', 'getHomeList: ', '[PISTO] updateDeviceData', 'scene device.automations[0] ', 'connect ERROR ', 'Error: '];
 NOISY.forEach(function (t) {
   var drops = isNoise([t, { homeId: 1 }, 'x']);

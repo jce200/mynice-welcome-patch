@@ -24,4 +24,4 @@ paste here
 ```
 
 Please don't attach APKs or the original app (see NOTICE.md). Say which release or build you use: the last line of the copied text
-shows it (for example `native layer nx-14`).
+shows it (for example `native layer nx-15`).

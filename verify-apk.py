@@ -168,6 +168,20 @@ with zipfile.ZipFile(path) as z:
     for m in ('.nx-last', '.nx-act', '.nx-tile', '.nx-bars', '.nx-tl-row'):
         if m not in css:
             errors.append('nx-expressive.css does not style ' + m)
+    # nx15: the state of the gate settled from the log, and the pill for a blocked gate
+    detail15 = text('assets/www/templates/system/device_detail.html')
+    for m in ('nxState', 'nxIcon', 'nxSettled', 'nxBlock', 'nx-block-row'):
+        if m not in detail15:
+            errors.append('device_detail.html does not know %s (patch-15)' % m)
+    for m in ('lastMovement', 'blockInfo', 'settledOf', 'device not found'):
+        if m not in act:
+            errors.append('nx-activity.js is missing ' + m)
+    for m in ('onStatus', 'onCommand', 'newDeviceState'):
+        if m not in js:
+            errors.append('nx-patch.js does not call the activity module for ' + m)
+    for m in ('.nx-block', '.nx-settled', '.nx-act-block'):
+        if m not in css:
+            errors.append('nx-expressive.css does not style ' + m)
     dl = text('assets/www/js/debuglog.js')
     for m in ('nx-log-button', '__nxLogShow', 'NOISE', '__nxLogAll'):
         if m not in dl:
