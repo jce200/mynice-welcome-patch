@@ -97,23 +97,31 @@ ok('no placeholders ({{...}}) left', !/\{\{|\}\}/.test(css));
   const classes = new Set();
   for (const m of js.matchAll(/(?<![-\w])nx-[a-z]+(?:-[a-z]+)*-?/g)) classes.add(m[0]);
   // not styling classes: file names, a dummy URL path, element ids (nx-sheet-*) and the state marker nx-via-local (only nx-via-cloud has a rule)
-  const notStyleClasses = new Set(['nx-patch', 'nx-theme', 'nx-expressive', 'nx-cloud-skipped', 'nx-via-local', 'nx-sheet-title', 'nx-sheet-explanation', 'nx-sheet-route', 'nx-sheet-facts', 'nx-sheet-text']);
+  const notStyleClasses = new Set(['nx-patch', 'nx-theme', 'nx-activity', 'nx-expressive', 'nx-cloud-skipped', 'nx-via-local', 'nx-sheet-title', 'nx-sheet-explanation', 'nx-sheet-route', 'nx-sheet-facts', 'nx-sheet-text']);
   // a name that ends in a hyphen in the JS is a prefix with a value appended to it: then at least one class starting with it must exist
   const withoutRule = Array.from(classes).filter((k) => !notStyleClasses.has(k) && !new RegExp('[.#]' + k + (k.endsWith('-') ? '' : '(?![\\w-])')).test(css));
   ok('every nx class from the JS appears in the CSS', withoutRule.length === 0, withoutRule.join(', '));
+  // the same for the activity sheet (nx-activity.js); its element ids (nx-activity, nx-act-sub, nx-act-body) are no classes, and a few
+  // classes are only hooks for the JS or a name for a tile (no style of their own)
+  const actJs = fs.readFileSync(path.join(__dirname, '..', 'nx-activity.js'), 'utf8');
+  const actClasses = new Set();
+  for (const m of actJs.matchAll(/(?<![-\w])nx-[a-z]+(?:-[a-z]+)*-?/g)) actClasses.add(m[0]);
+  const notActClasses = new Set(['nx-activity', 'nx-act-sub', 'nx-act-body', 'nx-patch', 'nx-t-count', 'nx-t-obst', 'nx-act-copy', 'nx-act-close', 'nx-act-retry']);
+  const actWithout = Array.from(actClasses).filter((k) => !notActClasses.has(k) && !new RegExp('[.#]' + k + (k.endsWith('-') ? '' : '(?![\\w-])')).test(css));
+  ok('every nx class from nx-activity.js appears in the CSS (' + actClasses.size + ' names)', actClasses.size > 30 && actWithout.length === 0, actWithout.join(', '));
 }
 
 {
-  // the classes that the template patches (patch-11 "Checking...", patch-12 extra buttons, patch-13 theme) put in the app have a rule,
-  // and nx-patch.js offers every function that those templates ask for
-  const js = fs.readFileSync(path.join(__dirname, '..', 'nx-patch.js'), 'utf8');
-  const patches = ['patch-11-checking-state.py', 'patch-12-extra-commands.py', 'patch-13-theme.py'].map((f) => fs.readFileSync(path.join(__dirname, '..', f), 'utf8'));
+  // the classes that the template patches (patch-11 "Checking...", patch-12 extra buttons, patch-13 theme, patch-14 activity) put in the app
+  // have a rule, and nx-patch.js and nx-activity.js offer every function that those templates ask for
+  const js = fs.readFileSync(path.join(__dirname, '..', 'nx-patch.js'), 'utf8') + fs.readFileSync(path.join(__dirname, '..', 'nx-activity.js'), 'utf8');
+  const patches = ['patch-11-checking-state.py', 'patch-12-extra-commands.py', 'patch-13-theme.py', 'patch-14-activity.py'].map((f) => fs.readFileSync(path.join(__dirname, '..', f), 'utf8'));
   const classes = Array.from(new Set(patches.flatMap((t) => Array.from(t.matchAll(/class=\\?"([^"\\]*nx-[^"\\]*)\\?"/g)).flatMap((m) => m[1].split(/\s+/)).filter((k) => /^nx-[a-z-]+$/.test(k)))));
   const without = classes.filter((k) => !new RegExp('\\.' + k + '(?![\\w-])').test(css));
   ok('the classes of the template patches have a rule (' + classes.join(', ') + ')', classes.length >= 8 && without.length === 0, without.join(', '));
   const asked = Array.from(new Set(patches.flatMap((t) => Array.from(t.matchAll(/\b(nx[A-Z][A-Za-z]*)\b/g)).map((m) => m[1]))));
   const offered = asked.filter((n) => !new RegExp('\\$(?:rootScope|rs)\\.' + n + '\\s*=').test(js));
-  ok('nx-patch.js offers what the patched templates ask (' + asked.join(', ') + ')', asked.length >= 9 && offered.length === 0, offered.join(', '));
+  ok('nx-patch.js and nx-activity.js offer what the patched templates ask (' + asked.join(', ') + ')', asked.length >= 11 && offered.length === 0, offered.join(', '));
   ok('the "Checking..." animations stand still with reduced motion', /prefers-reduced-motion[^{]*\{[^}]*nx-checking:before[^}]*animation:\s*none/.test(css) && /prefers-reduced-motion[^{]*\{[^}]*nx-checking-text[^}]*animation:\s*none/.test(css));
 }
 {

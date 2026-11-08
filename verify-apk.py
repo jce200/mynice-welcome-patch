@@ -156,6 +156,18 @@ with zipfile.ZipFile(path) as z:
         errors.append('nx-theme.js is missing or index.html does not load it')
     if 'nxSetTheme' not in js or 'nxQuickToggle' not in js:
         errors.append('nx-patch.js is missing nxSetTheme or nxQuickToggle')
+    # nx14: the activity sheet: its script (loaded before nx-patch.js), the line on the accessory screen, its styles
+    if 'js/nx-activity.js' not in idx or idx.index('js/nx-activity.js') > idx.index('js/nx-patch.js'):
+        errors.append('index.html does not load nx-activity.js before nx-patch.js')
+    act = text('assets/www/js/nx-activity.js')
+    for m in ('__nxActivity', 'nxActivity', 'nxLast', 'interfaceLogs', 'deviceLogs'):
+        if m not in act:
+            errors.append('nx-activity.js is missing ' + m)
+    if 'nxActivity' not in text('assets/www/templates/system/device_detail.html') or '__nxActivity' not in js:
+        errors.append('the accessory screen or nx-patch.js does not know the activity sheet (patch-14)')
+    for m in ('.nx-last', '.nx-act', '.nx-tile', '.nx-bars', '.nx-tl-row'):
+        if m not in css:
+            errors.append('nx-expressive.css does not style ' + m)
     dl = text('assets/www/js/debuglog.js')
     for m in ('nx-log-button', '__nxLogShow', 'NOISE', '__nxLogAll'):
         if m not in dl:

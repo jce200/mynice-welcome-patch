@@ -1,6 +1,6 @@
 {
   "name": "mynice-welcome-patch",
-  "version": "2.2.0-nx13",
+  "version": "2.2.0-nx14",
   "private": true,
   "description": "Unofficial patch scripts for the MyNice Welcome 2.2.0 Android app (Nice IT4WIFI) on modern Android. No Nice binaries included.",
   "license": "MIT",

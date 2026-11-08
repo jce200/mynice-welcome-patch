@@ -35,6 +35,47 @@
       devices: [{ properties: [{ value: CFG.state || 'closed' }, { value: CFG.obstruct || '0' }] }] };
   }
   var verifyCount = 0;
+  // nx14: the event log of the accessory (made up). CFG.activity: 'none' (an empty log), 'error' (reading fails), 'slow' (answers after 4 s);
+  // CFG.logs: a log of your own ({ interfaceLogs, deviceLogs }). The default is the last 12 days of a household: two people (Anna and Ben)
+  // who open and close the gate on workdays, a schedule that closes it at 22:00, a few commands from a remote control (source busT4),
+  // two obstructions, a restart, three Wi-Fi drops and a moment in which the module did not find the gate controller.
+  var USERS = [{ id: 1, controllerID: 'CTRL-ANNA-0001', username: 'Anna', desc: 'Pixel', perm: 'admin', notify: true },
+               { id: 2, controllerID: 'CTRL-BEN-00002', username: 'Ben', desc: 'Galaxy', perm: 'user', notify: false }];
+  function sampleLogs() {
+    var seed = 11;
+    function rnd() { seed = (seed * 16807) % 2147483647; return seed / 2147483647; }
+    var now = Date.now(), midnight = new Date(now); midnight.setHours(0, 0, 0, 0);
+    var dev = [], ifc = [], n = 0;
+    function at(day, h, m, sec) { return midnight.getTime() - day * 86400000 + ((h * 60 + m) * 60 + (sec || 0)) * 1000; }
+    function add(list, t, source, type, device) { if (t <= now) list.push({ deviceId: device ? '1' : '', source: source, type: type, time: t, idx: String(++n), id: String(n) }); }
+    function pair(day, h, m, source, gap) { add(dev, at(day, h, m, 5), source, 'open', true); add(dev, at(day, h, m + (gap || 2), 20), source, 'close', true); }
+    for (var day = 11; day >= 0; day--) {
+      var dow = new Date(at(day, 12, 0)).getDay(), work = dow >= 1 && dow <= 5;
+      if (work) {
+        pair(day, 7, 28 + Math.floor(rnd() * 14), 'CTRL-ANNA-0001');
+        if (rnd() < 0.8) pair(day, 8, 5 + Math.floor(rnd() * 25), 'CTRL-BEN-00002');
+        pair(day, 17, 10 + Math.floor(rnd() * 50), rnd() < 0.7 ? 'CTRL-ANNA-0001' : 'CTRL-BEN-00002');
+        if (rnd() < 0.5) pair(day, 18, 5 + Math.floor(rnd() * 40), 'busT4', 1);
+      } else {
+        pair(day, 10, 5 + Math.floor(rnd() * 30), 'CTRL-BEN-00002', 3);
+        if (dow === 6) { add(dev, at(day, 11, 2), 'CTRL-BEN-00002', 'MDBk', true); add(dev, at(day, 11, 40), 'CTRL-BEN-00002', 'MDFh', true); }
+        pair(day, 15, 20 + Math.floor(rnd() * 30), 'busT4', 1);
+      }
+      add(dev, at(day, 22, 0), 'scheduler', 'close', true);
+    }
+    add(dev, at(9, 7, 31, 40), 'busT4', 'obstruction', true);
+    add(dev, at(3, 17, 52, 12), 'busT4', 'obstruction', true);
+    add(ifc, at(7, 2, 0, 0), '', 'Power ON'); add(ifc, at(7, 2, 0, 9), '', 'boot');
+    add(ifc, at(6, 3, 14), '', 'wifi loss'); add(ifc, at(6, 3, 15), '', 'connect'); add(ifc, at(2, 4, 40), '', 'wifi loss'); add(ifc, at(2, 4, 41), '', 'connect');
+    add(ifc, at(1, 13, 5), '', 'wifi loss'); add(ifc, at(4, 5, 0), '', 'device not found'); add(ifc, at(4, 5, 1), '', 'device found');
+    for (var k = 0; k < 8; k++) add(ifc, at(k, 6, 30 + k), '', 'connect');
+    return { interfaceLogs: ifc, deviceLogs: dev };
+  }
+  function activityAnswer() {
+    if (CFG.activity === 'error') return { fail: { code: 3 } };
+    var data = CFG.logs || (CFG.activity === 'none' ? { interfaceLogs: [], deviceLogs: [] } : sampleLogs());
+    return CFG.activity === 'slow' ? { delay: 4000, then: data } : data;
+  }
   var NATIVE = {
     'Device.getDeviceInfo': function () { return { platform: 'Android', version: '14', uuid: 'design-uuid', model: 'Pixel 9', manufacturer: 'Google', isVirtual: true, serial: 'x', sdkVersion: '34' }; },
     // The check of the accessory. The answer of a paired, reachable accessory has its permissions: the list shows no "Not usable".
@@ -60,7 +101,8 @@
     'nhk.closeConnection': function () { return {}; },
     // CFG.waiting: users that wait for approval, as the accessory lists them (for example [{ id: 2, username: 'Home assistant' }]);
     // CFG.approveError: the code that approving fails with (11 = the maximum number of users is reached)
-    'nhk.pairings': function () { return { activeUsers: [], waitingUsers: CFG.waiting || [] }; },
+    'nhk.pairings': function () { return { activeUsers: USERS, waitingUsers: CFG.waiting || [] }; },
+    'nhk.logs': activityAnswer,
     'nhk.userNew': function () { return CFG.approveError ? { fail: { code: CFG.approveError } } : {}; },   // what the app calls "userApproved"
     'nhk.getCurrentSSID': function () { return 'HomeWifi'; },
     'WifiWizard.isLocalizationEnabled': function () { return true; },
@@ -75,14 +117,14 @@
     'NetworkStatus.getConnectionInfo': function () { return 'wifi'; },
     'Globalization.getPreferredLanguage': function () { return { value: CFG.lang || 'en-US' }; },
     'Globalization.getLocaleName': function () { return { value: CFG.lang || 'en-US' }; },
-    'Nx.version': function () { return 'nx-13'; },
+    'Nx.version': function () { return 'nx-14'; },
     'Nx.logStream': function () { return { keep: true, none: true }; },
     'Nx.setHints': function () { return {}; },
     'Nx.release': function () { return {}; },
     'Nx.reconnect': function () { return {}; },
     'Nx.checkSucceeded': function () { return {}; },
     'Nx.checkFailed': function () { return {}; },
-    'Nx.netState': function () { return CFG.net || { version: 'nx-13', sdk: 37, wifi: true, ssid: 'HomeWifi', ip: '192.168.1.172', validated: true, cellular: false, vpn: false, module: false, defaultType: 'wifi', route: 'local', routeAgeSeconds: 4 }; },
+    'Nx.netState': function () { return CFG.net || { version: 'nx-14', sdk: 37, wifi: true, ssid: 'HomeWifi', ip: '192.168.1.172', validated: true, cellular: false, vpn: false, module: false, defaultType: 'wifi', route: 'local', routeAgeSeconds: 4 }; },
     'Nx.probe': function () { return CFG.probe || { ok: true, tcpMs: 14, tlsMs: 380, bound: true, cloud: { ok: true, dns: '63.182.6.157', dnsMs: 12, tcpMs: 20 } }; }
   };
   function answer(callbackId, r) {

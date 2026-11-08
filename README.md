@@ -47,6 +47,14 @@ Expressive look (light and dark).
 
   ![The accessory screen with two extra buttons, the page where the commands are ticked, the theme row in the settings, and the buttons in dark](docs/screenshots/extras-theme.png)
 
+- **Activity: what the gate has been doing.** The accessory keeps an event log. The app shows it in a small table and leaves out
+  everything about the Wi-Fi module. A line on the accessory screen ("Close · today 14:12 · Anna") opens a sheet with the last opening and
+  closing, the commands per day, who gave them, the busy hours, obstructions, how the Wi-Fi module is doing (restarts, Wi-Fi drops, a gate
+  controller that was not found) and the history. It reads what the app's own *Historian of events* reads, so nothing leaves the phone.
+  What the accessory does not tell: counters of maneuvers, motor current or temperature; its protocol has no such fields.
+
+  ![The line on the accessory screen and the activity sheet: tiles, commands per day, who, busy hours, the Wi-Fi module and the history, light and dark](docs/screenshots/activity.png)
+
 - **A new look.** Material 3 Expressive in a calm petrol blue: one color family for the surfaces and the buttons, a gate icon that
   changes shape with its state. It has a light and a dark palette; it is a CSS layer, and no function of the app changed.
 - **Light, dark or automatic.** Settings > Appearance > *Theme*. *Auto* uses what the WebView reports as the phone's scheme, which is
@@ -81,7 +89,7 @@ This way you don't have to trust a binary from someone else, and the app is sign
 ```
 ./get-tools.sh                               # once: downloads apktool and friends into ./tools, checked on SHA-256
 ./build.sh /path/to/MyNiceWelcome_2.2.0.apk
-# result: out/MyNiceWelcome_2.2.0_nx13.apk
+# result: out/MyNiceWelcome_2.2.0_nx14.apk
 ```
 
 The first build creates **your own signing key** in `keys/` (with a random password in `keys/password.txt`). Keep that folder

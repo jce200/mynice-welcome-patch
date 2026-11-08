@@ -5,7 +5,8 @@ Usage (from this folder, with the app unpacked into ./www, see README.md):
     python3 make-screenshots.py [output-folder]        # default: ../docs/screenshots
 
 Writes overview.png (favorites, device page and status sheet, light above dark), status-states.png (the status sheet in five
-situations) and extras-theme.png (the extra buttons, the page where they are ticked, the theme row, and the buttons in dark).
+situations), extras-theme.png (the extra buttons, the page where they are ticked, the theme row, and the buttons in dark) and activity.png
+(the line on the accessory screen and the activity sheet, light above dark).
 Everything on them is made up (accessory AABBCC, Wi-Fi HomeWifi); there is nothing of a real installation in them.
 Needs Node with `playwright` (screens.cjs) and Python with PIL."""
 import json
@@ -23,7 +24,7 @@ MAC = '00:0B:6C:AA:BB:CC'
 DETAIL = f'#/tabs/favorites-device-detail/1/{MAC}'
 
 # the shapes that the native layer (Nx.netState / Nx.probe) returns; shim.js has the same defaults
-NET = {'version': 'nx-13', 'sdk': 37, 'wifi': True, 'ssid': 'HomeWifi', 'ip': '192.168.1.172', 'validated': True, 'cellular': False,
+NET = {'version': 'nx-14', 'sdk': 37, 'wifi': True, 'ssid': 'HomeWifi', 'ip': '192.168.1.172', 'validated': True, 'cellular': False,
        'vpn': False, 'module': False, 'defaultType': 'wifi', 'route': 'local', 'routeAgeSeconds': 4}
 CLOUD_OK = {'ok': True, 'dns': '63.182.6.157', 'dnsMs': 12, 'tcpMs': 60}
 STATES = {
@@ -87,5 +88,14 @@ dark = shoot('ov-extras-dark', [DETAIL], cfg=QUICK, scheme='dark')
 extras = grid([light + dark], 0.5)
 extras.save(os.path.join(OUT, 'extras-theme.png'), optimize=True)
 
-for name, im in (('overview.png', overview), ('status-states.png', strip), ('extras-theme.png', extras)):
+
+# nx14: the activity sheet, with the made-up log of shim.js (two people, a schedule, a remote control, two obstructions, a restart, Wi-Fi drops)
+def steps(label, script, scheme):
+    env = dict(os.environ, DSF='2', WAIT='1200', COLOR_SCHEME=scheme, CFG='{}', SCRIPT=script)
+    subprocess.run(['node', 'screens.cjs', label, '#/tabs/favorites'], cwd=HERE, env=env, check=True, capture_output=True, timeout=240)
+    return [Image.open(os.path.join(HERE, 'shots', label, n + '.png')).convert('RGB') for n in ('device', 'sheet-1', 'sheet-2', 'sheet-3')]
+activity = grid([steps('ov-activity-' + scheme, 'steps-activity.cjs', scheme) for scheme in ('light', 'dark')], 0.4)
+activity.save(os.path.join(OUT, 'activity.png'), optimize=True)
+
+for name, im in (('overview.png', overview), ('status-states.png', strip), ('extras-theme.png', extras), ('activity.png', activity)):
     print(name, im.size, os.path.getsize(os.path.join(OUT, name)) // 1024, 'KB')

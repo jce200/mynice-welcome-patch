@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Combines tokens.css + skin.css + status.css (with icons and shapes filled in) into ../nx-expressive.css (what patch-10-skin.py puts in the app)."""
+"""Combines tokens.css + skin.css + status.css + activity.css (with icons and shapes filled in) into ../nx-expressive.css (what patch-10-skin.py puts in the app)."""
 import json, os, re, urllib.parse
 HERE = os.path.dirname(os.path.abspath(__file__))
 ICON_PATHS = {  # Material icons, 24x24
@@ -33,6 +33,7 @@ ICON_PATHS = {  # Material icons, 24x24
  'expand': 'M16.59 8.59 12 13.17 7.41 8.59 6 10l6 6 6-6z',
  'tune': 'M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z',
  'done': 'M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z',
+ 'history': 'M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z',
 }
 def uri(path):
     svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='%s'/></svg>" % path
@@ -41,6 +42,7 @@ icons = '\n  '.join('--nx-i-%s: %s;' % (k, uri(v)) for k, v in ICON_PATHS.items(
 shapes = json.load(open(os.path.join(HERE, 'shapes.json')))
 skin = open(os.path.join(HERE, 'skin.css'), encoding='utf-8').read()
 extra = open(os.path.join(HERE, 'status.css'), encoding='utf-8').read() if os.path.exists(os.path.join(HERE, 'status.css')) else ''
+extra += '\n' + open(os.path.join(HERE, 'activity.css'), encoding='utf-8').read()
 extra = extra.replace('{{P}}', 'html:root body[data-ng-app]')
 skin = skin.replace('{{P}}', 'html:root body[data-ng-app]')
 skin = skin.replace('{{ICONS}}', icons)

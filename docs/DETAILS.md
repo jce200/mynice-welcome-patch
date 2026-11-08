@@ -1,8 +1,59 @@
 # Details and history
 
 This is the technical background to the [README.md](../README.md): why every change exists, with the diagnoses that led to them
-(nx3 through nx13: the project's build numbers). The example values (Wi-Fi `HomeWifi`, accessory `NiceIT4WIFIAABBCC`, user
+(nx3 through nx14: the project's build numbers). The example values (Wi-Fi `HomeWifi`, accessory `NiceIT4WIFIAABBCC`, user
 `homeuser`) stand in for whatever is different in your case. The data in this document comes from one phone and one IT4WIFI module.
+
+## What is new in nx14 (Activity: the history of the accessory)
+
+nx14 has version code 20201112 and installs over nx13 when it is signed with the same key. Nothing changed in the network layer
+(the native layer only reports `nx-14` as its version).
+
+**What the accessory can tell, and what it cannot.** This was read from the app's own code (the model classes `Interface`, `Device`,
+`Property`, `EventLog`, the response parsers in `protocol/commands`, the event parser) and not measured on an accessory:
+- The status is `DoorStatus` (open, closed, opening, closing, stopped) and `Obstruct`. The event parser knows no other property, and the
+  app reads the first two positionally. Information about the interface and the automation: manufacturer, product, type, hardware and firmware
+  versions, serial number, date, time zone and daylight saving time, schedules, services and the secondary commands.
+- There are **no counters of maneuvers, no maintenance counter, no motor current, no temperature**. The app's texts for temperature, pulse counter,
+  battery and signal strength belong to the wireless sensors of the CORE ecosystem.
+- There is an **event log** (`logs`): `{ interfaceLogs, deviceLogs }`, every entry `{ deviceId, source, type, time, idx, id }` (the XML `Event`
+  element; `time` is parsed from `yyyy-MM-dd'T'HH:mm:ss` in the phone's time zone, so it is the accessory's own clock). For the device log the
+  `type` is the door action (`open`, `close`, `stop`) or the T4 code of a secondary command (`MDBk` is "Open and Block"), or something else
+  (`obstruction`, which has a text in the app, `Output`, `Scena_Out`); the `source` is `busT4` (what the app calls "Autom."), `scheduler`, `input`
+  or the controller ID of a phone (the app finds the user name in `pairings.activeUsers`, also for an ID that is shortened with a dash). The
+  app's own history page ("Historian of events") shows the device log in four columns and filters out the interface events:
+  `Power ON`, `boot`, `wifi loss`, `error`, `device found`, `device not found`, `connect`, `pair`, user and reset events.
+
+**What Activity shows** (`nx-activity.js`; plain functions first, the sheet second):
+- Four tiles: the last opening, the last closing, the commands of 7 days (and 24 hours), the obstructions.
+- Commands per day for 14 days as stacked bars (opening, closing, the rest), who gave them (the app's own labels: a user, Automation, Schedule),
+  the busy hours of the day.
+- The **Wi-Fi module** from the interface events: restarts (a power-on and the boot right after it, within two minutes, count once), Wi-Fi drops,
+  errors, and the gate controller that was not found. Green at zero, amber (red for errors) above zero.
+- The history grouped by day (25 entries, a button for up to 300) and a note on how far back the log goes: the accessory keeps a limited number
+  of events, so the sheet says how many there are and from when.
+- Entries without a usable time (a clock that was never set reports 1970 or 2000; anything before 2015 or more than a day ahead) are left out
+  and counted in that note. `Scena_Out` is left out like in the app's own page. At most 5000 events are read.
+- *Copy the log* puts the raw log on the clipboard (times, types, sources, ids; no passwords are in it).
+
+**On the accessory screen.** `patch-14-activity.py` adds a line under the chips: the last command ("Close · today 14:12 · Anna", in the app's
+own words for the command) or "Activity" while nothing has been read, and a tap opens the sheet. On a screen that is lower than 720 pixels
+(360x640) the gate icon and the state text are a little smaller, so that Open, Close and Stop stay in view with the extra line (checked with
+the harness at six heights, Stop completely visible from 640 up).
+
+**How it reads.** Opening the sheet asks for `NHKPluginService.logs` and `pairings`, the two requests the app's history page makes (each
+preceded by the app's own `connect`, which checks the session first). Looking at the accessory screen for 2.5 seconds does it once by itself,
+so that the line is there: only when the accessory is reachable and not being checked, not when the answer is less than ten minutes old,
+and not when the screen has been left. A request that is not answered within 20 seconds is given up (the sheet says so; the line stays
+empty). Failures are only written to the LOG, in which each reading leaves two lines: the numbers, and the kinds of events
+(`activity: device [close x12, open x12, ...] sources [busT4 x5, phone x20] module [boot x1, ...]`, without names or IDs). That second line is
+what is needed to adjust the labels to what a real accessory sends.
+
+**What it cannot do.** It shows the commands that the accessory logged, not every movement of the gate: whether a remote control or a key
+switch shows up depends on what the accessory logs (the source `busT4`). The times are the accessory's clock. It was written without the log
+of a real accessory in hand, from the model in the app. `harness/shim.js` has a made-up log (`CFG.activity`, `CFG.logs`) and
+`harness/steps-activity.cjs` taps through it; `test/activity.test.js` has 117 checks (the statistics without a browser, the sheet in jsdom),
+run in five time zones.
 
 ## What is new in nx13 (a log that keeps the lines that matter, and clearer messages when approving a user)
 
@@ -128,7 +179,7 @@ too (for example the plugin action `versie` is `version` now, the JSON key `gebo
 find in older notes or logs may differ.
 nx10 has version code 20201108 and installs over nx9 when it is signed with the same key.
 
-## Where does the app work? (nx13)
+## Where does the app work? (nx14)
 
 The app talks to the accessory in two ways: directly at its address on your home network (discovery via mDNS, then TLS on port 443;
 if mDNS fails, the IP safety net tries the saved address), and through the Nice cloud (`it4wifi.cloud.nice.niceappdomain.com`, port 7890)
@@ -313,7 +364,7 @@ is a reset of the accessory.
 ## Building and the files
 
 See [README.md](../README.md) for the steps (`./get-tools.sh`, then `./build.sh <original.apk>`). The script unpacks the original APK,
-applies `patch-01-wifi-binding.py` through `patch-13-theme.py`, builds the Java layer (`java/src/com/nice/patch`) into `classes2.dex`,
+applies `patch-01-wifi-binding.py` through `patch-14-activity.py`, builds the Java layer (`java/src/com/nice/patch`) into `classes2.dex`,
 adds it, aligns, signs with your key in `keys/` and checks the result (`verify-apk.py`, if `androguard` and `loguru` are installed).
 Every patch checks that its anchor text occurs exactly once, so a different APK version is not silently patched wrongly.
 
@@ -327,16 +378,17 @@ Every patch checks that its anchor text occurs exactly once, so a different APK 
 | `patch-11-checking-state.py` | nx11: "Checking…" instead of a premature "Not usable" in the app's lists (six templates; they ask `nxCheck` from `nx-patch.js`) |
 | `patch-12-extra-commands.py` | nx12: the ticked commands as buttons on the accessory screen and a list with ticks instead of the radio list (two templates; they ask `nxExtra` and `nxQuickToggle` from `nx-patch.js`) |
 | `patch-13-theme.py` | nx12: `nx-theme.js` in `index.html` and the row *Appearance > Theme* in the settings (Auto, Light, Dark) |
+| `patch-14-activity.py` | nx14: `nx-activity.js` in the app (loaded before `nx-patch.js`) and the line on the accessory screen that opens the activity sheet |
 | `patch-09-socket-fallback.py` | nx7: `socketFor` in `_openSocket` (EPERM fallback) and the VPN guard in both `bindNiceWifi` copies |
 | `patch-08-route-choice.py` | nx6: hooks in `ConnectionsManager`: `vetLocal` (vetting the local address), `noteRoute` (remembering the chosen route), `socketAddress` (name resolution with a fallback) |
 | `patch-07-vpn-binding.py` | nx4: skipping VPN networks in the bind loop, `Nx.wifiType`/`Nx.ctx` in the Wi-Fi receiver, the `__nxWrapVerify` hook in `app.min.js` |
 | `java/src/com/nice/patch` | `Nx` (helper functions), `NxWifi` (connecting via WifiNetworkSpecifier), `NxPlugin` (bridge to the JS) |
 | `java/stubs` | only signatures of app and Cordova classes that the code is compiled against; they do not end up in the dex |
-| `nx-patch.js`, `nx-theme.js`, `debuglog.js` | the JS improvements (nx9: also the status chip and the status sheet; nx12: the extra buttons and the theme) with the early theme script, and the LOG panel |
-| `skin/` | `nx-expressive.css` (the result that goes into the app) and `fonts-nx/`; the source is in `skin/src/`: `skin.css` (the app), `status.css` (the status sheet), `tokens.css` (colors and spring curves, generated by `src/tools/build-tokens.mjs`), `shapes.json` (the polygons for the shapes, all 144 points), `build-css.py` assembles them. Edit the source and run `python3 skin/src/build-css.py`, never edit the result |
+| `nx-patch.js`, `nx-theme.js`, `nx-activity.js`, `debuglog.js` | the JS improvements (nx9: also the status chip and the status sheet; nx12: the extra buttons and the theme; nx14: the activity sheet) with the early theme script, and the LOG panel |
+| `skin/` | `nx-expressive.css` (the result that goes into the app) and `fonts-nx/`; the source is in `skin/src/`: `skin.css` (the app), `status.css` (the status sheet), `activity.css` (the activity sheet and its line), `tokens.css` (colors and spring curves, generated by `src/tools/build-tokens.mjs`), `shapes.json` (the polygons for the shapes, all 144 points), `build-css.py` assembles them. Edit the source and run `python3 skin/src/build-css.py`, never edit the result |
 | `harness/` | `screens.cjs` runs the real app (unpacked from the APK: `unzip -o <apk> "assets/www/*"`, next to the script as a folder `www`) in headless Chromium with a simulated Cordova bridge (`shim.js`) and takes screenshots of every page (light, and with `COLOR_SCHEME=dark` also dark, `PRE=` for an action such as `NX.diagnose()`, `CFG=` for a different network state); `sweep.sh` does 25 screens and makes a contact sheet; `make-screenshots.py` redoes the pictures in `docs/screenshots`. Requires Node with `playwright` and Python with PIL |
 | `get-tools.sh`, `test-all.sh` | downloading the tools with a SHA-256 check, and all tests in one go |
-| `test/` and `java/test/` | the tests (jsdom: `NODE_PATH=<folder with node_modules/jsdom> node test/nxpatch.test.js`, 230 checks; `node test/masker.test.js`; `node test/skin.test.js` checks the CSS itself: no placeholders, braces, every variable defined, all shapes with the same number of points, icons, font and prefix) |
+| `test/` and `java/test/` | the tests (jsdom: `NODE_PATH=<folder with node_modules/jsdom> node test/nxpatch.test.js`, 241 checks; `node test/masker.test.js`; `node test/activity.test.js`, 117 checks of the activity statistics and sheet; `node test/skin.test.js` checks the CSS itself: no placeholders, braces, every variable defined, all shapes with the same number of points, icons, font and prefix) |
 
 ## Signing key
 

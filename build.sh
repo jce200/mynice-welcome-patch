@@ -1,5 +1,5 @@
 #!/bin/bash
-# Builds the patched MyNice Welcome (build "nx13") from YOUR copy of the ORIGINAL APK (version 2.2.0).
+# Builds the patched MyNice Welcome (build "nx14") from YOUR copy of the ORIGINAL APK (version 2.2.0).
 #
 #   ./get-tools.sh                              (once: downloads apktool and friends into ./tools, checked on SHA-256)
 #   ./build.sh <original.apk> [output-dir]      (default output: ./out)
@@ -53,7 +53,7 @@ java -jar "$TOOLS/apktool.jar" d -f "$ORIGINAL" -o "$OUT/app" >/dev/null
 
 echo "== 2/7 smali and JS patches"
 for s in patch-01-wifi-binding.py patch-02-already-connected.py patch-03-home-network-and-log.py patch-04-continue-after-discovery.py \
-         patch-05-native-hooks.py patch-06-js-layer.py patch-07-vpn-binding.py patch-08-route-choice.py patch-09-socket-fallback.py patch-10-skin.py patch-11-checking-state.py patch-12-extra-commands.py patch-13-theme.py; do
+         patch-05-native-hooks.py patch-06-js-layer.py patch-07-vpn-binding.py patch-08-route-choice.py patch-09-socket-fallback.py patch-10-skin.py patch-11-checking-state.py patch-12-extra-commands.py patch-13-theme.py patch-14-activity.py; do
   "$PY" -I "$HERE/$s" "$OUT/app"
 done
 
@@ -68,13 +68,13 @@ echo "== 5/7 aligning and signing"
 java -jar "$TOOLS/uber-signer.jar" -a "$OUT/unsigned.apk" --ks "$KS" --ksAlias mynice \
   --ksPass "$KSPASS" --ksKeyPass "$KSPASS" -o "$OUT/signed" --allowResign | grep -E "verified|Successfully" || true
 [ -f "$OUT/signed/unsigned-aligned-signed.apk" ] || { echo "signing failed (is the password of $KS correct?)" >&2; exit 1; }
-cp "$OUT/signed/unsigned-aligned-signed.apk" "$OUT/MyNiceWelcome_2.2.0_nx13.apk"
+cp "$OUT/signed/unsigned-aligned-signed.apk" "$OUT/MyNiceWelcome_2.2.0_nx14.apk"
 
 echo "== 6/7 checking the APK"
 if "$PYVENV" -c "import androguard, loguru" 2>/dev/null; then
-  "$PYVENV" -I "$HERE/verify-apk.py" "$OUT/MyNiceWelcome_2.2.0_nx13.apk" 2>&1 | grep -v '^$'
+  "$PYVENV" -I "$HERE/verify-apk.py" "$OUT/MyNiceWelcome_2.2.0_nx14.apk" 2>&1 | grep -v '^$'
 else
   echo "   skipped: androguard and loguru are not installed (pip install androguard loguru)"
 fi
 
-echo "== 7/7 done: $OUT/MyNiceWelcome_2.2.0_nx13.apk"
+echo "== 7/7 done: $OUT/MyNiceWelcome_2.2.0_nx14.apk"

@@ -1215,8 +1215,21 @@
     window.addEventListener('online', function () { setTimeout(refreshPill, 1500); });
     window.addEventListener('offline', function () { setTimeout(refreshPill, 1500); });
 
+    // nx14: the history of the accessory in a sheet (nx-activity.js): $rootScope.nxActivity and nxLast for the accessory screen
+    var activity = null;
+    try {
+      if (typeof window.__nxActivity === 'function') {
+        activity = window.__nxActivity({ inj: inj, $rootScope: $rootScope, NHK: NHK, log: log, toast: toast, liveDevice: liveDevice, copy: copyText });
+      }
+    } catch (e) { log('activity', String(e)); }
+
     window.NX = { diagnose: diagnose, reconnect: reconnect, checkWaitingUsers: checkWaitingUsers, refresh: refreshPill, open: openSheet, close: closeSheet,
-      theme: function (mode) { if (mode) $rootScope.nxSetTheme(mode); return themeNow; } };
+      theme: function (mode) { if (mode) $rootScope.nxSetTheme(mode); return themeNow; },
+      activity: function (device) {
+        if (!activity) return;
+        var d = device || (allDevices()[0] || {}).device;
+        if (d) activity.open(liveDevice(d.homeId, d.mac) || d);
+      } };
     log('nx-patch active');
   }
 })();

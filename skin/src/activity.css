@@ -1,0 +1,119 @@
+/* ============================================================================================================
+ * Activity (nx-activity.js, nx14): the sheet with the history of the accessory, and the line on the accessory screen that opens it.
+ * It reuses the sheet of status.css (.nx-sheet, .nx-scrim, .nx-handle, .nx-footer, .nx-facts) and the color roles of tokens.css.
+ * ============================================================================================================ */
+
+/* the line on the accessory screen, under the chips: the last command, or "Activity" while the log has not been read */
+{{P}} .device-info .device-row.nx-last-row { display: flex; justify-content: center; max-width: none; margin: 0 0 8px; padding: 0; background: none; border-radius: 0; }
+{{P}} .nx-last {
+  display: inline-flex; align-items: center; gap: 8px; max-width: 94%; min-height: 40px; padding: 6px 8px 6px 14px; border-radius: 20px;
+  background: transparent; color: var(--md-sys-color-primary); font-size: 14px; line-height: 20px; font-weight: 600; text-decoration: none; cursor: pointer;
+  -webkit-tap-highlight-color: transparent; transition: background-color var(--nx-effects-ms) var(--nx-effects);
+}
+{{P}} .nx-last:active { background: var(--md-sys-color-surface-container-high); }
+{{P}} .nx-last-icon, {{P}} .nx-last-chev { flex: 0 0 auto; width: 18px; height: 18px; background: currentColor; }
+{{P}} .nx-last-icon { -webkit-mask: var(--nx-i-history) center / contain no-repeat; mask: var(--nx-i-history) center / contain no-repeat; }
+{{P}} .nx-last-chev { width: 20px; height: 20px; -webkit-mask: var(--nx-i-chevron) center / contain no-repeat; mask: var(--nx-i-chevron) center / contain no-repeat; }
+{{P}} .nx-last-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* a short screen (360x640): the gate icon and the state text give way a little, so that Open, Close and Stop stay in view with the line above them */
+@media (max-height: 720px) {
+  {{P}} .device-icon { width: 128px; height: 128px; margin: 2px auto 0; }
+  {{P}} .device-icon i { font-size: 64px !important; }
+  {{P}} .device-info .device-row:first-child { margin: 2px 0 6px; }
+  {{P}} .device-info .device-row:first-child strong, {{P}} .device-info .device-row:first-child strong span { font-size: 36px; line-height: 42px; }
+  {{P}} .device-info .device-row:not(:first-child) { margin-bottom: 4px; }
+  {{P}} .nx-last { min-height: 36px; padding-top: 4px; padding-bottom: 4px; }
+}
+
+/* ---------------------------------------------------------------- the sheet */
+{{P}} .nx-sheet.nx-act { max-height: 92vh; max-height: 92dvh; min-height: 55vh; min-height: 55dvh; }
+{{P}} .nx-act-head { display: flex; align-items: center; gap: 12px; padding: 0 4px 12px; }
+{{P}} .nx-act-titles { min-width: 0; flex: 1 1 auto; }
+{{P}} .nx-act-title { margin: 0; font-size: 24px; line-height: 32px; font-weight: 650; letter-spacing: -0.1px; color: var(--md-sys-color-on-surface); }
+{{P}} .nx-act-sub { font-size: 13px; line-height: 18px; color: var(--md-sys-color-on-surface-variant); overflow-wrap: anywhere; }
+{{P}} .nx-sheet button.nx-act-refresh { position: relative; flex: 0 0 auto; width: 44px; min-width: 44px; height: 44px; padding: 0; border-radius: 50%; }
+{{P}} .nx-act-refresh:before {
+  content: ''; position: absolute; inset: 0; margin: auto; width: 22px; height: 22px; background: var(--md-sys-color-on-secondary-container);
+  -webkit-mask: var(--nx-i-refresh) center / contain no-repeat; mask: var(--nx-i-refresh) center / contain no-repeat;
+}
+{{P}} .nx-act.nx-busy .nx-act-refresh:before { animation: nx-spin 1s linear infinite; }
+@media (prefers-reduced-motion: reduce) { {{P}} .nx-act.nx-busy .nx-act-refresh:before { animation: none; } }
+
+/* four tiles: the last opening, the last closing, the number of commands, the obstructions */
+{{P}} .nx-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 0 0 4px; }
+{{P}} .nx-tile { min-width: 0; display: flex; flex-direction: column; gap: 2px; padding: 14px 16px; border-radius: 24px; background: var(--md-sys-color-surface-container); }
+{{P}} .nx-tile small { font-size: 12px; line-height: 16px; font-weight: 650; letter-spacing: .3px; color: var(--md-sys-color-on-surface-variant); }
+{{P}} .nx-tile b { font-size: 20px; line-height: 26px; font-weight: 650; color: var(--md-sys-color-on-surface); overflow-wrap: anywhere; }
+{{P}} .nx-tile span { font-size: 13px; line-height: 18px; color: var(--md-sys-color-on-surface-variant); overflow-wrap: anywhere; }
+{{P}} .nx-tile.nx-t-open { background: var(--md-sys-color-primary-container); }
+{{P}} .nx-tile.nx-t-open small, {{P}} .nx-tile.nx-t-open b, {{P}} .nx-tile.nx-t-open span { color: var(--md-sys-color-on-primary-container); }
+{{P}} .nx-tile.nx-t-close { background: var(--md-sys-color-secondary-container); }
+{{P}} .nx-tile.nx-t-close small, {{P}} .nx-tile.nx-t-close b, {{P}} .nx-tile.nx-t-close span { color: var(--md-sys-color-on-secondary-container); }
+{{P}} .nx-tile.nx-t-warn { background: var(--nx-warn-container); }
+{{P}} .nx-tile.nx-t-warn small, {{P}} .nx-tile.nx-t-warn b, {{P}} .nx-tile.nx-t-warn span { color: var(--nx-on-warn-container); }
+
+{{P}} .nx-act-h { margin: 20px 8px 8px; font-size: 13px; line-height: 18px; font-weight: 650; letter-spacing: .4px; color: var(--md-sys-color-primary); }
+{{P}} .nx-card { margin: 0 0 4px; padding: 16px; list-style: none; border-radius: 24px; background: var(--md-sys-color-surface-container); }
+{{P}} .nx-act-empty, {{P}} .nx-act-error { display: flex; flex-direction: column; gap: 4px; padding: 18px 20px; font-size: 14px; line-height: 20px; color: var(--md-sys-color-on-surface-variant); }
+{{P}} .nx-act-empty b { font-size: 15px; color: var(--md-sys-color-on-surface); }
+{{P}} .nx-act-error b { font-size: 15px; color: var(--md-sys-color-error); }
+{{P}} .nx-act-error span { overflow-wrap: anywhere; }
+{{P}} .nx-sheet .nx-act-error button { flex: 0 0 auto; align-self: flex-start; margin-top: 10px; }
+{{P}} .nx-act-note { margin: 10px 4px 0; font-size: 12px; line-height: 18px; color: var(--md-sys-color-on-surface-variant); overflow-wrap: anywhere; }
+{{P}} .nx-card > .nx-act-note { margin: 10px 0 0; }
+
+/* commands per day: stacked bars (opening at the bottom, closing above it, the rest on top) */
+{{P}} .nx-bars { display: flex; align-items: flex-end; gap: 4px; height: 112px; }
+{{P}} .nx-col { flex: 1 1 0; min-width: 0; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; }
+{{P}} .nx-stack { display: flex; flex-direction: column; gap: 1px; min-height: 4px; overflow: hidden; border-radius: 6px; }
+{{P}} .nx-stack.nx-zero { height: 3px; background: var(--md-sys-color-outline-variant); opacity: .6; }
+{{P}} .nx-stack i { display: block; min-height: 0; }
+{{P}} .nx-b-open { background: var(--md-sys-color-primary); }
+{{P}} .nx-b-close { background: var(--md-sys-color-secondary); }
+{{P}} .nx-b-rest { background: var(--md-sys-color-outline-variant); }
+{{P}} .nx-axis { display: flex; gap: 4px; margin-top: 6px; }
+{{P}} .nx-axis small { flex: 1 1 0; text-align: center; font-size: 11px; line-height: 14px; color: var(--md-sys-color-on-surface-variant); }
+{{P}} .nx-axis small.nx-today { font-weight: 700; color: var(--md-sys-color-primary); }
+{{P}} .nx-axis-h { justify-content: space-between; gap: 0; }
+{{P}} .nx-axis-h small { flex: 0 0 auto; }
+{{P}} .nx-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 10px; font-size: 12px; line-height: 16px; color: var(--md-sys-color-on-surface-variant); }
+{{P}} .nx-lg:before { content: ''; display: inline-block; width: 10px; height: 10px; margin-right: 6px; border-radius: 3px; vertical-align: -1px; background: var(--nx-lg-color); }
+{{P}} .nx-lg-open { --nx-lg-color: var(--md-sys-color-primary); }
+{{P}} .nx-lg-close { --nx-lg-color: var(--md-sys-color-secondary); }
+{{P}} .nx-lg-rest { --nx-lg-color: var(--md-sys-color-outline-variant); }
+
+/* who */
+{{P}} .nx-whos { display: grid; gap: 12px; margin: 0 0 4px; }
+{{P}} .nx-whos li { display: grid; grid-template-columns: minmax(72px, 30%) 1fr auto; align-items: center; gap: 12px; }
+{{P}} .nx-w-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; line-height: 20px; font-weight: 600; color: var(--md-sys-color-on-surface); }
+{{P}} .nx-w-bar { height: 10px; overflow: hidden; border-radius: 5px; background: var(--md-sys-color-surface-container-highest); }
+{{P}} .nx-w-bar i { display: block; height: 100%; border-radius: 5px; background: var(--md-sys-color-primary); }
+{{P}} .nx-whos b { min-width: 2ch; text-align: right; font-size: 14px; line-height: 20px; font-variant-numeric: tabular-nums; color: var(--md-sys-color-on-surface); }
+
+/* busy hours */
+{{P}} .nx-hours { display: flex; align-items: flex-end; gap: 2px; height: 64px; }
+{{P}} .nx-hours i { flex: 1 1 0; min-width: 0; min-height: 2px; border-radius: 3px 3px 0 0; background: var(--md-sys-color-outline-variant); }
+{{P}} .nx-hours i.nx-peak { background: var(--md-sys-color-primary); }
+
+/* the Wi-Fi module: the rows of the status sheet (.nx-fact) with a few more icons and the amber pill */
+{{P}} .nx-fi.nx-i-restart:before { -webkit-mask-image: var(--nx-i-refresh); mask-image: var(--nx-i-refresh); }
+{{P}} .nx-fi.nx-i-wifioff:before { -webkit-mask-image: var(--nx-i-wifi-off); mask-image: var(--nx-i-wifi-off); }
+{{P}} .nx-fi.nx-i-warn:before { -webkit-mask-image: var(--nx-i-warning); mask-image: var(--nx-i-warning); }
+{{P}} .nx-fact.nx-s-warn em { background: var(--nx-warn-container); color: var(--nx-on-warn-container); }
+
+/* history: grouped by day */
+{{P}} .nx-tl { display: block; padding: 6px 16px 12px; }
+{{P}} .nx-tl li { list-style: none; }
+{{P}} .nx-tl-day { padding: 12px 0 4px; font-size: 12px; line-height: 16px; font-weight: 650; letter-spacing: .3px; color: var(--md-sys-color-primary); }
+{{P}} .nx-tl-row { display: grid; grid-template-columns: 46px minmax(0, 1fr) auto; align-items: center; gap: 10px; min-height: 36px; font-size: 14px; line-height: 20px; }
+{{P}} .nx-tl-row time { font-variant-numeric: tabular-nums; color: var(--md-sys-color-on-surface-variant); }
+{{P}} .nx-tl-what { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; color: var(--md-sys-color-on-surface); }
+{{P}} .nx-tl-what:before { content: ''; display: inline-block; width: 8px; height: 8px; margin-right: 8px; border-radius: 50%; background: var(--md-sys-color-outline); }
+{{P}} .nx-k-open .nx-tl-what:before { background: var(--md-sys-color-primary); }
+{{P}} .nx-k-close .nx-tl-what:before { background: var(--md-sys-color-secondary); }
+{{P}} .nx-k-obstruction .nx-tl-what, {{P}} .nx-k-obstruction .nx-tl-what:before { color: var(--md-sys-color-error); }
+{{P}} .nx-k-obstruction .nx-tl-what:before { background: var(--md-sys-color-error); }
+{{P}} .nx-tl-who { max-width: 38vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; font-size: 13px; color: var(--md-sys-color-on-surface-variant); }
+{{P}} .nx-sheet button.nx-act-all { display: block; width: 100%; flex: none; margin: 8px 0 0; }
+{{P}} .nx-act-footer { grid-template-columns: 1fr; }

@@ -3,6 +3,7 @@
 #   skin     static check of the CSS (node)
 #   masker   masking of passwords in the LOG panel (node)
 #   jsdom    nx-patch.js in a simulated Angular/Cordova environment (node + jsdom: npm install)
+#   activity nx-activity.js: the statistics from the accessory's event log (node), and its sheet (jsdom)
 #   java     the logic of the native layer on a plain JVM, against android-all-10 (run ./get-tools.sh first)
 set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -19,6 +20,8 @@ if node -e "require('jsdom')" 2>/dev/null; then
 else
   echo "   skipped: jsdom is missing (npm install, or point NODE_PATH at a folder with node_modules/jsdom)"
 fi
+echo "== activity (nx-activity.js)"
+node test/activity.test.js | tail -1 || failed=1     # without jsdom it tests the statistics only and says so
 echo "== java (native layer)"
 if [ -f "$TOOLS/android-all-10.jar" ]; then
   T="$(mktemp -d)"; mkdir -p "$T/stubs" "$T/classes" "$T/test"

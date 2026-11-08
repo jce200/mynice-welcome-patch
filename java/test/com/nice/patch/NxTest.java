@@ -77,7 +77,7 @@ public class NxTest {
         is("routeLabel without destination and interface", "?", Nx.routeLabel(null, null));
         is("vpnRouteFor: invalid address", null, Nx.vpnRouteFor(null, new java.util.ArrayList<android.net.Network>(), "no-ip"));
         is("vpnRouteFor: no VPN networks", null, Nx.vpnRouteFor(null, new java.util.ArrayList<android.net.Network>(), "192.168.1.72"));
-        is("version", "nx-13", Nx.PATCH_VERSION);
+        is("version", "nx-14", Nx.PATCH_VERSION);
 
         // nx5: does the stored address fit the network? (only the pure calculation rule; the Android calls run on a phone)
         byte[] phone = { (byte) 192, (byte) 168, 1, 50 };

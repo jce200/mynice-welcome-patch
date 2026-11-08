@@ -272,8 +272,8 @@ man.replace_once(
 # update; with the same key the data of the app is preserved.
 yml_path = os.path.join(ROOT, "apktool.yml")
 yml = open(yml_path, encoding="utf-8", newline="").read()
-yml, n3 = re.subn(r"versionCode: \d+", "versionCode: 20201111", yml, count=1)
-yml, n4 = re.subn(r"versionName: \S+", "versionName: 2.2.0-nx13", yml, count=1)
+yml, n3 = re.subn(r"versionCode: \d+", "versionCode: 20201112", yml, count=1)
+yml, n4 = re.subn(r"versionName: \S+", "versionName: 2.2.0-nx14", yml, count=1)
 if n3 != 1 or n4 != 1:
     sys.exit("version number not found in apktool.yml")
 YML = (yml_path, yml)
