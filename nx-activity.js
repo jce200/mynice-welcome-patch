@@ -19,6 +19,7 @@
   var DAY = 86400000;
   var MAX_EVENTS = 5000;                   // more than this is not read (the newest are kept)
   var ECHO_MS = 5000;                      // the gate controller repeats a command it was given within this time as a movement of its own
+  var START_MS = 120000;                   // right after the accessory starts it cannot tell yet what the gate controller does: its reports are about the state
   var WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -142,6 +143,7 @@
         if (cmd.source !== 'busT4' && !cmd.echoed && cmd.kind === be.kind) { cmd.echoed = true; be.echo = true; echoes++; break; }
       }
     }
+    var raw = events;                                                                  // (all of them, the repeats of the gate controller too)
     events = events.filter(function (e) { return !e.echo; });
     var commands = events.filter(function (e) { return isCommand(e.kind); });
     var obstructions = events.filter(function (e) { return e.kind === 'obstruction'; });
@@ -198,18 +200,30 @@
       if (e.k === 'busfound') return;
       var h = health[e.k];
       if (e.k === 'restart') {
-        var again = lastRestart != null && e.t - lastRestart < 120000;
+        var again = lastRestart != null && e.t - lastRestart < START_MS;
         lastRestart = e.t;
         if (again) { h.last = e.t; return; }
         if (h.first == null) h.first = e.t;
       }
       // right after a start the module cannot see the gate controller yet ("T4 device not found", then "found"): that is not a fault
-      if (e.k === 'bus' && lastRestart != null && e.t - lastRestart < 120000) { h.atStart++; return; }
+      if (e.k === 'bus' && lastRestart != null && e.t - lastRestart < START_MS) { h.atStart++; return; }
       h.count++;
       h.last = e.t;
     });
-    // a restart after the last Block or Release command: whether the block survived it is not known
+    // a restart after the last Block or Release command: the log is forgotten at a restart, so a Release since then would not show
     if (block && health.restart.last != null && health.restart.last > block.t) block.uncertain = true;
+
+    // The newest movement that the gate controller itself reported (busT4: opening, closing, a step; a repeat of a command is the gate moving too), but
+    // not what it says while the accessory starts (that is its state, not a movement). A blocked automation does not move: such a movement after a
+    // Block means that the Block was lifted, also when the Release itself is not in the log (it is forgotten at a restart, or it was never seen).
+    var starts = mevents.filter(function (e) { return e.k === 'restart'; }).map(function (e) { return e.t; });
+    var DRIVES = { open: 1, close: 1, step: 1 }, drive = null;
+    for (i = 0; i < raw.length && !drive; i++) {
+      var dv = raw[i], atStart = false;
+      if (dv.source !== 'busT4' || !DRIVES[dv.kind]) continue;
+      for (k = 0; k < starts.length; k++) if (dv.t >= starts[k] && dv.t - starts[k] < START_MS) atStart = true;
+      if (!atStart) drive = { t: dv.t, kind: dv.kind, type: dv.type };
+    }
 
     // how far back the log goes (all events with a usable time)
     var span = null, lo = null, hi = null;
@@ -221,7 +235,7 @@
 
     return { now: now, events: events, commands: commands, obstructions: obstructions, days: days, hours: hours,
       peak: peak >= 0 ? { hour: peak, count: peakCount } : null, byWho: byWho, totals: totals, last: last, health: health, span: span, skipped: skipped,
-      hasModuleEvents: moduleTimes.length > 0, echoes: echoes, lastMovement: lastMovement, block: block, logStart: logStart };
+      hasModuleEvents: moduleTimes.length > 0, echoes: echoes, lastMovement: lastMovement, block: block, drive: drive, logStart: logStart };
   }
 
   // the line on the accessory screen: the last command, when and by whom (now: the moment of showing it, so that "just now" does not stay
@@ -253,7 +267,13 @@
     if (bl && bl.blocked) {
       h.push('<div class="nx-card nx-act-block nx-blocked"><i class="nx-block-icon" aria-hidden="true"></i><div><b>Blocked' + (bl.uncertain ? '?' : '') + '</b><span>since ' +
         esc(when(bl.t, now)) + ' \u00b7 ' + esc(label(bl.type)) + (bl.who ? ' \u00b7 ' + esc(bl.who) : '') + '</span><em>The last Block command, not a measurement: a block that was lifted at ' +
-        'the gate controller itself is not seen here.' + (bl.uncertain ? ' The accessory restarted after it, and whether a block survives that is not known.' : '') + '</em></div></div>');
+        'the gate controller itself is not seen here.' + (bl.uncertain ? ' The accessory restarted after it and forgot its log, so a Release since then would not show here. ' +
+        'If the gate moves, it is not blocked: then this goes away.' : '') + '</em></div></div>');
+    } else if (bl && bl.inferred) {
+      h.push('<div class="nx-card nx-act-block"><i class="nx-block-icon" aria-hidden="true"></i><div><b>Not blocked, as far as the log shows</b><span>the gate moved ' +
+        esc(when(bl.t, now)) + ' \u00b7 ' + esc(label(bl.type)) + (bl.who ? ' \u00b7 ' + esc(bl.who) : '') + ', after the Block of ' + esc(when(bl.since, now)) +
+        '</span><em>A blocked automation does not move, so the Block was lifted since. The Release itself is not in the log (for instance because the accessory restarted ' +
+        'and forgot it, or it was given by an app that the log does not show).</em></div></div>');
     } else if (bl) {
       h.push('<div class="nx-card nx-act-block"><i class="nx-block-icon" aria-hidden="true"></i><div><b>Not blocked, as far as the log shows</b><span>last Release command ' +
         esc(when(bl.t, now)) + ' \u00b7 ' + esc(label(bl.type)) + (bl.who ? ' \u00b7 ' + esc(bl.who) : '') + '</span></div></div>');
@@ -491,6 +511,7 @@
         cache[mac] = { at: Date.now(), a: a, raw: res, sig: sig };
         if (failures[mac] && quiet) log('activity: the log can be read again');
         failures[mac] = 0; failedAt[mac] = 0; retried[mac] = false;
+        remember(device);
         if (!quiet || changed) {
           log('activity: ' + a.events.length + ' device events, ' + (a.span ? a.span.count - a.events.length : 0) + ' module events, ' +
             (a.span ? 'back ' + a.span.days + ' days' : 'no usable times') + (a.skipped ? ', ' + a.skipped + ' without a time' : '') + why);
@@ -544,11 +565,35 @@
       var mine = readBlock()[mac], c = cache[mac], lg = c && c.a && c.a.block, best = null;
       var hasMine = !!mine && typeof mine.at === 'number';
       var logKnows = hasMine && !!lg && c.at >= mine.at + LOGGED_MS && lg.t >= mine.at - SKEW_MS;
-      if (hasMine && (!lg || (mine.at >= lg.t && !logKnows))) best = { blocked: !!mine.blocked, t: mine.at, type: mine.code, who: mine.who || '', uncertain: false };
-      else if (lg) best = { blocked: lg.blocked, t: lg.t, type: lg.type, who: lg.who, uncertain: !!lg.uncertain };
+      if (hasMine && (!lg || (mine.at >= lg.t && !logKnows))) {
+        best = { blocked: !!mine.blocked, t: mine.at, type: mine.code, who: mine.who || '', uncertain: false };
+        if (mine.inferred) { best.inferred = true; best.since = mine.since; }
+      } else if (lg) best = { blocked: lg.blocked, t: lg.t, type: lg.type, who: lg.who, uncertain: !!lg.uncertain };
+      // A blocked automation does not move. When the gate controller reported a movement after the Block (and after the movement that the Block
+      // itself may have started: "Open and Block"), the Block was lifted since, by whoever and however: the Release is not always in the log (it is
+      // forgotten when the accessory restarts, and not every app shows up in it). That is what a gate that Home Assistant opens, and that then
+      // closes by itself, says about a "Blocked" that is still on the screen.
+      var drive = c && c.a && c.a.drive;
+      if (best && best.blocked && drive && drive.t > best.t + TRAVEL_MS) {
+        best = { blocked: false, t: drive.t, type: drive.type, who: 'Gate controller', uncertain: false, inferred: true, since: best.t };
+      }
       var restarted = c && c.a && c.a.health.restart.last;
-      if (best && restarted != null && restarted > best.t) best.uncertain = true;      // the accessory restarted after it: not known whether the block survived
+      if (best && restarted != null && restarted > best.t) best.uncertain = true;      // the accessory restarted after it: a Release since then would not be in the log
       return best;
+    }
+    // What is known about blocking is kept with this phone's own commands. The log is forgotten when the accessory restarts, and a Block that was
+    // lifted in the meantime (by the official app, say) would otherwise come back from this phone's old record as if it still held.
+    function remember(device) {
+      try {
+        var mac = device && device.mac, b = mac && blockInfo(device);
+        if (!b) return;
+        var all = readBlock(), mine = all[mac], rec = { blocked: !!b.blocked, at: b.t, code: b.type, who: b.who || '' };
+        if (b.inferred) { rec.inferred = true; rec.since = b.since; }
+        if (mine && mine.blocked === rec.blocked && mine.at === rec.at && mine.code === rec.code && !!mine.inferred === !!rec.inferred) return;
+        all[mac] = rec;
+        writeBlock(all);
+        log('block: kept ' + (rec.blocked ? 'blocked' : 'not blocked') + ' (' + (rec.inferred ? 'the gate moved after the Block' : 'from the log') + ')');
+      } catch (e) { log('activity', String(e)); }
     }
     function sinceText(t) { var w = when(t, Date.now()); return w.indexOf('today ') === 0 ? w.slice(6) : w; }
     // the pill on the accessory screen ('' when there is nothing to say)

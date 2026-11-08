@@ -25,7 +25,7 @@ MAC = '00:0B:6C:AA:BB:CC'
 DETAIL = f'#/tabs/favorites-device-detail/1/{MAC}'
 
 # the shapes that the native layer (Nx.netState / Nx.probe) returns; shim.js has the same defaults
-NET = {'version': 'nx-16', 'sdk': 37, 'wifi': True, 'ssid': 'HomeWifi', 'ip': '192.168.1.172', 'validated': True, 'cellular': False,
+NET = {'version': 'nx-17', 'sdk': 37, 'wifi': True, 'ssid': 'HomeWifi', 'ip': '192.168.1.172', 'validated': True, 'cellular': False,
        'vpn': False, 'module': False, 'defaultType': 'wifi', 'route': 'local', 'routeAgeSeconds': 4}
 CLOUD_OK = {'ok': True, 'dns': '63.182.6.157', 'dnsMs': 12, 'tcpMs': 60}
 STATES = {

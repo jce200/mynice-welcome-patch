@@ -85,9 +85,10 @@
   // { deviceId: '1', source: 'CTRL-ANNA-0001', type: 'MDEw', time: Date.now() }); CFG.activityTimes: the times of the readings in the background
   // of nx-activity.js in milliseconds, for example { "PollMs": 3000, "ResumeMs": 500 } (the same names as window.__nxActivity<Name>)
   Object.keys(CFG.activityTimes || {}).forEach(function (k) { window['__nxActivity' + k] = CFG.activityTimes[k]; });
+  // window.__logsOverride: the whole answer ({ interfaceLogs, deviceLogs }), for a script that builds a log relative to "now" (a restart an hour ago, ...)
   function activityAnswer() {
     if (CFG.activity === 'error') return { fail: { code: 3 } };
-    var data = CFG.logs || (CFG.activity === 'none' ? { interfaceLogs: [], deviceLogs: [] } : sampleLogs(CFG.activity === 'blocked'));
+    var data = window.__logsOverride || CFG.logs || (CFG.activity === 'none' ? { interfaceLogs: [], deviceLogs: [] } : sampleLogs(CFG.activity === 'blocked'));
     if (window.__extraLogs && window.__extraLogs.length) data = { interfaceLogs: data.interfaceLogs, deviceLogs: data.deviceLogs.concat(window.__extraLogs) };
     return CFG.activity === 'slow' ? { delay: 4000, then: data } : data;
   }
@@ -132,14 +133,14 @@
     'NetworkStatus.getConnectionInfo': function () { return 'wifi'; },
     'Globalization.getPreferredLanguage': function () { return { value: CFG.lang || 'en-US' }; },
     'Globalization.getLocaleName': function () { return { value: CFG.lang || 'en-US' }; },
-    'Nx.version': function () { return 'nx-16'; },
+    'Nx.version': function () { return 'nx-17'; },
     'Nx.logStream': function () { return { keep: true, none: true }; },
     'Nx.setHints': function () { return {}; },
     'Nx.release': function () { return {}; },
     'Nx.reconnect': function () { return {}; },
     'Nx.checkSucceeded': function () { return {}; },
     'Nx.checkFailed': function () { return {}; },
-    'Nx.netState': function () { return CFG.net || { version: 'nx-16', sdk: 37, wifi: true, ssid: 'HomeWifi', ip: '192.168.1.172', validated: true, cellular: false, vpn: false, module: false, defaultType: 'wifi', route: 'local', routeAgeSeconds: 4 }; },
+    'Nx.netState': function () { return CFG.net || { version: 'nx-17', sdk: 37, wifi: true, ssid: 'HomeWifi', ip: '192.168.1.172', validated: true, cellular: false, vpn: false, module: false, defaultType: 'wifi', route: 'local', routeAgeSeconds: 4 }; },
     'Nx.probe': function () { return CFG.probe || { ok: true, tcpMs: 14, tlsMs: 380, bound: true, cloud: { ok: true, dns: '63.182.6.157', dnsMs: 12, tcpMs: 20 } }; }
   };
   function answer(callbackId, r) {

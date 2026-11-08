@@ -1,8 +1,49 @@
 # Details and history
 
 This is the technical background to the [README.md](../README.md): why every change exists, with the diagnoses that led to them
-(nx3 through nx16: the project's build numbers). The example values (Wi-Fi `HomeWifi`, accessory `NiceIT4WIFIAABBCC`, user
+(nx3 through nx17: the project's build numbers). The example values (Wi-Fi `HomeWifi`, accessory `NiceIT4WIFIAABBCC`, user
 `homeuser`) stand in for whatever is different in your case. The data in this document comes from one phone and one IT4WIFI module.
+
+## What is new in nx17 (a gate that moves is not blocked)
+
+nx17 has version code 20201115 and installs over nx16 when it is signed with the same key. Nothing changed in the network layer
+(the native layer only reports `nx-17` as its version). Only `nx-activity.js` changed in the app (and the test harness).
+
+**What was reported.** On nx16 the screen said *Closing*, the line *Close · just now · Gate controller* and the pill *Blocked? · since 12:00*, after Home
+Assistant had opened the gate and the gate had closed by itself (as it should). Nobody had blocked it "this time": the Block of 12:00 was a test with
+*Open and Block* in this app, released two minutes later with the official app.
+
+**Why.** Two things came together, and both were reproduced in the harness (`harness/steps-stale.cjs`) with the nx16 build:
+- This phone's record of the Block (`nxBlock` in `localStorage`, from nx15, which survives an update) was never corrected: the Release of the official
+  app was only ever going to show in the accessory's log, and the accessory had restarted since (hence the question mark), which empties its log. With
+  no Release in the log, the old record held for good.
+- Nothing used what the gate itself says. The pill and the movement contradicted each other on the same screen.
+
+**A gate that moves is not blocked.** A blocked automation ignores every command until a Release (that is why there are commands such as *Release and
+Close*). So when the gate controller reports a movement after a Block, the Block was lifted since, whoever lifted it, and also when the Release is
+not in the log (forgotten at a restart, or given by an app that the log does not show):
+- `analyze()` has `drive`: the newest movement that the gate controller itself reported (`busT4`: open, close or a step; the repeat of a phone command
+  is the gate moving too). A command that the controller did not repeat is not a movement (a blocked gate would ignore it), nor are a stop, an
+  obstruction or a Block, nor what the controller says in the two minutes after the accessory started (that is its state; it reports a `stop` then).
+- `blockInfo()` turns "blocked" into "not blocked" when `drive` is more than 150 seconds (the travel time) after the Block: the movement that
+  *Open and Block* itself starts must not lift it. The result is marked `inferred`, with the time of the Block it lifted. The pill is gone, the line says
+  what happened last, and the sheet says *Not blocked, as far as the log shows · the gate moved today 13:54 · Close · Gate controller, after the Block of
+  today 12:00*, with the reason.
+- The sheet's note for the question mark says what it means: the accessory restarted after the Block and forgot its log, so a Release since then would
+  not show; it goes away as soon as the gate moves.
+
+**What is known about blocking is kept** (`remember()`, after every reading): the newest answer of `blockInfo()` (a command of this phone, a Block or Release in the
+log, or the lifting by a movement) is written to `nxBlock` when it differs from what is there. So an old record can no longer come back when the accessory
+restarts and forgets its log: with the Release of the official app seen once, or the movement seen once, the next restart leaves it as it is. A Block of
+another phone is kept too (after a restart it shows as *Blocked?*). The LOG says `block: kept not blocked (the gate moved after the Block)` or `... (from the log)`, once.
+
+**What is not known.** That a blocked automation ignores every command is what the commands (*Release and Close*, *Release and Open*) imply, and what the Nice
+documentation says of the Block; it was not tried on the accessory. If a blocked gate does move for some command, the pill would be hidden wrongly for
+the time of that movement. A Block that nobody released and that nothing has moved since still shows (with a question mark after a restart). It
+was run in the harness (`harness/steps-stale.cjs`: the record of 3 hours ago, a restart an hour ago, Home Assistant opening and the gate closing by itself) and in the tests.
+
+Tests: `test/activity.test.js` has 288 checks (256 in nx16; new: `drive`, the lifting by a movement with its margins, the start-up window, what is kept, the
+texts); the changes were also checked by breaking the code on purpose (eleven changes, each seen by a test).
 
 ## What is new in nx16 (the pill and the line follow what other apps do with the gate)
 
@@ -168,7 +209,7 @@ what is needed to adjust the labels to what a real accessory sends.
 **What it cannot do.** It shows the commands that the accessory logged, not every movement of the gate: whether a remote control or a key
 switch shows up depends on what the accessory logs (the source `busT4`). The times are the accessory's clock. It was written without the log
 of a real accessory in hand, from the model in the app. `harness/shim.js` has a made-up log (`CFG.activity`, `CFG.logs`) and
-`harness/steps-activity.cjs` taps through it; `test/activity.test.js` has 256 checks (the statistics without a browser, the sheet and the readings in the background in jsdom),
+`harness/steps-activity.cjs` taps through it; `test/activity.test.js` has 288 checks (the statistics without a browser, the sheet and the readings in the background in jsdom),
 run in five time zones.
 
 ## What is new in nx13 (a log that keeps the lines that matter, and clearer messages when approving a user)
@@ -295,7 +336,7 @@ too (for example the plugin action `versie` is `version` now, the JSON key `gebo
 find in older notes or logs may differ.
 nx10 has version code 20201108 and installs over nx9 when it is signed with the same key.
 
-## Where does the app work? (nx16)
+## Where does the app work? (nx17)
 
 The app talks to the accessory in two ways: directly at its address on your home network (discovery via mDNS, then TLS on port 443;
 if mDNS fails, the IP safety net tries the saved address), and through the Nice cloud (`it4wifi.cloud.nice.niceappdomain.com`, port 7890)
@@ -505,7 +546,7 @@ Every patch checks that its anchor text occurs exactly once, so a different APK 
 | `skin/` | `nx-expressive.css` (the result that goes into the app) and `fonts-nx/`; the source is in `skin/src/`: `skin.css` (the app), `status.css` (the status sheet), `activity.css` (the activity sheet and its line), `tokens.css` (colors and spring curves, generated by `src/tools/build-tokens.mjs`), `shapes.json` (the polygons for the shapes, all 144 points), `build-css.py` assembles them. Edit the source and run `python3 skin/src/build-css.py`, never edit the result |
 | `harness/` | `screens.cjs` runs the real app (unpacked from the APK: `unzip -o <apk> "assets/www/*"`, next to the script as a folder `www`) in headless Chromium with a simulated Cordova bridge (`shim.js`) and takes screenshots of every page (light, and with `COLOR_SCHEME=dark` also dark, `PRE=` for an action such as `NX.diagnose()`, `CFG=` for a different network state); `sweep.sh` does 25 screens and makes a contact sheet; `make-screenshots.py` redoes the pictures in `docs/screenshots`. Requires Node with `playwright` and Python with PIL |
 | `get-tools.sh`, `test-all.sh` | downloading the tools with a SHA-256 check, and all tests in one go |
-| `test/` and `java/test/` | the tests (jsdom: `NODE_PATH=<folder with node_modules/jsdom> node test/nxpatch.test.js`, 256 checks; `node test/masker.test.js`; `node test/activity.test.js`, 256 checks of the activity statistics, the state, the readings in the background and the sheet; `node test/skin.test.js` checks the CSS itself: no placeholders, braces, every variable defined, all shapes with the same number of points, icons, font and prefix) |
+| `test/` and `java/test/` | the tests (jsdom: `NODE_PATH=<folder with node_modules/jsdom> node test/nxpatch.test.js`, 256 checks; `node test/masker.test.js`; `node test/activity.test.js`, 288 checks of the activity statistics, the state, the readings in the background and the sheet; `node test/skin.test.js` checks the CSS itself: no placeholders, braces, every variable defined, all shapes with the same number of points, icons, font and prefix) |
 
 ## Signing key
 

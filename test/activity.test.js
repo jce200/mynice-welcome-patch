@@ -154,11 +154,27 @@ const REAL = {
   const raw = A.rawText(REAL, NOW2);
   ok('real log: the raw text has "-" where idx is missing, never "undefined"', raw.indexOf('undefined') === -1 && /\| 4\/-/.test(raw));
 
-  // a restart after the Block command: whether the block survived is not known
+  // a restart after the Block command: the log is forgotten, a Release since then would not show
   const later = JSON.parse(JSON.stringify(REAL));
   later.interfaceLogs.push({ source: 'boot', type: 'Power ON', time: D(8, 11, 0, 0), id: '9' });
   const al = A.analyze(later, USERS, NOW2);
-  ok('a restart after the Block command makes it uncertain', al.block.blocked === true && al.block.uncertain === true && /<b>Blocked\?<\/b>/.test(A.renderHtml(al, label)) && /whether a block survives that is not known/.test(A.renderHtml(al, label)));
+  ok('a restart after the Block command makes it uncertain', al.block.blocked === true && al.block.uncertain === true && /<b>Blocked\?<\/b>/.test(A.renderHtml(al, label)) && /forgot its log, so a Release since then would not show here/.test(A.renderHtml(al, label)));
+  // a movement that the gate controller reported: the newest busT4 open, close or step; not what it says in the two minutes after a start
+  const mv = (devs, mods) => A.analyze({ deviceLogs: devs, interfaceLogs: mods || [] }, USERS, NOW2);
+  const m0 = D(8, 10, 0), BT = (type, t) => ({ source: 'busT4', type: type, time: t });
+  const d1 = mv([BT('open', m0), BT('close', m0 + 60000)]);
+  ok('drive: the newest movement that the gate controller reported', d1.drive && d1.drive.t === m0 + 60000 && d1.drive.kind === 'close' && d1.drive.type === 'close');
+  ok('drive: the repeat of a phone command counts (the gate moved)', mv([{ source: 'CTRL-ANNA-0001', type: 'MDBk', time: m0 }, BT('open', m0 + 1000)]).drive.t === m0 + 1000);
+  ok('drive: a command that the controller did not repeat does not (a blocked gate ignores it)', mv([{ source: 'CTRL-ANNA-0001', type: 'open', time: m0 }]).drive === null);
+  ok('drive: a stop, an obstruction and a Block are no movement', mv([BT('stop', m0), BT('obstruction', m0 + 1000), BT('MDBm', m0 + 2000)]).drive === null);
+  ok('drive: a step counts', mv([BT('MDAx', m0)]).drive.kind === 'step');
+  ok('drive: nothing, or no log', mv([]).drive === null && A.analyze(undefined, [], NOW2).drive === null);
+  const started = [{ source: 'boot', type: 'Power ON', time: m0 - 3600000 }];     // the accessory started an hour earlier
+  ok('drive: what the controller says in the two minutes after a start is its state, not a movement', mv([BT('open', m0 - 3600000 + 30000)], started).drive === null &&
+    mv([BT('open', m0 - 3600000 + 30000), BT('close', m0)], started).drive.t === m0 && mv([BT('open', m0 - 3600000 + 130000)], started).drive.t === m0 - 3600000 + 130000);
+  const lifted = A.renderHtml(d1, label, { block: { blocked: false, t: m0 + 60000, type: 'close', who: 'Gate controller', inferred: true, since: m0 - 7200000, uncertain: false } });
+  ok('html: a Block that the movement of the gate lifted says so, with the time of both', /Not blocked, as far as the log shows/.test(lifted) &&
+    /the gate moved today 10:01 \u00b7 Close \u00b7 Gate controller, after the Block of today 08:00/.test(lifted) && /A blocked automation does not move/.test(lifted) && lifted.indexOf('nx-blocked') === -1, lifted.slice(0, 400));
   // released afterwards
   const rel = JSON.parse(JSON.stringify(REAL));
   rel.deviceLogs.push({ source: 'CTRL-BEN-00002', type: 'MDEw', time: D(8, 10, 55, 0), id: '6' });
@@ -847,6 +863,102 @@ const REAL = {
     later.w.Date.now = () => t0 + 100000;
     await read(later);
     ok('block: a Release some time after it ends it (and says by whom)', later.$rootScope.nxBlock(later.dev) === '' && later.act.blockInfo(later.dev).who === 'Ben');
+  }
+  // ---------------------------------------------------------------- a Block that was lifted without this app seeing it
+  const MAC = '00:0B:6C:AA:BB:CC';
+  {
+    // The reported case. This phone gave "Open and Block" at 12:00 (the record that an earlier version kept), someone released it with the official app,
+    // the accessory restarted and forgot its log, and then Home Assistant opened the gate and the gate closed by itself. A blocked gate does not move.
+    const t0 = D(7, 12, 0), rec = { [MAC]: { blocked: true, at: t0, code: 'MDBk', who: 'Anna' } };
+    const logs = { interfaceLogs: [{ source: 'boot', type: 'Power ON', time: D(7, 13, 0) }, { source: 'boot', type: 'T4 device found', time: D(7, 13, 0, 31) }],
+      deviceLogs: [{ source: 'busT4', type: 'stop', time: D(7, 13, 0, 32) }, { source: 'HA-CONTROLLER-9', type: 'open', time: D(7, 13, 52) },
+        { source: 'busT4', type: 'open', time: D(7, 13, 52, 1) }, { source: 'busT4', type: 'close', time: D(7, 13, 54) }] };
+    const scen = { storage: { nxBlock: JSON.stringify(rec) }, logs };
+    const env = await environment(scen);
+    env.w.Date.now = () => D(7, 13, 54, 20);
+    ok('lifted: before the log is read the record of this phone says blocked', env.$rootScope.nxBlock(env.dev) === 'Blocked · since 12:00');
+    await read(env);
+    const bi = env.act.blockInfo(env.dev);
+    ok('lifted: the gate moved after the Block (opened, then closed by itself): not blocked', env.$rootScope.nxBlock(env.dev) === '' && bi.blocked === false && bi.inferred === true, JSON.stringify(bi));
+    ok('lifted: ...with the time of the movement, the time of the Block, and who reported it', bi.t === D(7, 13, 54) && bi.since === t0 && bi.who === 'Gate controller' && bi.type === 'close', JSON.stringify(bi));
+    ok('lifted: ...and the line says what happened last', env.$rootScope.nxLast(env.dev) === 'Close · just now · Gate controller', env.$rootScope.nxLast(env.dev));
+    const kept = JSON.parse(env.w.localStorage.getItem('nxBlock'))[MAC];
+    ok('lifted: ...and it is kept (the record of this phone no longer says blocked)', kept.blocked === false && kept.inferred === true && kept.at === D(7, 13, 54) && kept.since === t0, JSON.stringify(kept));
+    ok('lifted: ...and the LOG says so', env.logs.indexOf('block: kept not blocked (the gate moved after the Block)') > -1, env.logs.join(' | '));
+    scen.logs = { interfaceLogs: [{ source: 'boot', type: 'Power ON', time: D(7, 14, 0) }], deviceLogs: [] };        // the next restart forgets the log; nothing has moved yet
+    env.w.Date.now = () => D(7, 14, 5);
+    await read(env);
+    ok('lifted: a later restart that forgets the log does not bring the old Block back', env.$rootScope.nxBlock(env.dev) === '' && env.act.blockInfo(env.dev).blocked === false);
+    env.act.open(env.dev); await sleep(60);
+    ok('lifted: ...and the sheet still tells why it is not blocked (the kept record knows the movement and the Block)', /the gate moved today 13:54 · Close · Gate controller, after the Block of today 12:00/.test(env.body().textContent), env.body().textContent.slice(0, 160));
+    env.act.close(); await sleep(450);
+    scen.logs = { deviceLogs: [{ source: 'CTRL-BEN-00002', type: 'MDBm', time: D(7, 14, 30) }] };
+    env.w.Date.now = () => D(7, 14, 40);
+    await read(env);
+    ok('lifted: a Block after that counts again (and says by whom)', env.$rootScope.nxBlock(env.dev) === 'Blocked · since 14:30' && env.act.blockInfo(env.dev).who === 'Ben' && !env.act.blockInfo(env.dev).inferred, JSON.stringify(env.act.blockInfo(env.dev)));
+    env.act.onCommand(env.dev, 'MDEw', 'executeSecondaryCommand');
+    env.act.onCommand(env.dev, 'MDBm', 'executeSecondaryCommand');
+    ok('lifted: ...and so does a Block that this phone gives, with the old movement behind it', env.$rootScope.nxBlock(env.dev) === 'Blocked · since just now');
+    const sheet = await environment({ storage: { nxBlock: JSON.stringify(rec) }, logs });
+    sheet.w.Date.now = () => D(7, 14, 20);
+    sheet.act.open(sheet.dev); await sleep(60);
+    const text = sheet.body().textContent;
+    ok('lifted: the sheet says it too, and why', /Not blocked, as far as the log shows/.test(text) && /the gate moved today 13:54 · Close · Gate controller, after the Block of today 12:00/.test(text) && /A blocked automation does not move/.test(text), text.slice(0, 200));
+  }
+  {
+    // the movement that the Block itself starts does not lift it; a later one does
+    const t0 = D(7, 12, 0), rec = { [MAC]: { blocked: true, at: t0, code: 'MDBk', who: 'Anna' } };
+    const own = (extra) => ({ storage: { nxBlock: JSON.stringify(rec) }, logs: { deviceLogs: [{ source: 'CTRL-ANNA-0001', type: 'MDBk', time: t0 + 500 }, { source: 'busT4', type: 'open', time: t0 + 1500 }].concat(extra) } });
+    const soon = await environment(own([{ source: 'busT4', type: 'open', time: t0 + 60000 }]));
+    soon.w.Date.now = () => t0 + 300000;
+    await read(soon);
+    ok('lifted: a movement a minute after "Open and Block" is the end of its own (the gate takes time): still blocked', soon.$rootScope.nxBlock(soon.dev) === 'Blocked · since 12:00', soon.$rootScope.nxBlock(soon.dev));
+    const later = await environment(own([{ source: 'busT4', type: 'close', time: t0 + 200000 }]));
+    later.w.Date.now = () => t0 + 300000;
+    await read(later);
+    ok('lifted: a movement more than two minutes after it is a new one: not blocked', later.$rootScope.nxBlock(later.dev) === '' && later.act.blockInfo(later.dev).inferred === true && later.act.blockInfo(later.dev).since === t0 + 500, JSON.stringify(later.act.blockInfo(later.dev)));
+    // what the controller says right after the accessory started is its state
+    const start = await environment({ storage: { nxBlock: JSON.stringify(rec) }, logs: { interfaceLogs: [{ source: 'boot', type: 'Power ON', time: D(7, 13, 0) }], deviceLogs: [{ source: 'busT4', type: 'open', time: D(7, 13, 0, 40) }] } });
+    start.w.Date.now = () => D(7, 13, 30);
+    await read(start);
+    ok('lifted: a report of the controller right after the accessory started is no movement: "Blocked?" stays', start.$rootScope.nxBlock(start.dev) === 'Blocked? · since 12:00', start.$rootScope.nxBlock(start.dev));
+    // a Block that another phone gave, and a movement after it
+    const other = await environment({ logs: { deviceLogs: [{ source: 'CTRL-BEN-00002', type: 'MDBm', time: D(7, 10, 0) }, { source: 'busT4', type: 'close', time: D(7, 11, 0) }] } });
+    other.w.Date.now = () => D(7, 11, 5);
+    await read(other);
+    ok('lifted: it works for a Block of another phone too', other.$rootScope.nxBlock(other.dev) === '' && other.act.blockInfo(other.dev).since === D(7, 10, 0));
+    const stepper = await environment({ logs: { deviceLogs: [{ source: 'CTRL-BEN-00002', type: 'MDBm', time: D(7, 10, 0) }, { source: 'busT4', type: 'MDAx', time: D(7, 11, 0) }] } });
+    await read(stepper);
+    ok('lifted: a step by step movement lifts it', stepper.$rootScope.nxBlock(stepper.dev) === '');
+    const quiet = await environment({ logs: { deviceLogs: [{ source: 'CTRL-BEN-00002', type: 'MDBm', time: D(7, 10, 0) }, { source: 'CTRL-ANNA-0001', type: 'open', time: D(7, 11, 0) }, { source: 'busT4', type: 'stop', time: D(7, 11, 30) }] } });
+    await read(quiet);
+    ok('lifted: a command that the controller did not carry out (no movement of its own), or a stop, does not lift it', quiet.$rootScope.nxBlock(quiet.dev) === 'Blocked · since 10:00', quiet.$rootScope.nxBlock(quiet.dev));
+  }
+  {
+    // What the log says is kept with this phone's commands: an old record must not come back when the accessory restarts and forgets its log
+    const scen = { storage: { nxBlock: JSON.stringify({ [MAC]: { blocked: true, at: D(7, 9, 0), code: 'MDBk', who: 'Anna' } }) }, logs: { deviceLogs: [{ source: 'CTRL-BEN-00002', type: 'MDEw', time: D(7, 10, 0) }] } };
+    const env = await environment(scen);
+    await read(env);
+    const kept = JSON.parse(env.w.localStorage.getItem('nxBlock'))[MAC];
+    ok('kept: a Release in the log, after this phone\'s Block, is kept in its place', env.$rootScope.nxBlock(env.dev) === '' && kept.blocked === false && kept.at === D(7, 10, 0) && kept.code === 'MDEw' && kept.who === 'Ben' && !kept.inferred, JSON.stringify(kept));
+    await read(env);
+    ok('kept: ...and it is written once, not at every reading', env.logs.filter((l) => /^block: kept /.test(l)).length === 1, env.logs.filter((l) => /^block: kept /.test(l)).join(' | '));
+    scen.logs = { interfaceLogs: [{ source: 'boot', type: 'Power ON', time: D(7, 11, 0) }], deviceLogs: [] };       // the accessory restarts and forgets its log
+    await read(env);
+    ok('kept: ...so that after a restart that forgets the log the old Block does not come back', env.$rootScope.nxBlock(env.dev) === '' && env.act.blockInfo(env.dev).blocked === false);
+    const b = { logs: { deviceLogs: [{ source: 'CTRL-BEN-00002', type: 'MDBm', time: D(7, 10, 0) }] } };
+    const eb = await environment(b);
+    await read(eb);
+    ok('kept: a Block of another phone is kept too', JSON.parse(eb.w.localStorage.getItem('nxBlock'))[MAC].blocked === true && eb.$rootScope.nxBlock(eb.dev) === 'Blocked · since 10:00');
+    b.logs = { interfaceLogs: [{ source: 'boot', type: 'Power ON', time: D(7, 11, 0) }], deviceLogs: [] };
+    await read(eb);
+    ok('kept: ...and after the accessory has restarted it is still shown, with the question mark', eb.$rootScope.nxBlock(eb.dev) === 'Blocked? · since 10:00', eb.$rootScope.nxBlock(eb.dev));
+    const none = await environment({ logs: { deviceLogs: [{ source: 'CTRL-ANNA-0001', type: 'open', time: D(7, 10, 0) }] } });
+    await read(none);
+    ok('kept: a log without Block or Release keeps nothing', none.w.localStorage.getItem('nxBlock') === null && none.logs.every((l) => !/^block: kept/.test(l)));
+    const same = await environment({ storage: { nxBlock: JSON.stringify({ [MAC]: { blocked: true, at: D(7, 9, 0), code: 'MDBk', who: 'Anna' } }) }, logs: { deviceLogs: [] } });
+    await read(same);
+    ok('kept: what this phone gave and the log does not know (yet) stays as it was', JSON.parse(same.w.localStorage.getItem('nxBlock'))[MAC].at === D(7, 9, 0) && same.logs.every((l) => !/^block: kept/.test(l)));
   }
   {
     // no accessory

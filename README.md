@@ -57,8 +57,9 @@ Expressive look (light and dark).
 
 - **Blocked, and a state that is out of date.** The accessory has no state for "blocked", so no Nice app shows it. The last Block or Release
   command (from this phone, and from every phone and schedule in the accessory's log) now shows as a pill "Blocked · since 09:37" under the state,
-  with a question mark when the accessory has restarted since (whether a block survives that is not known). It is the last command and not a
-  measurement: do not rely on it as security. It follows what other apps do: the official app, another phone or the schedule that blocks or
+  with a question mark when the accessory has restarted since (its log is forgotten at a restart, so a Release since then would not show). It is the
+  last command and not a measurement: do not rely on it as security. A gate that moves is not blocked: when the gate controller reports a movement
+  after the Block (Home Assistant opens the gate and it closes by itself, say), the pill goes away. It follows what other apps do: the official app, another phone or the schedule that blocks or
   releases the gate shows up here too, because the accessory's log is read again when the gate moves, when this app comes back to the front,
   and every 30 seconds while the accessory screen is open (a plain Block or Release moves nothing, so only the log can tell). And when the
   accessory still reports "opening" or "closing" long after the movement
@@ -101,7 +102,7 @@ This way you don't have to trust a binary from someone else, and the app is sign
 ```
 ./get-tools.sh                               # once: downloads apktool and friends into ./tools, checked on SHA-256
 ./build.sh /path/to/MyNiceWelcome_2.2.0.apk
-# result: out/MyNiceWelcome_2.2.0_nx16.apk
+# result: out/MyNiceWelcome_2.2.0_nx17.apk
 ```
 
 The first build creates **your own signing key** in `keys/` (with a random password in `keys/password.txt`). Keep that folder
