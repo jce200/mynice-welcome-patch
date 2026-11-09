@@ -18,6 +18,9 @@ accessories whose official app no longer works on their phone, and it may be rem
 Whether you may install or pass on that file is between you and the rights holder; if in doubt, build the app yourself from an APK you
 are entitled to use (see the README).
 
+**The license of this repository.** The MIT license in [LICENSE](LICENSE) covers the files in this repository. It does not cover, and does
+not grant any rights to, the Nice / MyNice Welcome app that these scripts patch.
+
 ## Included third-party material
 
 | What | Where | License |
