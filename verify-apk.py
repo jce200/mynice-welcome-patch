@@ -6,7 +6,8 @@
   3. the manifest contains CHANGE_NETWORK_STATE and the plugin Nx is in config.xml
   3a. (nx18/nx20) the logo as the adaptive icon, the small icon of the notifications and the splash screens (patch-16); with the original APK as a second argument also that the
       launcher icons for Android 7 and older are still the original ones
-  3b. (nx9) the skin, the font and the hook points in index.html, nx-patch.js and debuglog.js; (nx21) the seven palettes and the choice in the settings
+  3b. (nx9) the skin, the font and the hook points in index.html, nx-patch.js and debuglog.js; (nx21) the seven palettes and the choice in the settings; (nx22) the 35 shapes and the
+      components of Material 3 Expressive in the CSS, and the page Settings > Design
   4. package, version and signature (v2/v3)
 Usage: python verify-apk.py <apk> [original.apk]   (run with the androguard venv)"""
 import os
@@ -233,6 +234,24 @@ with zipfile.ZipFile(path) as z:
         errors.append('nx-theme.js does not apply the palette before the first paint (nx21)')
     if '#93000a' in css.lower():
         errors.append('nx-expressive.css still has the saturated deep red of Material as a color (nx21: the error container is a wine red)')
+    # nx22: Material 3 Expressive as a reference: the 35 shapes, the components, the loading indicator and the wavy progress in the CSS, and the page Settings > Design (patch-17)
+    shapes22 = re.findall(r'--nx-v-([a-z0-9]+):\s*polygon\(', css)
+    if len(shapes22) != 35 or len(set(shapes22)) != 35 or any(n in shapes22 for n in ('cookie', 'sun', 'star')):
+        errors.append('nx-expressive.css has %d shapes, not the 35 of Material 3 Expressive (nx22)' % len(shapes22))
+    for m in ('.m3e-btn', '.m3e-icon-btn', '.m3e-fab', '.m3e-fabm', '.m3e-slider', '.m3e-switch', '.m3e-progress', '.m3e-loader', '.m3e-list', '.m3e-toolbar', '.m3e-chip', '.m3e-menu',
+              '@keyframes m3e-morph', '@keyframes m3e-turn', '--nx-wave-40', '--nx-wave-20', '--nx-spatial-fast', '--nx-effects', '--nx-loader-spring', '.nx-gal-scroll'):
+        if m not in css:
+            errors.append('nx-expressive.css does not have %s (nx22)' % m)
+    if '--nx-spring' in css:
+        errors.append('nx-expressive.css still has a spring of before nx22 (--nx-spring)')
+    gal22 = text('assets/www/js/nx-gallery.js')
+    if 'NxGallery' not in gal22 or 'js/nx-gallery.js' not in idx or idx.index('js/nx-gallery.js') > idx.index('js/nx-patch.js'):
+        errors.append('nx-gallery.js is missing or index.html does not load it before nx-patch.js (patch-17, nx22)')
+    set22 = text('assets/www/templates/settings/settings.html')
+    if 'nxGallery' not in set22 or 'nx-design-row' not in set22 or set22.index('nx-palette-row') > set22.index('nx-design-row'):
+        errors.append('settings.html has no row Design behind the colors (patch-17, nx22)')
+    if "$rootScope.nxGallery = function" not in js:
+        errors.append('nx-patch.js does not offer nxGallery (nx22)')
     # nx14: the activity sheet: its script (loaded before nx-patch.js), the line on the accessory screen, its styles
     if 'js/nx-activity.js' not in idx or idx.index('js/nx-activity.js') > idx.index('js/nx-patch.js'):
         errors.append('index.html does not load nx-activity.js before nx-patch.js')

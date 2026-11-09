@@ -25,6 +25,8 @@ are entitled to use (see the README).
 | Roboto Flex (variable font, Latin subset) | `skin/fonts-nx/` (license text next to it) | SIL Open Font License 1.1 |
 | Material Design icon paths (as inline SVG masks) | `skin/src/build-css.py` | Apache License 2.0, Google |
 | Color values generated with `@material/material-color-utilities` (build time only; the library itself is not included) | `skin/src/tokens.css`, `skin/src/tools/` | Apache License 2.0, Google |
+| The geometry of the 35 shapes of Material 3 Expressive (`MaterialShapes` and `androidx.graphics.shapes`: the coordinates and rounding values of the vertices and the way a rounded corner is built), ported to Python and sampled as polygons of 144 points. An independent port, not a copy of the Kotlin code. | `skin/src/tools/build-shapes.py`, `skin/src/shapes.json` | Apache License 2.0, The Android Open Source Project |
+| The numbers of the Material 3 Expressive components: sizes, corner radii, spaces and type styles (`androidx.compose.material3` tokens such as `ButtonLargeTokens`, `FabMediumTokens`, `SliderTokens`, `ListTokens`, `TypeScaleTokens`) and the damping and stiffness of the six springs of the expressive motion scheme (`ExpressiveMotionTokens`), and the shape sequence and timing of the loading indicator and of the wavy progress indicator. Written as CSS; no Kotlin code is included. | `skin/src/m3e.css`, `skin/src/tools/build-tokens.mjs`, `skin/src/build-css.py`, `nx-gallery.js` | Apache License 2.0, The Android Open Source Project |
 
 The look follows Google's Material 3 (Expressive) design guidelines. No Google code is included beyond the items above.
 

@@ -444,6 +444,10 @@
         log('palette', id);
       } catch (e) { log('palette', String(e)); }
     };
+    // Settings > Design: the page of Material 3 Expressive (nx-gallery.js, patch-17); without that script there is no function, and the row is not shown
+    if (window.NxGallery && typeof window.NxGallery.open === 'function') {
+      $rootScope.nxGallery = function () { try { window.NxGallery.open(); log('gallery', 'open'); } catch (e) { log('gallery', String(e)); } };
+    }
     $rootScope.nxExtra = extraCodes;
     $rootScope.nxQuickHas = function (device, code) { return quickCodes(device).indexOf(code) >= 0; };
     $rootScope.nxQuickToggle = quickToggle;
@@ -1159,7 +1163,7 @@
       panel.setAttribute('aria-modal', 'true');
       panel.setAttribute('aria-label', 'Accessory status');
       panel.innerHTML =
-        '<div class="nx-handle"><div class="nx-progress"></div></div>' +
+        '<div class="nx-handle"><div class="nx-progress m3e-progress m3e-indet" aria-hidden="true"><i></i><b></b></div></div>' +
         '<div class="nx-head"><div class="nx-shape" aria-hidden="true"><span class="nx-glyph"></span></div>' +
         '<div class="nx-text"><div class="nx-title" id="nx-sheet-title"></div></div></div>' +
         '<div class="nx-explanation" id="nx-sheet-explanation"></div>' +

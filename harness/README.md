@@ -4,7 +4,7 @@ Runs the real app, unpacked from an APK, in headless Chromium with a simulated C
 page. This is how the look was checked without a phone. It needs Node with `playwright` (and Python with PIL for `sweep.sh`).
 
 ```
-unzip -o MyNiceWelcome_2.2.0_nx21.apk "assets/www/*" -d tmp && mv tmp/assets/www harness/www
+unzip -o MyNiceWelcome_2.2.0_nx22.apk "assets/www/*" -d tmp && mv tmp/assets/www harness/www
 cd harness
 node screens.cjs my-folder '#/tabs/favorites' '#/tabs/favorites-device-detail/1/00:0B:6C:AA:BB:CC'   # -> shots/my-folder/*.png
 COLOR_SCHEME=dark node screens.cjs ...            # dark mode
@@ -33,6 +33,11 @@ SCRIPT=steps-stale.cjs node screens.cjs stale '#/tabs/favorites'
 CFG='{"verifyScript":["fail","fail","fail","fail","fail","fail","ok"],"verifyDelay":1500}' SCRIPT=steps-connecting.cjs node screens.cjs connecting '#/tabs/favorites'
                                                    # nx18: "Connecting…" while the app tries again: Checking… -> three failures -> Not usable -> the screen is entered again ->
                                                    # Connecting… (and the chip) -> ... -> the state. verifyScript: the outcomes of the successive attempts, verifyDelay: how long one takes
+PRE='NxGallery.open()' PREWAIT=2500 node screens.cjs gal '#/tabs/settings/false'
+                                                   # nx22: the page Settings > Design (scroll it with PRE='NxGallery.open(); setTimeout(function () { document.querySelector(".nx-gal-scroll").scrollTop =
+                                                   # document.getElementById("nx-gal-buttons").offsetTop - 8; }, 800)'; the parts: shapes, motion, buttons, icons, groups, split, fab, progress, sliders, switches,
+                                                   # toolbars, lists, type, color). Animations can be paused at a moment of your choice (make-screenshots.py does that for the loading indicator):
+                                                   # document.getAnimations().forEach(function (a) { a.pause(); a.currentTime = 900; })
 VIEW=360x640 node screens.cjs ...                  # another window size, in CSS pixels (default 412x915)
 SCRIPT=steps.cjs node screens.cjs name '#/...'     # steps.cjs: module.exports = async (page, { goto, wait, shot }) => { ... }, e.g. to tap
                                                    # (use page.locator(...).tap(): Ionic ignores a synthetic click())

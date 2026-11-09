@@ -3,7 +3,7 @@
 Patch scripts that turn **your own copy** of the *MyNice Welcome* 2.2.0 Android app (`com.nice.nhk`) into a build that works on
 modern Android (10 and newer) with **Nice IT4WIFI** modules (Robus and other gate and garage-door openers). It also fixes the
 app's trouble with VPNs and mobile data, adds a connection-status sheet with a real diagnosis, and gives the app a Material 3
-Expressive look (light and dark).
+Expressive look (light and dark), with a page inside the app that shows every part of that design as a working example.
 
 > **Unofficial, and not affiliated with Nice S.p.A.** The source tree of this repository contains **no Nice binaries**: you can
 > build the patched app yourself, from an APK you obtained yourself, or take the prebuilt APK from the
@@ -78,8 +78,22 @@ Expressive look (light and dark).
   icon of the app you patch (only 192 px) and rebuilds it as a gradient and two shapes, so that it can be drawn sharp at every size, without the light fringe of the original file.
   The launcher icons for Android 7 and older stay what they were. See [docs/DETAILS.md](docs/DETAILS.md).
 
-- **A new look.** Material 3 Expressive: lists as cards, one color family for the surfaces and the buttons, a gate icon that
-  changes shape with its state, in a light and a dark version; it is a CSS layer, and no function of the app changed.
+- **A new look: Material 3 Expressive, with the real numbers.** The skin is made of the parts of M3 Expressive with the sizes, corners and springs of Google's own tokens (`androidx.compose.material3`): buttons in
+  five sizes (Open and Close on the accessory screen are a connected button group of 96 dp, 136 dp on a tall screen, and the state of the gate is the button that is round all over), corners that morph when you
+  press and when you select, segmented lists (2 dp apart, 4 dp inside, 16 dp at the ends), a switch with a check in the thumb, springs for every movement (with overshoot for what changes shape, without for color),
+  and the 35 expressive shapes: the hero of the accessory screen is a cookie when the gate is closed, a flower when it is open, a clover when it is stopped and a burst when it is obstructed, and **while the gate moves
+  (or the app connects) it is the loading indicator of M3 Expressive**, a shape that morphs through seven shapes while it turns; the spinners of the app are that too. It is a CSS layer, and no function of the app changed.
+
+  ![The accessory screen: closed, opening (the loading indicator), open, stopped and obstructed, light above dark](docs/screenshots/m3e-states.png)
+
+- **Settings > Design: Material 3 Expressive as an example.** A page in the app that shows every part of the design as something you can press, drag and switch: the 35 shapes (tap one and the big shape morphs into it), the six
+  springs, buttons in five sizes and five styles (round and square, toggles that change shape), icon buttons, standard and connected button groups, the split button and its menu, the FAB and the FAB menu that unfolds, the
+  loading indicator, wavy progress (determinate, flat and indeterminate), sliders in five sizes with a value bubble, switches, chips, floating and docked toolbars, a segmented list, the type scale with the emphasized styles, and
+  the color roles of the palette you chose, which you can change on that page too. It is built with the very stylesheet of the app, so what the page shows is what the screens are made of, and every example has the numbers of the
+  tokens and the class names under it. Meant as a reference for anyone who wants to use Material 3 Expressive in a web view: [docs/DETAILS.md](docs/DETAILS.md) tells where each part lives (`skin/src/m3e.css`).
+
+  ![Settings > Design: shapes, buttons, groups, loading and progress, sliders; light above dark](docs/screenshots/m3e.png)
+
 - **Seven palettes to choose from.** Settings > Appearance > *Colors*: *Midnight* (the default: the blue of the Nice logo, on navy in the dark theme), *Nice blue*, *Graphite*, *Paper*,
   *Violet*, *Pine* and *Ember*; one tap and the whole app follows. The error color is a wine red instead of Material's saturated deep red, so that *Stop* and the red chip no longer
   shout. The text keeps its contrast in every palette (4.8:1 at the lowest; the tests check it). The splash screen has the colors of the default palette.
@@ -118,7 +132,7 @@ This way you don't have to trust a binary from someone else, and the app is sign
 ```
 ./get-tools.sh                               # once: downloads apktool and friends into ./tools, checked on SHA-256
 ./build.sh /path/to/MyNiceWelcome_2.2.0.apk
-# result: out/MyNiceWelcome_2.2.0_nx21.apk
+# result: out/MyNiceWelcome_2.2.0_nx22.apk
 ```
 
 The first build creates **your own signing key** in `keys/` (with a random password in `keys/password.txt`). Keep that folder
@@ -143,8 +157,8 @@ npm install            # only for the jsdom tests
 ./test-all.sh
 ```
 
-That runs the checks of `nx-patch.js` in a simulated Angular/Cordova environment (jsdom), the log masking, the CSS itself, and the
-logic of the native layer on a plain JVM. What no test can show: how the patched app behaves on a real phone, a real VPN or your
+That runs the checks of `nx-patch.js` in a simulated Angular/Cordova environment (jsdom), the log masking, the CSS itself (among them every number of the Material 3 Expressive
+components against the tokens it comes from), the page Settings > Design in jsdom, and the logic of the native layer on a plain JVM. What no test can show: how the patched app behaves on a real phone, a real VPN or your
 accessory. I developed it against one phone and one IT4WIFI module, diagnosing from that phone's logs.
 
 `harness/` can also run the app's screens in headless Chromium with a simulated Cordova bridge and take screenshots (that is how
@@ -159,7 +173,8 @@ Three layers, applied by the `patch-*.py` scripts to the unpacked app:
 2. **A native layer** `com.nice.patch` (`java/src`, compiled to a second dex): `Nx` (network state, probes, local-or-cloud choice,
    the socket fallback), `NxWifi` (joining the accessory's Wi-Fi) and `NxPlugin` (the Cordova bridge to JavaScript).
 3. **A JavaScript layer** in the WebView: `nx-patch.js` (status chip and sheet, diagnosis, user approval, automatic recovery),
-   `debuglog.js` (the log) and the skin in `skin/` (generated from `skin/src/` by `build-css.py`; change the source, not the result).
+   `debuglog.js` (the log), `nx-gallery.js` (the page Settings > Design) and the skin in `skin/` (generated from `skin/src/` by `build-css.py`; change the source, not the result:
+   `m3e.css` is the library of Material 3 Expressive components, `shapes.json` the 35 shapes that `tools/build-shapes.py` makes).
 
 The full notes, with the diagnoses that led to each fix, are in [docs/DETAILS.md](docs/DETAILS.md).
 
@@ -168,7 +183,7 @@ The full notes, with the diagnoses that led to each fix, are in [docs/DETAILS.md
 - Only version 2.2.0 (90) of the app. Newer builds need new anchors.
 - On a network that uses the same address range as your home (192.168.1.x at someone else's house) the app tries the home address
   first, so the cloud route is not tried there.
-- The skin uses CSS `:has()` and spring easing (`linear()`): fully visible from Android System WebView 113; an older WebView loses
+- The skin uses CSS `:has()`, spring easing (`linear()`), `@property`, `color-mix()` and container query units: fully visible from Android System WebView 113; an older WebView loses
   some shapes and animations, not the function.
 - The app's own screens follow the phone's language (the app ships 17 languages). The texts this patch adds (status chip and sheet,
   diagnosis, approval popup, error messages) are English only; translations are welcome, the strings are in `nx-patch.js`.

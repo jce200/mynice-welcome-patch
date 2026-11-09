@@ -13,7 +13,7 @@
   position: fixed; left: 16px; right: 16px; bottom: calc(var(--nx-tabs-h) + 16px); z-index: 2147483645; margin: 0 auto; max-width: 440px; box-sizing: border-box;
   padding: 14px 20px; border-radius: 16px; background: var(--md-sys-color-inverse-surface); color: var(--md-sys-color-inverse-on-surface);
   font-size: 14px; line-height: 20px; font-weight: 500; text-align: left; box-shadow: 0 4px 16px rgba(0,0,0,.28);
-  animation: nx-snack-in var(--nx-spring-ms) var(--nx-spring) both;
+  animation: nx-snack-in var(--nx-spatial-ms) var(--nx-spatial) both;
 }
 @keyframes nx-snack-in { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
 
@@ -27,17 +27,16 @@
   padding: 0 16px 0;
   background: var(--md-sys-color-surface-container-low); color: var(--md-sys-color-on-surface);
   border-radius: 28px 28px 0 0; box-shadow: 0 -4px 24px rgba(0,0,0,.22);
-  transform: translateY(105%); transition: transform var(--nx-spring-slow-ms) var(--nx-spring-slow);
+  transform: translateY(105%); transition: transform var(--nx-spatial-slow-ms) var(--nx-spatial-slow);
   font-size: 14px; line-height: 20px; text-align: left;
 }
 {{P}} .nx-sheet.nx-open { transform: translateY(0); }
 {{P}} .nx-sheet * { box-sizing: border-box; }
 {{P}} .nx-handle { position: sticky; top: 0; z-index: 2; display: flex; justify-content: center; padding: 14px 0 10px; margin: 0 -16px; background: var(--md-sys-color-surface-container-low); border-radius: 28px 28px 0 0; }
 {{P}} .nx-handle:before { content: ''; width: 36px; height: 4px; border-radius: 2px; background: var(--md-sys-color-outline-variant); }
-{{P}} .nx-progress { position: absolute; left: 0; right: 0; top: 0; height: 4px; overflow: hidden; border-radius: 28px 28px 0 0; opacity: 0; transition: opacity var(--nx-effects-ms) var(--nx-effects); pointer-events: none; z-index: 3; }
+/* while the sheet is busy (the diagnosis or the log is being read) the wavy progress indicator of M3E runs along the top (m3e.css: .m3e-progress.m3e-indet) */
+{{P}} .nx-progress.m3e-progress { position: absolute; left: 28px; right: 28px; top: 2px; width: auto; opacity: 0; transition: opacity var(--nx-effects-ms) var(--nx-effects); pointer-events: none; z-index: 3; }
 {{P}} .nx-sheet.nx-busy .nx-progress { opacity: 1; }
-{{P}} .nx-progress:before { content: ''; position: absolute; top: 0; bottom: 0; width: 40%; border-radius: 2px; background: var(--md-sys-color-primary); animation: nx-progress 1.3s var(--nx-effects) infinite; }
-@keyframes nx-progress { from { left: -40%; } to { left: 100%; } }
 
 /* header: a shape that morphs per state, with the outcome as text beside it */
 {{P}} .nx-head { display: flex; align-items: center; gap: 16px; padding: 6px 4px 14px; }
@@ -47,27 +46,28 @@
 }
 {{P}} .nx-shape:before {
   content: ''; position: absolute; inset: 0; background: var(--nx-shape-bg); clip-path: var(--nx-v-circle);
-  transition: clip-path var(--nx-spring-bouncy-ms) var(--nx-spring-bouncy), background-color var(--nx-effects-ms) var(--nx-effects);
+  transition: clip-path var(--nx-spatial-fast-ms) var(--nx-spatial-fast), background-color var(--nx-effects-ms) var(--nx-effects);
   animation: nx-spin 40s linear infinite;
 }
 {{P}} .nx-shape .nx-glyph { position: relative; width: 34px; height: 34px; background: var(--nx-shape-fg); -webkit-mask: var(--nx-i-wifi) center / contain no-repeat; mask: var(--nx-i-wifi) center / contain no-repeat; }
 {{P}} .nx-l-ok .nx-shape { --nx-shape-bg: var(--nx-ok-container); --nx-shape-fg: var(--nx-on-ok-container); }
-{{P}} .nx-l-ok .nx-shape:before { clip-path: var(--nx-v-cookie); }
+{{P}} .nx-l-ok .nx-shape:before { clip-path: var(--nx-v-cookie9); }
 {{P}} .nx-l-ok.nx-via-cloud .nx-shape:before { clip-path: var(--nx-v-flower); }
 {{P}} .nx-l-ok.nx-via-cloud .nx-glyph { -webkit-mask-image: var(--nx-i-cloud); mask-image: var(--nx-i-cloud); }
 {{P}} .nx-l-info .nx-shape { --nx-shape-bg: var(--md-sys-color-primary-container); --nx-shape-fg: var(--md-sys-color-on-primary-container); }
-{{P}} .nx-l-info .nx-shape:before { clip-path: var(--nx-v-cookie); }
+{{P}} .nx-l-info .nx-shape:before { clip-path: var(--nx-v-cookie9); }
 {{P}} .nx-l-warn .nx-shape { --nx-shape-bg: var(--nx-warn-container); --nx-shape-fg: var(--nx-on-warn-container); }
-{{P}} .nx-l-warn .nx-shape:before { clip-path: var(--nx-v-sun); }
+{{P}} .nx-l-warn .nx-shape:before { clip-path: var(--nx-v-sunny); }
 {{P}} .nx-l-warn .nx-glyph { -webkit-mask-image: var(--nx-i-warning); mask-image: var(--nx-i-warning); }
 {{P}} .nx-l-bad .nx-shape { --nx-shape-bg: var(--md-sys-color-error-container); --nx-shape-fg: var(--md-sys-color-on-error-container); }
-{{P}} .nx-l-bad .nx-shape:before { clip-path: var(--nx-v-star); animation-duration: 14s; }
+{{P}} .nx-l-bad .nx-shape:before { clip-path: var(--nx-v-burst); animation-duration: 14s; }
 {{P}} .nx-l-bad .nx-glyph { -webkit-mask-image: var(--nx-i-wifi-off); mask-image: var(--nx-i-wifi-off); }
 {{P}} .nx-l-unknown .nx-shape, {{P}} .nx-l-busy .nx-shape { --nx-shape-bg: var(--md-sys-color-secondary-container); --nx-shape-fg: var(--md-sys-color-on-secondary-container); }
-{{P}} .nx-l-unknown .nx-shape:before, {{P}} .nx-l-busy .nx-shape:before { clip-path: var(--nx-v-sun); }
+{{P}} .nx-l-unknown .nx-shape:before, {{P}} .nx-l-busy .nx-shape:before { clip-path: var(--nx-v-sunny); }
 {{P}} .nx-l-unknown .nx-glyph, {{P}} .nx-l-busy .nx-glyph { -webkit-mask-image: var(--nx-i-refresh); mask-image: var(--nx-i-refresh); }
-{{P}} .nx-l-busy .nx-shape:before { animation-duration: 4s; }
-@media (prefers-reduced-motion: reduce) { {{P}} .nx-shape:before, {{P}} .nx-progress:before { animation: none !important; } }
+/* busy: the shape is the loading indicator of M3E (it morphs through seven shapes while it turns) */
+{{P}} .nx-l-busy .nx-shape:before { clip-path: var(--nx-v-softburst); animation: m3e-morph 18200ms var(--nx-loader-spring) infinite, m3e-turn 4666ms linear infinite; }
+@media (prefers-reduced-motion: reduce) { {{P}} .nx-shape:before { animation: none !important; } }
 
 {{P}} .nx-text { min-width: 0; }
 {{P}} .nx-title { font-size: 22px; line-height: 28px; font-weight: 650; letter-spacing: -0.1px; color: var(--md-sys-color-on-surface); overflow-wrap: anywhere; font-variation-settings: 'wdth' 105; }
@@ -80,7 +80,7 @@
 {{P}} .nx-node { flex: 0 0 auto; width: 76px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 4px; }
 {{P}} .nx-node b { font-size: 13px; line-height: 16px; font-weight: 650; color: var(--md-sys-color-on-surface); }
 {{P}} .nx-node small { font-size: 11px; line-height: 14px; color: var(--md-sys-color-on-surface-variant); overflow-wrap: anywhere; max-width: 76px; }
-{{P}} .nx-nodeicon { width: 52px; height: 52px; border-radius: 18px; background: var(--md-sys-color-secondary-container); display: grid; place-items: center; transition: border-radius var(--nx-spring-ms) var(--nx-spring); }
+{{P}} .nx-nodeicon { width: 52px; height: 52px; border-radius: 18px; background: var(--md-sys-color-secondary-container); display: grid; place-items: center; transition: border-radius var(--nx-spatial-ms) var(--nx-spatial); }
 {{P}} .nx-nodeicon:before { content: ''; width: 26px; height: 26px; background: var(--md-sys-color-on-secondary-container); -webkit-mask: var(--nx-i-gate) center / contain no-repeat; mask: var(--nx-i-gate) center / contain no-repeat; }
 {{P}} .nx-nodeicon.nx-i-phone:before { -webkit-mask-image: var(--nx-i-phone); mask-image: var(--nx-i-phone); }
 {{P}} .nx-nodeicon.nx-i-cloud:before { -webkit-mask-image: var(--nx-i-cloud); mask-image: var(--nx-i-cloud); }
@@ -122,26 +122,26 @@
 {{P}} .nx-details { margin: 0 0 12px; border-radius: 24px; background: var(--md-sys-color-surface-container); overflow: hidden; }
 {{P}} .nx-details > summary { list-style: none; display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; font-size: 15px; line-height: 20px; font-weight: 600; color: var(--md-sys-color-on-surface); cursor: pointer; }
 {{P}} .nx-details > summary::-webkit-details-marker { display: none; }
-{{P}} .nx-details > summary:after { content: ''; width: 24px; height: 24px; background: var(--md-sys-color-on-surface-variant); -webkit-mask: var(--nx-i-expand) center / contain no-repeat; mask: var(--nx-i-expand) center / contain no-repeat; transition: transform var(--nx-spring-fast-ms) var(--nx-spring-fast); }
+{{P}} .nx-details > summary:after { content: ''; width: 24px; height: 24px; background: var(--md-sys-color-on-surface-variant); -webkit-mask: var(--nx-i-expand) center / contain no-repeat; mask: var(--nx-i-expand) center / contain no-repeat; transition: transform var(--nx-spatial-fast-ms) var(--nx-spatial-fast); }
 {{P}} .nx-details[open] > summary:after { transform: rotate(180deg); }
 {{P}} .nx-details pre { margin: 0; padding: 4px 20px 18px; font: 12px/1.5 ui-monospace, 'Roboto Mono', monospace; white-space: pre-wrap; word-break: break-word; color: var(--md-sys-color-on-surface-variant); -webkit-user-select: text; user-select: text; background: transparent; }
 
 /* actions: a compact row of tonal buttons, and at the bottom a fixed footer (stays visible with a long explanation) with Close and Reconnect */
 {{P}} .nx-more { display: flex; flex-wrap: wrap; gap: 8px; padding: 4px 0 16px; }
+/* the buttons of the sheets are M3E buttons (m3e.css): size S, tonal; the footer ones size M */
 {{P}} .nx-sheet button {
-  flex: 1 1 auto; min-width: 0; height: 44px; padding: 0 18px; border: 0; border-radius: 22px; font: inherit; font-size: 14px; font-weight: 650; letter-spacing: 0.1px;
-  background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); cursor: pointer;
-  transition: border-radius var(--nx-spring-fast-ms) var(--nx-spring-fast), transform var(--nx-spring-fast-ms) var(--nx-spring-fast), opacity var(--nx-effects-ms) var(--nx-effects);
+  --_h: 40px; --_pad: 18px; --_gap: 8px; --_icon: 20px; --_pr: 8px; --_fs: 14px; --_lh: 20px; --_fw: 500; --_ls: 0.1px;
+  --_bg: var(--md-sys-color-secondary-container); --_fg: var(--md-sys-color-on-secondary-container);
+  flex: 1 1 auto; min-width: 0;
 }
-{{P}} .nx-sheet button:active { border-radius: 14px; transform: scale(0.97); }
 {{P}} .nx-sheet button[disabled] { opacity: .5; pointer-events: none; }
 {{P}} .nx-footer {
   position: sticky; bottom: 0; z-index: 2; display: grid; grid-template-columns: 1fr 2fr; gap: 8px; margin: 0 -16px; padding: 12px 16px calc(16px + env(safe-area-inset-bottom, 0px));
   background: var(--md-sys-color-surface-container-low);
 }
-{{P}} .nx-footer button { height: 56px; border-radius: 28px; font-size: 15px; }
-{{P}} .nx-footer button.nx-primary { background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); font-size: 16px; }
-{{P}} .nx-footer button.nx-text { background: var(--md-sys-color-surface-container-high); color: var(--md-sys-color-on-surface); }
+{{P}} .nx-footer button { --_h: 56px; --_pad: 24px; --_pr: 12px; --_fs: 16px; --_lh: 24px; --_ls: 0.15px; }
+{{P}} .nx-footer button.nx-primary { --_bg: var(--md-sys-color-primary); --_fg: var(--md-sys-color-on-primary); }
+{{P}} .nx-footer button.nx-text { --_bg: var(--md-sys-color-surface-container-high); --_fg: var(--md-sys-color-on-surface); }
 
 /* the LOG button (z-index 2147483647 in debuglog.js) belongs below the sheet and its scrim */
 {{P}} #nx-log-button { z-index: 2147483000 !important; }

@@ -1,0 +1,85 @@
+/* gallery.css (nx22): the layout of the page Settings > Design (nx-gallery.js). The parts themselves (buttons, sliders, lists ...) come from m3e.css; this is only the page around them:
+ * a full-screen layer with a top bar, sections with a title and a card per example, and the small things that belong to the examples (the grid of shapes, the springs, the roles). */
+{{P}} .nx-gal {
+  position: fixed; inset: 0; z-index: 2147483500; display: none; flex-direction: column; box-sizing: border-box;
+  background: var(--md-sys-color-surface); color: var(--md-sys-color-on-surface);
+  opacity: 0; transform: translateY(32px) scale(.96); transform-origin: 50% 100%;
+  transition: opacity var(--nx-effects-ms) var(--nx-effects), transform var(--nx-spatial-ms) var(--nx-spatial);
+}
+{{P}} .nx-gal.nx-open { opacity: 1; transform: none; }
+{{P}} .nx-gal :where(h1, h2, h3, p) { margin: 0; padding: 0; text-transform: none; }
+{{P}} .nx-gal-bar { flex: 0 0 auto; display: flex; align-items: center; gap: 10px; height: var(--nx-bar-h); padding: 12px 14px; box-sizing: border-box; background: var(--md-sys-color-surface); }
+{{P}} .nx-gal-title { min-width: 0; display: flex; flex-direction: column; }
+{{P}} .nx-gal-title h1 { font-weight: 600; font-size: 26px; line-height: 32px; letter-spacing: -.2px; font-variation-settings: 'wdth' 105; }
+{{P}} .nx-gal-title span { color: var(--md-sys-color-on-surface-variant); }
+{{P}} .nx-gal-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding: 0 16px 48px; }
+
+/* the top: the hero shape, a line of explanation, the theme and the colors, the chips that jump to a part */
+{{P}} .nx-gal-hero { display: grid; place-items: center; padding: 4px 0 12px; color: var(--md-sys-color-primary); }
+{{P}} .nx-gal-heroshape { --s: 120px; }
+{{P}} .nx-gal-back { flex: 0 0 auto; }
+{{P}} .nx-gal-lead { margin: 0 4px 16px; color: var(--md-sys-color-on-surface-variant); }
+{{P}} .nx-gal-intro .nx-swatches { margin-top: 4px; }
+{{P}} .nx-gal-jump { display: flex; gap: 8px; overflow-x: auto; margin: 16px -16px 0; padding: 4px 16px 8px; scrollbar-width: none; }
+{{P}} .nx-gal-jump::-webkit-scrollbar { display: none; }
+{{P}} .nx-gal-jump .m3e-chip { flex: 0 0 auto; }
+
+/* sections and cards */
+{{P}} .nx-gal-sec { margin-top: 36px; scroll-margin-top: 8px; }
+{{P}} .nx-gal-sec > h2 { margin: 0 4px 4px; }
+{{P}} .nx-gal-blurb { margin: 0 4px 14px; color: var(--md-sys-color-on-surface-variant); }
+{{P}} .nx-gal-card { margin: 0 0 8px; padding: 16px; border-radius: 28px; background: var(--md-sys-color-surface-container-low); box-sizing: border-box; }
+{{P}} .nx-gal-intro > .nx-gal-card { margin-top: 0; }
+{{P}} .nx-gal-name { margin: 0 0 12px; color: var(--md-sys-color-on-surface-variant); }
+{{P}} .nx-gal-card > .nx-gal-name:not(:first-child) { margin-top: 16px; }
+{{P}} .nx-gal-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+{{P}} .nx-gal-col > .nx-gal-row { flex-direction: column; align-items: stretch; gap: 16px; }
+{{P}} .nx-gal-tall > .nx-gal-row { min-height: 232px; align-items: flex-start; }
+{{P}} .nx-gal-spec { margin: 14px 0 0; color: var(--md-sys-color-on-surface-variant); font-family: ui-monospace, 'Roboto Mono', monospace !important; font-size: 11px; line-height: 16px; letter-spacing: 0; overflow-wrap: anywhere; opacity: .92; }
+{{P}} .nx-gal-item { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; max-width: 100%; }
+{{P}} .nx-gal-item > .m3e-slider { align-self: stretch; }
+{{P}} .nx-gal-item > small { color: var(--md-sys-color-on-surface-variant); padding-left: 4px; }
+{{P}} .nx-gal-gap { height: 4px; }
+{{P}} .nx-gal-card .m3e-group { max-width: 100%; }
+
+/* shapes */
+{{P}} .nx-gal-morph { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+{{P}} .nx-gal-bigshape { width: 128px; height: 128px; background: var(--md-sys-color-primary); transition: clip-path var(--nx-spatial-ms) var(--nx-spatial); }
+{{P}} .nx-gal-code { color: var(--md-sys-color-on-surface-variant); font: 500 13px/20px ui-monospace, 'Roboto Mono', monospace !important; }
+{{P}} .nx-gal-shapes { display: grid; grid-template-columns: repeat(auto-fill, minmax(46px, 1fr)); gap: 2px; width: 100%; }
+{{P}} .nx-gal-shape { display: block; width: 100%; aspect-ratio: 1; padding: 6px; margin: 0; border: 0; border-radius: 14px; background: transparent; cursor: pointer; -webkit-tap-highlight-color: transparent;
+  transition: transform var(--nx-spatial-fast-ms) var(--nx-spatial-fast); }
+{{P}} .nx-gal-shape .m3e-shape { width: 100%; height: 100%; background: var(--md-sys-color-secondary-container); transition: background-color var(--nx-effects-ms) var(--nx-effects); }
+{{P}} .nx-gal-shape[aria-selected="true"] .m3e-shape { background: var(--md-sys-color-primary); }
+{{P}} .nx-gal-shape:active { transform: scale(.86); }
+
+/* motion: a ball per spring; Play sends them all to the other end (the spatial ones), and fades the effects ones */
+{{P}} .nx-gal-springs { display: flex; flex-direction: column; gap: 14px; width: 100%; }
+{{P}} .nx-gal-spring { display: grid; grid-template-columns: 116px minmax(0, 1fr); align-items: center; gap: 12px; }
+{{P}} .nx-gal-springname b { display: block; }
+{{P}} .nx-gal-springname small { display: block; color: var(--md-sys-color-on-surface-variant); }
+{{P}} .nx-gal-track { position: relative; height: 32px; border-radius: 16px; background: var(--md-sys-color-surface-container-highest); container-type: inline-size; }
+{{P}} .nx-gal-ball { position: absolute; left: 4px; top: 4px; width: 24px; height: 24px; border-radius: 12px; background: var(--md-sys-color-primary); transition-property: transform, opacity, background-color; }
+{{P}} .nx-gal-spring.nx-go .nx-gal-ball { transform: translateX(calc(100cqw - 32px)); }
+{{P}} .nx-gal-ball.nx-gal-fade { width: calc(100% - 8px); opacity: .12; }
+{{P}} .nx-gal-spring.nx-go .nx-gal-ball.nx-gal-fade { transform: none; opacity: 1; background: var(--md-sys-color-tertiary); }
+
+/* menus and FABs */
+{{P}} .nx-gal-anchor { position: relative; display: inline-block; }
+{{P}} .nx-gal-anchor > .m3e-menu { top: calc(100% + 4px); left: 0; }
+{{P}} .nx-gal-fabarea { display: flex; justify-content: flex-end; align-items: flex-end; width: 100%; min-height: 232px; }
+{{P}} .nx-gal-card .m3e-fab.m3e-ext { max-width: 100%; }
+
+/* type and color */
+{{P}} .nx-gal-line { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+{{P}} .nx-gal-types { display: flex; flex-direction: column; }
+{{P}} .nx-gal-type { display: flex; flex-direction: column; padding: 8px 0; border-top: 1px solid var(--md-sys-color-outline-variant); }
+{{P}} .nx-gal-type > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+{{P}} .nx-gal-type > small { color: var(--md-sys-color-on-surface-variant); }
+{{P}} .nx-gal-roles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; }
+{{P}} .nx-gal-role { display: flex; flex-direction: column; justify-content: flex-end; min-height: 68px; padding: 10px 12px; border-radius: 16px; box-sizing: border-box; box-shadow: inset 0 0 0 1px var(--md-sys-color-outline-variant); overflow: hidden; }
+{{P}} .nx-gal-role > * { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+{{P}} .nx-gal-credit { margin: 36px 8px 8px; color: var(--md-sys-color-on-surface-variant); }
+@media (prefers-reduced-motion: reduce) { {{P}} .nx-gal { transition: opacity var(--nx-effects-ms) var(--nx-effects); transform: none; } }
+/* the list items stand out from the card they are in */
+{{P}} .nx-gal-card .m3e-li:not([aria-selected="true"]) { background: var(--md-sys-color-surface-container-high); }

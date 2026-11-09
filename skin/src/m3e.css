@@ -1,0 +1,369 @@
+/* m3e.css: the components of Material 3 Expressive (nx22), built from the sizes, shapes and motion of Google's own tokens (androidx.compose.material3, Apache License 2.0):
+ * ButtonXSmall..XLargeTokens, ConnectedButtonGroupSmallTokens, SplitButton*Tokens, Fab*Tokens, FabMenuBaselineTokens, LoadingIndicatorTokens, LinearProgressIndicatorTokens,
+ * SliderTokens, SwitchTokens, FloatingToolbarTokens, DockedToolbarTokens, ListTokens, AssistChipTokens, TypeScaleTokens, ShapeTokens, ExpressiveMotionTokens (tokens.css has the springs).
+ * Sizes are in dp, which is CSS px here. The same classes are used by the screens of the app (skin.css puts them on the original elements by selector) and by the gallery
+ * (nx-gallery.js: Settings > Design), so what the gallery shows is what the app is made of.
+ *
+ * The principles of the expressive update, and where they are here:
+ *   SHAPE   a button is round or square and its corners MORPH: when pressed (to a smaller radius), when selected (a round one becomes square and the other way around);
+ *           the corners are springs (--nx-spatial-fast), the colors are springs without overshoot (--nx-effects)
+ *   SIZE    five sizes (XS 32, S 40, M 56, L 96, XL 136) for buttons and icon buttons, three widths for icon buttons
+ *   GROUPS  buttons in a group react to each other (the pressed one grows, its neighbours give way); a connected group is the new segmented button
+ *   MOTION  loading indicator (a shape that morphs through seven shapes while it turns), wavy progress, the FAB menu that unfolds
+ *   TYPE    the emphasized styles: one weight step heavier (regular -> medium, medium -> bold)
+ * Three placeholders are filled in by build-css.py: the prefix of the selectors (P), the two masks of the wavy progress (WAVE) and the keyframes of the loading indicator (LOADER).
+ */
+:root {
+  /* shapes: the corner scale of M3 */
+  --nx-shape-xs: 4px; --nx-shape-s: 8px; --nx-shape-m: 12px; --nx-shape-l: 16px; --nx-shape-li: 20px; --nx-shape-xl: 28px; --nx-shape-xli: 32px; --nx-shape-xxl: 48px;
+  /* elevation: levels 1 to 3 of M3 as shadows */
+  --nx-elev-1: 0 1px 2px rgba(0, 0, 0, .3), 0 1px 3px 1px rgba(0, 0, 0, .15);
+  --nx-elev-2: 0 1px 2px rgba(0, 0, 0, .3), 0 2px 6px 2px rgba(0, 0, 0, .15);
+  --nx-elev-3: 0 1px 3px rgba(0, 0, 0, .3), 0 4px 8px 3px rgba(0, 0, 0, .15);
+  {{WAVE}}
+}
+
+/* ============================================================ type: the scale of M3, and the emphasized styles (one weight step heavier) */
+{{P}} .m3e-display-l { font-size: 57px; line-height: 64px; letter-spacing: -.2px; font-weight: 400; }
+{{P}} .m3e-display-m { font-size: 45px; line-height: 52px; letter-spacing: 0; font-weight: 400; }
+{{P}} .m3e-display-s { font-size: 36px; line-height: 44px; letter-spacing: 0; font-weight: 400; }
+{{P}} .m3e-headline-l { font-size: 32px; line-height: 40px; letter-spacing: 0; font-weight: 400; }
+{{P}} .m3e-headline-m { font-size: 28px; line-height: 36px; letter-spacing: 0; font-weight: 400; }
+{{P}} .m3e-headline-s { font-size: 24px; line-height: 32px; letter-spacing: 0; font-weight: 400; }
+{{P}} .m3e-title-l { font-size: 22px; line-height: 28px; letter-spacing: 0; font-weight: 400; }
+{{P}} .m3e-title-m { font-size: 16px; line-height: 24px; letter-spacing: .2px; font-weight: 500; }
+{{P}} .m3e-title-s { font-size: 14px; line-height: 20px; letter-spacing: .1px; font-weight: 500; }
+{{P}} .m3e-body-l { font-size: 16px; line-height: 24px; letter-spacing: .5px; font-weight: 400; }
+{{P}} .m3e-body-m { font-size: 14px; line-height: 20px; letter-spacing: .2px; font-weight: 400; }
+{{P}} .m3e-body-s { font-size: 12px; line-height: 16px; letter-spacing: .4px; font-weight: 400; }
+{{P}} .m3e-label-l { font-size: 14px; line-height: 20px; letter-spacing: .1px; font-weight: 500; }
+{{P}} .m3e-label-m { font-size: 12px; line-height: 16px; letter-spacing: .5px; font-weight: 500; }
+{{P}} .m3e-label-s { font-size: 11px; line-height: 16px; letter-spacing: .5px; font-weight: 500; }
+{{P}} .m3e-display-l.m3e-emph, {{P}} .m3e-display-m.m3e-emph, {{P}} .m3e-display-s.m3e-emph, {{P}} .m3e-headline-l.m3e-emph, {{P}} .m3e-headline-m.m3e-emph,
+{{P}} .m3e-headline-s.m3e-emph, {{P}} .m3e-title-l.m3e-emph, {{P}} .m3e-body-l.m3e-emph, {{P}} .m3e-body-m.m3e-emph, {{P}} .m3e-body-s.m3e-emph { font-weight: 500; letter-spacing: 0; }
+{{P}} .m3e-title-m.m3e-emph, {{P}} .m3e-title-s.m3e-emph, {{P}} .m3e-label-l.m3e-emph, {{P}} .m3e-label-m.m3e-emph, {{P}} .m3e-label-s.m3e-emph { font-weight: 700; }
+
+/* ============================================================ icons: a Material path as a mask, set per element with --i: var(--nx-i-<name>) */
+{{P}} .m3e-i {
+  display: block; flex: 0 0 auto; width: var(--_icon, 24px); height: var(--_icon, 24px); background: currentColor;
+  -webkit-mask: var(--i) center / contain no-repeat; mask: var(--i) center / contain no-repeat;
+}
+
+/* ============================================================ buttons: five sizes, round or square, five styles; the shape morphs when pressed and when selected
+   --_h height, --_pad leading and trailing space, --_gap icon to label, --_icon icon size, --_sq corner of the square shape, --_pr corner when pressed */
+{{P}} :where({{BTN}}) {
+  --_round: calc(var(--_h) / 2);       /* fully round is half the height: a huge radius would make the animation of the corners wait until the last moment */
+  --_r: var(--_round);
+  --_rl: var(--_r); --_rr: var(--_r);   /* the corners at the left and at the right: they differ in a connected group and in a split button */
+  position: relative; display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: center; box-sizing: border-box;
+  height: var(--_h); margin: 0; border: 0; padding: 0 var(--_pad, 0); gap: var(--_gap, 8px);
+  border-radius: var(--_rl) var(--_rr) var(--_rr) var(--_rl);
+  background: var(--_bg); color: var(--_fg); box-shadow: inset 0 0 0 100vmax var(--_veil, transparent), var(--_sh, 0 0 0 0 transparent);
+  font-family: var(--nx-font); font-size: var(--_fs); line-height: var(--_lh); font-weight: var(--_fw); letter-spacing: var(--_ls); white-space: nowrap; text-decoration: none;
+  cursor: pointer; user-select: none; -webkit-user-select: none; outline: 0; touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+  transition: border-radius var(--nx-spatial-fast-ms) var(--nx-spatial-fast), background-color var(--nx-effects-ms) var(--nx-effects), color var(--nx-effects-ms) var(--nx-effects),
+    box-shadow var(--nx-effects-ms) var(--nx-effects), flex-grow var(--nx-spatial-fast-ms) var(--nx-spatial-fast), width var(--nx-spatial-fast-ms) var(--nx-spatial-fast),
+    padding var(--nx-spatial-fast-ms) var(--nx-spatial-fast);
+}
+/* the state layer: a veil of the color of the text over the button, 10 % when pressed. It is an inset shadow, so that it needs no pseudo-element (the buttons of the app use :before
+   for their icons) and fades in with the other shadows. */
+{{P}} :where({{BTN}}):active, {{P}} :where({{BTN}}).activated, {{P}} .m3e-fab:active { --_veil: color-mix(in srgb, currentColor 10%, transparent); }
+{{P}} :where({{BTN}}):focus-visible, {{P}} .m3e-fab:focus-visible { outline: 3px solid var(--md-sys-color-secondary); outline-offset: 2px; }
+
+/* the sizes (ButtonXSmallTokens ... ButtonXLargeTokens); the label is the style that M3 gives that size */
+{{P}} .m3e-xs { --_h: 32px; --_pad: 16px; --_gap: 8px; --_icon: 20px; --_sq: 12px; --_pr: 8px; --_ol: 1px; --_fs: 14px; --_lh: 20px; --_fw: 500; --_ls: .1px; }
+{{P}} .m3e-s { --_h: 40px; --_pad: 16px; --_gap: 8px; --_icon: 20px; --_sq: 12px; --_pr: 8px; --_ol: 1px; --_fs: 14px; --_lh: 20px; --_fw: 500; --_ls: .1px; }
+{{P}} .m3e-m { --_h: 56px; --_pad: 24px; --_gap: 8px; --_icon: 24px; --_sq: 16px; --_pr: 12px; --_ol: 1px; --_fs: 16px; --_lh: 24px; --_fw: 500; --_ls: .15px; }
+{{P}} .m3e-l { --_h: 96px; --_pad: 48px; --_gap: 12px; --_icon: 32px; --_sq: 28px; --_pr: 16px; --_ol: 2px; --_fs: 24px; --_lh: 32px; --_fw: 400; --_ls: 0; }
+{{P}} .m3e-xl { --_h: 136px; --_pad: 64px; --_gap: 16px; --_icon: 40px; --_sq: 28px; --_pr: 16px; --_ol: 3px; --_fs: 32px; --_lh: 40px; --_fw: 400; --_ls: 0; }
+
+/* the shapes: round (the default), square; selected swaps them; pressed is a smaller radius for both. :where() keeps these as light as the size classes, so the pressed rule always wins. */
+{{P}} .m3e-btn:where(.m3e-square), {{P}} .m3e-icon-btn:where(.m3e-square) { --_r: var(--_sq); }
+{{P}} .m3e-btn:where([aria-pressed="true"]), {{P}} .m3e-icon-btn:where([aria-pressed="true"]) { --_r: var(--_sq); }
+{{P}} .m3e-btn:where(.m3e-square[aria-pressed="true"]), {{P}} .m3e-icon-btn:where(.m3e-square[aria-pressed="true"]) { --_r: var(--_round); }
+{{P}} :where({{BTN}}):active, {{P}} :where({{BTN}}).activated, {{P}} :where({{BTN}}).m3e-pressed { --_r: var(--_pr); --_rl: var(--_pr); --_rr: var(--_pr); }
+
+/* the five styles, and what a toggle (aria-pressed) looks like unselected and selected */
+{{P}} .m3e-filled { --_bg: var(--md-sys-color-primary); --_fg: var(--md-sys-color-on-primary); }
+{{P}} .m3e-filled[aria-pressed="false"] { --_bg: var(--md-sys-color-surface-container); --_fg: var(--md-sys-color-on-surface-variant); }
+{{P}} .m3e-tonal { --_bg: var(--md-sys-color-secondary-container); --_fg: var(--md-sys-color-on-secondary-container); }
+{{P}} .m3e-tonal[aria-pressed="true"] { --_bg: var(--md-sys-color-secondary); --_fg: var(--md-sys-color-on-secondary); }
+{{P}} .m3e-elevated { --_bg: var(--md-sys-color-surface-container-low); --_fg: var(--md-sys-color-primary); --_sh: var(--nx-elev-1); }
+{{P}} .m3e-elevated[aria-pressed="true"] { --_bg: var(--md-sys-color-primary); --_fg: var(--md-sys-color-on-primary); }
+{{P}} .m3e-outlined { --_bg: transparent; --_fg: var(--md-sys-color-on-surface-variant); --_sh: inset 0 0 0 var(--_ol) var(--md-sys-color-outline-variant); }
+{{P}} .m3e-outlined[aria-pressed="true"] { --_bg: var(--md-sys-color-inverse-surface); --_fg: var(--md-sys-color-inverse-on-surface); --_sh: 0 0 0 0 transparent; }
+{{P}} .m3e-text { --_bg: transparent; --_fg: var(--md-sys-color-primary); }
+{{P}} .m3e-error { --_bg: var(--md-sys-color-error-container); --_fg: var(--md-sys-color-on-error-container); }
+
+/* ============================================================ icon buttons: five sizes, three widths (narrow, default, wide) */
+{{P}} .m3e-icon-btn { --_pad: 0; --_w: var(--_h); width: var(--_w); }
+{{P}} .m3e-icon-btn.m3e-xs { --_w: 32px; --_icon: 20px; } {{P}} .m3e-icon-btn.m3e-xs.m3e-narrow { --_w: 28px; } {{P}} .m3e-icon-btn.m3e-xs.m3e-wide { --_w: 40px; }
+{{P}} .m3e-icon-btn.m3e-s { --_w: 40px; --_icon: 24px; } {{P}} .m3e-icon-btn.m3e-s.m3e-narrow { --_w: 32px; } {{P}} .m3e-icon-btn.m3e-s.m3e-wide { --_w: 52px; }
+{{P}} .m3e-icon-btn.m3e-m { --_w: 56px; --_icon: 24px; } {{P}} .m3e-icon-btn.m3e-m.m3e-narrow { --_w: 48px; } {{P}} .m3e-icon-btn.m3e-m.m3e-wide { --_w: 72px; }
+{{P}} .m3e-icon-btn.m3e-l { --_w: 96px; --_icon: 32px; } {{P}} .m3e-icon-btn.m3e-l.m3e-narrow { --_w: 64px; } {{P}} .m3e-icon-btn.m3e-l.m3e-wide { --_w: 128px; }
+{{P}} .m3e-icon-btn.m3e-xl { --_w: 136px; --_icon: 40px; } {{P}} .m3e-icon-btn.m3e-xl.m3e-narrow { --_w: 104px; } {{P}} .m3e-icon-btn.m3e-xl.m3e-wide { --_w: 184px; }
+{{P}} .m3e-icon-btn.m3e-standard { --_bg: transparent; --_fg: var(--md-sys-color-on-surface-variant); }
+{{P}} .m3e-icon-btn.m3e-standard[aria-pressed="true"] { --_fg: var(--md-sys-color-primary); }
+{{P}} .m3e-icon-btn.m3e-filled[aria-pressed="false"] { --_bg: var(--md-sys-color-surface-container-highest); --_fg: var(--md-sys-color-primary); }
+{{P}} .m3e-icon-btn.m3e-tonal[aria-pressed="false"] { --_bg: var(--md-sys-color-secondary-container); --_fg: var(--md-sys-color-on-secondary-container); }
+
+/* ============================================================ button groups. Standard: the buttons keep their shape, 12 dp between them (18 for XS); the pressed one grows by 15 % and its neighbours give way (nx-gallery.js).
+   Connected (the new segmented button): 2 dp between the buttons, round outer corners, small inner corners (8 dp, 4 dp when pressed), and a selected button is round all over. */
+{{P}} .m3e-group { display: inline-flex; flex-wrap: nowrap; align-items: center; gap: 12px; max-width: 100%; }
+{{P}} .m3e-group.m3e-xs-gap { gap: 18px; }
+{{P}} .m3e-group:not(.m3e-connected) > :where(.m3e-btn):active { padding-left: calc(var(--_pad) + 4px); padding-right: calc(var(--_pad) + 4px); }
+{{P}} .m3e-group.m3e-fill:not(.m3e-connected) > :where(.m3e-btn, .m3e-icon-btn):active { flex-grow: 1.3; }
+{{P}} .m3e-group.m3e-connected { gap: 2px; }
+{{P}} .m3e-group.m3e-fill { display: flex; width: 100%; }
+{{P}} .m3e-group.m3e-fill > .m3e-btn, {{P}} .m3e-group.m3e-fill > .m3e-icon-btn { flex: 1 1 0; min-width: 0; }
+{{P}} .m3e-connected > .m3e-btn, {{P}} .m3e-connected > .m3e-icon-btn { --_in: 8px; }
+{{P}} .m3e-connected > .m3e-btn:first-child, {{P}} .m3e-connected > .m3e-icon-btn:first-child { --_rl: var(--_round); --_rr: var(--_in); }
+{{P}} .m3e-connected > .m3e-btn:last-child, {{P}} .m3e-connected > .m3e-icon-btn:last-child { --_rl: var(--_in); --_rr: var(--_round); }
+{{P}} .m3e-connected > .m3e-btn:not(:first-child):not(:last-child), {{P}} .m3e-connected > .m3e-icon-btn:not(:first-child):not(:last-child) { --_rl: var(--_in); --_rr: var(--_in); }
+{{P}} .m3e-connected > .m3e-btn:only-child, {{P}} .m3e-connected > .m3e-icon-btn:only-child { --_rl: var(--_round); --_rr: var(--_round); }
+{{P}} .m3e-connected > [aria-pressed="true"], {{P}} .m3e-connected > .m3e-on { --_rl: var(--_round); --_rr: var(--_round); --_r: var(--_round); }
+/* pressed: the inner corners go to 4 dp, the outer ones keep their round shape; the button takes more room from its neighbours */
+{{P}} .m3e-connected > .m3e-btn:active, {{P}} .m3e-connected > .m3e-icon-btn:active { --_in: 4px; --_rl: var(--_in); --_rr: var(--_in); flex-grow: 1.3; }
+{{P}} .m3e-connected > .m3e-btn:first-child:active, {{P}} .m3e-connected > .m3e-icon-btn:first-child:active { --_rl: var(--_round); }
+{{P}} .m3e-connected > .m3e-btn:last-child:active, {{P}} .m3e-connected > .m3e-icon-btn:last-child:active { --_rr: var(--_round); }
+
+/* ============================================================ split button: an action and a menu in one shape. The trailing part turns its chevron when the menu is open and becomes round. */
+{{P}} .m3e-split { display: inline-flex; gap: 2px; align-items: center; }
+{{P}} .m3e-split > .m3e-btn { --_in: 4px; }
+{{P}} .m3e-split > .m3e-btn:first-child { --_rl: var(--_round); --_rr: var(--_in); }
+{{P}} .m3e-split > .m3e-btn:last-child { --_rl: var(--_in); --_rr: var(--_round); padding: 0 13px; }
+{{P}} .m3e-split.m3e-m > .m3e-btn:last-child, {{P}} .m3e-split > .m3e-btn.m3e-m:last-child { padding: 0 15px; }
+{{P}} .m3e-split > .m3e-btn:last-child[aria-expanded="true"] { --_rl: var(--_round); --_rr: var(--_round); }
+{{P}} .m3e-split > .m3e-btn:last-child .m3e-i { --_icon: 22px; transition: transform var(--nx-spatial-ms) var(--nx-spatial); }
+{{P}} .m3e-split > .m3e-btn:last-child[aria-expanded="true"] .m3e-i { transform: rotate(180deg); }
+{{P}} .m3e-split > .m3e-btn:active { --_rl: var(--_in); --_rr: var(--_in); }
+{{P}} .m3e-split > .m3e-btn:first-child:active { --_rl: var(--_round); }
+{{P}} .m3e-split > .m3e-btn:last-child:active { --_rr: var(--_round); }
+{{P}} .m3e-menu {
+  position: absolute; z-index: 5; min-width: 200px; padding: 8px; box-sizing: border-box; border-radius: 16px; background: var(--md-sys-color-surface-container); box-shadow: var(--nx-elev-2);
+  transform-origin: top left; opacity: 0; transform: scale(.85); pointer-events: none;
+  transition: opacity var(--nx-effects-ms) var(--nx-effects), transform var(--nx-spatial-ms) var(--nx-spatial);
+}
+{{P}} .m3e-menu.m3e-open { opacity: 1; transform: none; pointer-events: auto; }
+{{P}} .m3e-menu > a, {{P}} .m3e-menu > button {
+  display: flex; align-items: center; gap: 12px; width: 100%; height: 48px; padding: 0 12px; box-sizing: border-box; border: 0; border-radius: 12px; background: transparent;
+  color: var(--md-sys-color-on-surface); font: 500 14px/20px var(--nx-font); letter-spacing: .1px; text-align: left; cursor: pointer;
+  transition: border-radius var(--nx-spatial-fast-ms) var(--nx-spatial-fast), background-color var(--nx-effects-ms) var(--nx-effects);
+}
+{{P}} .m3e-menu > a:active, {{P}} .m3e-menu > button:active { background: var(--md-sys-color-secondary-container); border-radius: 8px; }
+{{P}} .m3e-menu .m3e-i { --_icon: 24px; color: var(--md-sys-color-on-secondary-container); }
+
+/* ============================================================ FAB: small 40, standard 56, medium 80, large 96, extended in three sizes; the menu unfolds from the FAB into pills of 56 dp */
+{{P}} .m3e-fab {
+  --_h: 56px; --_w: 56px; --_r: 16px; --_icon: 24px;
+  position: relative; display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: center; box-sizing: border-box; height: var(--_h); min-width: var(--_w); margin: 0; border: 0;
+  padding: 0 var(--_pad, 0); gap: var(--_gap, 8px); border-radius: var(--_r);
+  background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); box-shadow: inset 0 0 0 100vmax var(--_veil, transparent), var(--_sh, var(--nx-elev-3));
+  font-family: var(--nx-font); font-size: 16px; line-height: 24px; font-weight: 500; letter-spacing: .15px; white-space: nowrap; cursor: pointer; outline: 0; -webkit-tap-highlight-color: transparent;
+  transition: border-radius var(--nx-spatial-fast-ms) var(--nx-spatial-fast), transform var(--nx-spatial-fast-ms) var(--nx-spatial-fast), background-color var(--nx-effects-ms) var(--nx-effects),
+    color var(--nx-effects-ms) var(--nx-effects), box-shadow var(--nx-effects-ms) var(--nx-effects), min-width var(--nx-spatial-ms) var(--nx-spatial);
+}
+{{P}} .m3e-fab.m3e-fab-s { --_h: 40px; --_w: 40px; --_r: 12px; }
+{{P}} .m3e-fab.m3e-fab-m { --_h: 80px; --_w: 80px; --_r: 20px; --_icon: 28px; }
+{{P}} .m3e-fab.m3e-fab-l { --_h: 96px; --_w: 96px; --_r: 28px; --_icon: 32px; }
+{{P}} .m3e-fab.m3e-ext { --_pad: 16px; --_w: 0px; --_r: 16px; }
+{{P}} .m3e-fab.m3e-ext.m3e-fab-m { --_h: 80px; --_pad: 26px; --_gap: 16px; --_r: 20px; font-size: 24px; line-height: 32px; font-weight: 400; }
+{{P}} .m3e-fab.m3e-ext.m3e-fab-l { --_h: 96px; --_pad: 28px; --_gap: 20px; --_r: 28px; font-size: 32px; line-height: 40px; font-weight: 400; }
+{{P}} .m3e-fab.m3e-secondary { background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); }
+{{P}} .m3e-fab.m3e-tertiary { background: var(--md-sys-color-tertiary-container); color: var(--md-sys-color-on-tertiary-container); }
+{{P}} .m3e-fab.m3e-flat { --_sh: 0 0 0 0 transparent; }
+{{P}} .m3e-fab:active { --_r: calc(var(--_h) / 4); transform: scale(.96); --_sh: var(--nx-elev-1); }
+{{P}} .m3e-fabm { position: relative; display: inline-flex; flex-direction: column-reverse; align-items: flex-end; gap: 8px; }
+{{P}} .m3e-fabm > .m3e-fab { --_r: 16px; }
+{{P}} .m3e-fabm[aria-expanded="true"] > .m3e-fab { --_r: 28px; background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); }
+{{P}} .m3e-fabm > .m3e-fab .m3e-i { transition: transform var(--nx-spatial-ms) var(--nx-spatial); }
+{{P}} .m3e-fabm[aria-expanded="true"] > .m3e-fab .m3e-i { transform: rotate(135deg); --_icon: 20px; }
+{{P}} .m3e-fabm-items { display: flex; flex-direction: column-reverse; align-items: flex-end; gap: 4px; pointer-events: none; }
+{{P}} .m3e-fabm[aria-expanded="true"] .m3e-fabm-items { pointer-events: auto; }
+{{P}} .m3e-fabm-item {
+  display: inline-flex; align-items: center; gap: 8px; height: 56px; padding: 0 24px; box-sizing: border-box; border: 0; border-radius: 28px; cursor: pointer;
+  background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); box-shadow: var(--nx-elev-3);
+  font: 500 16px/24px var(--nx-font); letter-spacing: .15px; white-space: nowrap; -webkit-tap-highlight-color: transparent;
+  opacity: 0; transform: translateY(32px) scale(.7); transform-origin: bottom right;
+  transition: opacity var(--nx-effects-ms) var(--nx-effects), transform var(--nx-spatial-ms) var(--nx-spatial), border-radius var(--nx-spatial-fast-ms) var(--nx-spatial-fast);
+  transition-delay: calc(var(--k, 0) * 32ms);
+}
+{{P}} .m3e-fabm[aria-expanded="true"] .m3e-fabm-item { opacity: 1; transform: none; }
+{{P}} .m3e-fabm-item:active { border-radius: 16px; }
+{{P}} .m3e-fabm-item .m3e-i { --_icon: 24px; }
+
+/* ============================================================ loading indicator: a shape that morphs through seven shapes (soft burst, cookie 9, pentagon, pill, sunny, cookie 4, oval) every 650 ms
+   while it turns once in 4.7 s (LoadingIndicator.kt). Contained: on a round container of 48 dp, the shape 38 dp. Uncontained: the shape alone. The turn of the whole shape is the property `rotate`, the quarter
+   turn of every step is part of the `transform` of the keyframes: the two add up. Any element with .m3e-morphing is such a shape (the hero of the accessory screen uses it while it moves). */
+{{P}} .m3e-loader { --s: 48px; position: relative; display: inline-grid; flex: 0 0 auto; place-items: center; width: var(--s); height: var(--s); border-radius: 50%; color: var(--md-sys-color-primary); }
+{{P}} .m3e-loader.m3e-contained { background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); }
+{{P}} .m3e-loader > i, {{P}} .m3e-morphing {
+  display: block; width: calc(var(--s) * .7917); height: calc(var(--s) * .7917); background: currentColor; clip-path: var(--nx-v-softburst);
+  animation: m3e-morph 18200ms var(--nx-loader-spring) infinite, m3e-turn 4666ms linear infinite;
+}
+@keyframes m3e-turn { to { rotate: 360deg; } }
+{{LOADER}}
+
+/* ============================================================ wavy progress: a wave of 3 dp on a track of 4 dp, 10 dp high; the wave moves one wavelength per second (40 dp when determinate, 20 dp when indeterminate).
+   Determinate: --p (0 to 1). Indeterminate: two lines that each have a head and a tail, 1750 ms for the cycle: head 0 to 1000 and tail 250 to 1250; head 650 to 1500 and tail 900 to 1750,
+   each on the emphasized accelerate curve. The wave is a mask on a layer that slides under a box that clips (a transform, so that it runs on the compositor). */
+@property --m3e-l1 { syntax: '<percentage>'; inherits: false; initial-value: 0%; }
+@property --m3e-r1 { syntax: '<percentage>'; inherits: false; initial-value: 100%; }
+@property --m3e-l2 { syntax: '<percentage>'; inherits: false; initial-value: 0%; }
+@property --m3e-r2 { syntax: '<percentage>'; inherits: false; initial-value: 100%; }
+@property --m3e-g1 { syntax: '<length>'; inherits: false; initial-value: 0px; }
+@property --m3e-g2 { syntax: '<length>'; inherits: false; initial-value: 0px; }
+{{P}} .m3e-progress { --p: 0; position: relative; display: block; width: 100%; height: 10px; color: var(--md-sys-color-primary); }
+{{P}} .m3e-progress::before {   /* the track: from the end of the wave (4 dp of air) to the stop */
+  content: ''; position: absolute; top: 3px; right: 0; left: min(calc(var(--p) * 100% + 4px), 100%); height: 4px; border-radius: 2px; background: var(--md-sys-color-secondary-container);
+  transition: left var(--nx-spatial-ms) var(--nx-spatial);
+}
+{{P}} .m3e-progress::after { content: ''; position: absolute; top: 3px; right: 0; width: 4px; height: 4px; border-radius: 2px; background: var(--md-sys-color-primary); }
+{{P}} .m3e-progress > i, {{P}} .m3e-progress > b { position: absolute; top: 0; left: 0; height: 10px; overflow: hidden; border-radius: 5px; }
+{{P}} .m3e-progress > i { width: calc(var(--p) * 100%); transition: width var(--nx-spatial-ms) var(--nx-spatial); }
+{{P}} .m3e-progress > i::before, {{P}} .m3e-progress > b::before {
+  content: ''; position: absolute; top: 0; left: 0; width: calc(100% + 40px); height: 10px; background: currentColor;
+  -webkit-mask: var(--nx-wave-40) 0 0 / 200px 10px repeat-x; mask: var(--nx-wave-40) 0 0 / 200px 10px repeat-x;
+  animation: m3e-wave 1s linear infinite;
+}
+@keyframes m3e-wave { from { transform: translateX(-40px); } to { transform: none; } }
+{{P}} .m3e-progress.m3e-flat > i::before { -webkit-mask: none; mask: none; top: 3px; height: 4px; animation: none; }
+{{P}} .m3e-progress.m3e-flat > i { border-radius: 2px; }
+{{P}} .m3e-progress.m3e-flat { height: 10px; }
+{{P}} .m3e-progress > b { display: none; }
+/* indeterminate: the track has a gap of 4 dp before and after each line (the gaps are there as long as the line is) */
+{{P}} .m3e-progress.m3e-indet::after { display: none; }
+{{P}} .m3e-progress.m3e-indet > b { display: block; }
+{{P}} .m3e-progress.m3e-indet > i, {{P}} .m3e-progress.m3e-indet > b { width: 100%; transition: none; }
+{{P}} .m3e-progress.m3e-indet > i::before, {{P}} .m3e-progress.m3e-indet > b::before {
+  width: calc(100% + 20px); -webkit-mask: var(--nx-wave-20) 0 0 / 100px 10px repeat-x; mask: var(--nx-wave-20) 0 0 / 100px 10px repeat-x; animation-name: m3e-wave20;
+}
+@keyframes m3e-wave20 { from { transform: translateX(-20px); } to { transform: none; } }
+{{P}} .m3e-progress.m3e-indet > i { clip-path: inset(0 var(--m3e-r1) 0 var(--m3e-l1) round 5px); animation: m3e-l1 1750ms linear infinite, m3e-r1 1750ms linear infinite, m3e-g1 1750ms linear infinite; }
+{{P}} .m3e-progress.m3e-indet > b { clip-path: inset(0 var(--m3e-r2) 0 var(--m3e-l2) round 5px); animation: m3e-l2 1750ms linear infinite, m3e-r2 1750ms linear infinite, m3e-g2 1750ms linear infinite; }
+{{P}} .m3e-progress.m3e-indet::before {
+  left: 0; -webkit-mask: linear-gradient(to right,
+    #000 calc(var(--m3e-l2) - var(--m3e-g2)), transparent calc(var(--m3e-l2) - var(--m3e-g2)) calc(100% - var(--m3e-r2) + var(--m3e-g2)),
+    #000 calc(100% - var(--m3e-r2) + var(--m3e-g2)) calc(var(--m3e-l1) - var(--m3e-g1)), transparent calc(var(--m3e-l1) - var(--m3e-g1)) calc(100% - var(--m3e-r1) + var(--m3e-g1)),
+    #000 calc(100% - var(--m3e-r1) + var(--m3e-g1)));
+          mask: linear-gradient(to right,
+    #000 calc(var(--m3e-l2) - var(--m3e-g2)), transparent calc(var(--m3e-l2) - var(--m3e-g2)) calc(100% - var(--m3e-r2) + var(--m3e-g2)),
+    #000 calc(100% - var(--m3e-r2) + var(--m3e-g2)) calc(var(--m3e-l1) - var(--m3e-g1)), transparent calc(var(--m3e-l1) - var(--m3e-g1)) calc(100% - var(--m3e-r1) + var(--m3e-g1)),
+    #000 calc(100% - var(--m3e-r1) + var(--m3e-g1)));
+  transition: none;
+}
+@keyframes m3e-r1 { 0% { --m3e-r1: 100%; animation-timing-function: cubic-bezier(.3, 0, .8, .15); } 57.14%, 100% { --m3e-r1: 0%; } }
+@keyframes m3e-l1 { 0%, 14.29% { --m3e-l1: 0%; animation-timing-function: cubic-bezier(.3, 0, .8, .15); } 71.43%, 100% { --m3e-l1: 100%; } }
+@keyframes m3e-r2 { 0%, 37.14% { --m3e-r2: 100%; animation-timing-function: cubic-bezier(.3, 0, .8, .15); } 85.71%, 100% { --m3e-r2: 0%; } }
+@keyframes m3e-l2 { 0%, 51.43% { --m3e-l2: 0%; animation-timing-function: cubic-bezier(.3, 0, .8, .15); } 100% { --m3e-l2: 100%; } }
+@keyframes m3e-g1 { 0%, 71.42% { --m3e-g1: 4px; } 71.43%, 100% { --m3e-g1: 0px; } }
+@keyframes m3e-g2 { 0%, 99.99% { --m3e-g2: 4px; } 100% { --m3e-g2: 0px; } }
+@media (prefers-reduced-motion: reduce) {
+  {{P}} .m3e-loader > i, {{P}} .m3e-morphing, {{P}} .m3e-progress > i::before, {{P}} .m3e-progress > b::before { animation: none !important; }
+}
+
+/* ============================================================ slider: 16 dp tracks and a handle of 44 dp that is a bar of 4 dp (2 dp when pressed), with a gap of 6 dp around it and a stop at the end;
+   the sizes XS 16, S 24, M 40, L 56, XL 96 dp of track (SliderTokens; the handle is 28 dp higher than the track, 44 at the smallest). --v is the value, 0 to 1. */
+{{P}} .m3e-slider { --track: 16px; --hh: 44px; --gap: 6px; --hw: 4px; position: relative; display: block; width: 100%; height: var(--hh); touch-action: none; cursor: pointer; user-select: none; -webkit-user-select: none; }
+{{P}} .m3e-slider.m3e-s { --track: 24px; } {{P}} .m3e-slider.m3e-m { --track: 40px; --hh: 52px; } {{P}} .m3e-slider.m3e-l { --track: 56px; --hh: 68px; } {{P}} .m3e-slider.m3e-xl { --track: 96px; --hh: 108px; }
+{{P}} .m3e-slider > .a, {{P}} .m3e-slider > .t {
+  position: absolute; top: calc((var(--hh) - var(--track)) / 2); height: var(--track); box-sizing: border-box;
+  transition: width var(--nx-spatial-fast-ms) var(--nx-spatial-fast), left var(--nx-spatial-fast-ms) var(--nx-spatial-fast);
+}
+{{P}} .m3e-slider > .a { left: 0; width: calc(var(--v) * 100% - var(--gap) - var(--hw) / 2); min-width: calc(var(--track) / 2); border-radius: calc(var(--track) / 2) 2px 2px calc(var(--track) / 2); background: var(--md-sys-color-primary); }
+{{P}} .m3e-slider > .t { right: 0; left: calc(var(--v) * 100% + var(--gap) + var(--hw) / 2); border-radius: 2px calc(var(--track) / 2) calc(var(--track) / 2) 2px; background: var(--md-sys-color-secondary-container); }
+{{P}} .m3e-slider > .t::after { content: ''; position: absolute; top: 50%; right: calc(var(--track) / 2 - 2px); width: 4px; height: 4px; margin-top: -2px; border-radius: 2px; background: var(--md-sys-color-primary); }
+{{P}} .m3e-slider > .h {
+  position: absolute; top: 0; left: calc(var(--v) * 100% - var(--hw) / 2); width: var(--hw); height: var(--hh); border-radius: 2px; background: var(--md-sys-color-primary);
+  transition: width var(--nx-spatial-fast-ms) var(--nx-spatial-fast), left var(--nx-spatial-fast-ms) var(--nx-spatial-fast);
+}
+{{P}} .m3e-slider.m3e-drag > .h { --hw: 2px; }
+{{P}} .m3e-slider.m3e-drag > .a, {{P}} .m3e-slider.m3e-drag > .t, {{P}} .m3e-slider.m3e-drag > .h { transition: none; }
+{{P}} .m3e-slider > .h > output {
+  position: absolute; bottom: calc(100% + 12px); left: 50%; transform: translateX(-50%) scale(.6); transform-origin: bottom center; opacity: 0; min-width: 44px; padding: 0 12px; box-sizing: border-box;
+  height: 44px; line-height: 44px; border-radius: 22px; text-align: center; background: var(--md-sys-color-inverse-surface); color: var(--md-sys-color-inverse-on-surface);
+  font: 500 14px/44px var(--nx-font); pointer-events: none; transition: opacity var(--nx-effects-fast-ms) var(--nx-effects-fast), transform var(--nx-spatial-fast-ms) var(--nx-spatial-fast);
+}
+{{P}} .m3e-slider.m3e-drag > .h > output { opacity: 1; transform: translateX(-50%) scale(1); }
+{{P}} .m3e-slider > .a > .m3e-i, {{P}} .m3e-slider > .t > .m3e-i { position: absolute; top: 50%; margin-top: calc(var(--_icon) / -2); left: 8px; --_icon: 24px; color: var(--md-sys-color-on-primary); }
+{{P}} .m3e-slider > .t > .m3e-i { left: auto; right: 8px; color: var(--md-sys-color-on-secondary-container); }
+
+/* ============================================================ switch: track 52 x 32, the thumb 16 dp off, 24 on, 28 pressed, with an icon in it when it is on. It is the toggle of the app (ion-toggle: label.toggle > input + div.track > div.handle)
+   and the switch of the gallery (button.m3e-switch[aria-checked] > i); the colors of the state are variables of the track. */
+{{P}} .m3e-switch, {{P}} .toggle .track {
+  --_tb: var(--md-sys-color-surface-container-highest); --_to: var(--md-sys-color-outline); --_th: var(--md-sys-color-outline); --_ti: var(--md-sys-color-surface-container-highest);
+  position: relative; display: inline-block; flex: 0 0 auto; box-sizing: border-box; width: 52px; height: 32px; margin: 0; padding: 0; border-radius: 16px; cursor: pointer; vertical-align: middle;
+  background: var(--_tb); border: 2px solid var(--_to); outline: 0; -webkit-tap-highlight-color: transparent;
+  transition: background-color var(--nx-effects-ms) var(--nx-effects), border-color var(--nx-effects-ms) var(--nx-effects);
+}
+{{P}} .m3e-switch[aria-checked="true"], {{P}} .toggle input:checked + .track { --_tb: var(--md-sys-color-primary); --_to: var(--md-sys-color-primary); --_th: var(--md-sys-color-on-primary); --_ti: var(--md-sys-color-primary); }
+{{P}} .m3e-switch > i, {{P}} .toggle .track .handle {
+  position: absolute; top: 50%; left: 6px; box-sizing: border-box; width: 16px; height: 16px; margin: -8px 0 0 0; padding: 0; border: 0; border-radius: 50%;
+  background: var(--_th); box-shadow: none; transform: none; display: grid; place-items: center;
+  transition: left var(--nx-spatial-fast-ms) var(--nx-spatial-fast), width var(--nx-spatial-fast-ms) var(--nx-spatial-fast), height var(--nx-spatial-fast-ms) var(--nx-spatial-fast),
+    margin var(--nx-spatial-fast-ms) var(--nx-spatial-fast), background-color var(--nx-effects-ms) var(--nx-effects);
+}
+{{P}} .toggle .track .handle:before { display: none; }   /* Ionic's wider touch area of the handle: the whole label is the target */
+{{P}} .toggle.dragging .handle { background-color: var(--_th) !important; }
+{{P}} .m3e-switch > i::after, {{P}} .toggle .track .handle::after {
+  content: ''; width: 16px; height: 16px; background: var(--_ti); opacity: 0; transform: scale(.4);
+  -webkit-mask: var(--nx-i-done) center / contain no-repeat; mask: var(--nx-i-done) center / contain no-repeat;
+  transition: opacity var(--nx-effects-ms) var(--nx-effects), transform var(--nx-spatial-fast-ms) var(--nx-spatial-fast);
+}
+{{P}} .m3e-switch:active > i, {{P}} .toggle:active .track .handle { width: 28px; height: 28px; margin-top: -14px; left: 0; }
+{{P}} .m3e-switch[aria-checked="true"] > i, {{P}} .toggle input:checked + .track .handle { left: 22px; width: 24px; height: 24px; margin-top: -12px; transform: none; }
+{{P}} .m3e-switch[aria-checked="true"]:active > i, {{P}} .toggle:active input:checked + .track .handle { width: 28px; height: 28px; margin-top: -14px; left: 20px; }
+{{P}} .m3e-switch[aria-checked="true"] > i::after, {{P}} .toggle input:checked + .track .handle::after { opacity: 1; transform: none; width: 16px; height: 16px; }
+{{P}} .m3e-switch[disabled], {{P}} .toggle input:disabled + .track { opacity: .38; }
+
+/* ============================================================ chips: 32 dp high, 8 dp corners; assist, filter (selected: tonal, with a check), input, suggestion */
+{{P}} .m3e-chip {
+  position: relative; display: inline-flex; align-items: center; gap: 8px; height: 32px; box-sizing: border-box; padding: 0 16px; border: 0; border-radius: 8px;
+  background: transparent; color: var(--md-sys-color-on-surface-variant); box-shadow: inset 0 0 0 1px var(--md-sys-color-outline-variant);
+  font: 500 14px/20px var(--nx-font); letter-spacing: .1px; white-space: nowrap; cursor: pointer; -webkit-tap-highlight-color: transparent;
+  transition: border-radius var(--nx-spatial-fast-ms) var(--nx-spatial-fast), background-color var(--nx-effects-ms) var(--nx-effects), color var(--nx-effects-ms) var(--nx-effects), box-shadow var(--nx-effects-ms) var(--nx-effects), padding var(--nx-spatial-fast-ms) var(--nx-spatial-fast);
+}
+{{P}} .m3e-chip .m3e-i { --_icon: 18px; }
+{{P}} .m3e-chip .m3e-chk { display: none; }
+{{P}} .m3e-chip[aria-pressed="true"] .m3e-chk { display: block; }
+{{P}} .m3e-chip:active { border-radius: 4px; }
+{{P}} .m3e-chip.m3e-lead { padding-left: 8px; }
+{{P}} .m3e-chip.m3e-assist .m3e-i { color: var(--md-sys-color-primary); }
+{{P}} .m3e-chip[aria-pressed="true"] { background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); box-shadow: none; padding-left: 8px; }
+{{P}} .m3e-chip.m3e-fill-s { background: var(--md-sys-color-surface-container-high); box-shadow: none; }
+
+/* ============================================================ toolbars: floating (a round bar of 64 dp, buttons of 48, a FAB at the end), standard or vibrant; docked (a bar over the full width) */
+{{P}} .m3e-toolbar { display: inline-flex; align-items: center; gap: 4px; height: 64px; padding: 0 8px; box-sizing: border-box; border-radius: 32px; background: var(--md-sys-color-surface-container); box-shadow: var(--nx-elev-2); max-width: 100%; }
+{{P}} .m3e-toolbar.m3e-vibrant { background: var(--md-sys-color-primary-container); --_fg: var(--md-sys-color-on-primary-container); color: var(--md-sys-color-on-primary-container); }
+{{P}} .m3e-toolbar .m3e-icon-btn { --_h: 48px; --_w: 48px; --_icon: 24px; --_bg: transparent; --_fg: var(--md-sys-color-on-surface-variant); }
+{{P}} .m3e-toolbar.m3e-vibrant .m3e-icon-btn { --_fg: var(--md-sys-color-on-primary-container); }
+{{P}} .m3e-toolbar .m3e-icon-btn[aria-pressed="true"] { --_bg: var(--md-sys-color-surface-container-high); --_fg: var(--md-sys-color-on-surface); --_r: var(--_round); }
+{{P}} .m3e-toolbar.m3e-vibrant .m3e-icon-btn[aria-pressed="true"] { --_bg: var(--md-sys-color-surface-container); }
+{{P}} .m3e-toolbar .m3e-fab { --_h: 48px; --_w: 48px; --_r: 24px; --_icon: 24px; box-shadow: none; background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); margin-left: 4px; }
+{{P}} .m3e-docked { display: flex; align-items: center; justify-content: space-between; gap: 4px; width: 100%; height: 64px; padding: 0 16px; box-sizing: border-box; background: var(--md-sys-color-surface-container); border-radius: 12px; }
+{{P}} .m3e-docked .m3e-icon-btn { --_h: 48px; --_w: 48px; --_icon: 24px; --_bg: transparent; --_fg: var(--md-sys-color-on-surface-variant); }
+{{P}} .m3e-docked .m3e-icon-btn[aria-pressed="true"] { --_bg: var(--md-sys-color-secondary-container); --_fg: var(--md-sys-color-on-secondary-container); --_r: var(--_round); }
+
+/* ============================================================ segmented list: 2 dp between the items, the first and the last 16 dp, the others 4 dp; pressed or selected an item is 16 dp all over */
+{{P}} .m3e-list { display: flex; flex-direction: column; gap: 2px; width: 100%; }
+{{P}} .m3e-li {
+  display: flex; align-items: center; gap: 12px; min-height: 56px; box-sizing: border-box; padding: 10px 16px; border-radius: 4px; background: var(--md-sys-color-surface-container-low); color: var(--md-sys-color-on-surface);
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+  transition: border-radius var(--nx-spatial-fast-ms) var(--nx-spatial-fast), background-color var(--nx-effects-ms) var(--nx-effects);
+}
+{{P}} .m3e-li:first-child { border-top-left-radius: 16px; border-top-right-radius: 16px; }
+{{P}} .m3e-li:last-child { border-bottom-left-radius: 16px; border-bottom-right-radius: 16px; }
+{{P}} .m3e-li:active, {{P}} .m3e-li[aria-selected="true"] { border-radius: 16px; }
+{{P}} .m3e-li[aria-selected="true"] { background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); }
+{{P}} .m3e-li > .m3e-lead {
+  flex: 0 0 auto; width: 40px; height: 40px; display: grid; place-items: center; background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container);
+  clip-path: var(--nx-v-circle); transition: clip-path var(--nx-spatial-fast-ms) var(--nx-spatial-fast), background-color var(--nx-effects-ms) var(--nx-effects);
+}
+{{P}} .m3e-li[aria-selected="true"] > .m3e-lead { clip-path: var(--nx-v-cookie9); background: var(--md-sys-color-secondary); color: var(--md-sys-color-on-secondary); }
+{{P}} .m3e-li > .m3e-lead .m3e-i { --_icon: 20px; }
+{{P}} .m3e-li > .m3e-txt { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+{{P}} .m3e-li .m3e-sup { color: var(--md-sys-color-on-surface-variant); font-size: 14px; line-height: 20px; }
+{{P}} .m3e-li[aria-selected="true"] .m3e-sup { color: inherit; opacity: .8; }
+
+/* ============================================================ a shape, for the gallery and for avatars: any shape of tokens (--nx-v-<name>), morphing when the name changes */
+{{P}} .m3e-shape { display: block; background: var(--md-sys-color-primary-container); clip-path: var(--nx-v-cookie9); transition: clip-path var(--nx-spatial-fast-ms) var(--nx-spatial-fast), background-color var(--nx-effects-ms) var(--nx-effects); }

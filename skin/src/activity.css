@@ -52,7 +52,7 @@
 {{P}} .nx-act-titles { min-width: 0; flex: 1 1 auto; }
 {{P}} .nx-act-title { margin: 0; font-size: 24px; line-height: 32px; font-weight: 650; letter-spacing: -0.1px; color: var(--md-sys-color-on-surface); }
 {{P}} .nx-act-sub { font-size: 13px; line-height: 18px; color: var(--md-sys-color-on-surface-variant); overflow-wrap: anywhere; }
-{{P}} .nx-sheet button.nx-act-refresh { position: relative; flex: 0 0 auto; width: 44px; min-width: 44px; height: 44px; padding: 0; border-radius: 50%; }
+{{P}} .nx-sheet button.nx-act-refresh { --_h: 44px; --_pad: 0px; --_pr: 14px; position: relative; flex: 0 0 auto; width: 44px; min-width: 44px; padding: 0; }
 {{P}} .nx-act-refresh:before {
   content: ''; position: absolute; inset: 0; margin: auto; width: 22px; height: 22px; background: var(--md-sys-color-on-secondary-container);
   -webkit-mask: var(--nx-i-refresh) center / contain no-repeat; mask: var(--nx-i-refresh) center / contain no-repeat;

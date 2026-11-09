@@ -604,6 +604,21 @@ function sheet(env) { return env.document.getElementById('nx-sheet'); }
     env.$rootScope.nxSetPalette('wrong');
     ok('nx21 colors: a wrong name does not touch the status bar', calls.length === 0, calls.join(','));
   }
+  // ---------------------------------------------------------------- nx22: Settings > Design (nx-gallery.js, patch-17)
+  {
+    const scen = () => ({ homes: [home([device()])], net: { wifi: true, ssid: 'HomeWifi' } });
+    const none = await environment(scen());
+    ok('nx22 design: without nx-gallery.js there is no nxGallery (the row in Settings is not shown)', none.$rootScope.nxGallery === undefined);
+    let opened = 0;
+    const withPage = await environment(Object.assign(scen(), { preXhr: (w) => { w.NxGallery = { open() { opened++; } }; } }));
+    ok('nx22 design: with it, $rootScope.nxGallery() opens the page', typeof withPage.$rootScope.nxGallery === 'function' && opened === 0 && (withPage.$rootScope.nxGallery(), opened === 1));
+    const broken = await environment(Object.assign(scen(), { preXhr: (w) => { w.NxGallery = { open() { throw new Error('boom'); } }; } }));
+    let thrown = null;
+    try { broken.$rootScope.nxGallery(); } catch (e) { thrown = e; }
+    ok('nx22 design: an error in the page does not reach the app (it is logged)', thrown === null && broken.logs.some((l) => /gallery/.test(l) && /boom/.test(l)), broken.logs.join(' | '));
+    const noOpen = await environment(Object.assign(scen(), { preXhr: (w) => { w.NxGallery = {}; } }));
+    ok('nx22 design: a module without open() is not offered', noOpen.$rootScope.nxGallery === undefined);
+  }
   {
     // nx-theme.js (the early script) applies the palette too
     const THEME_SRC = fs.readFileSync(path.join(__dirname, '..', 'nx-theme.js'), 'utf8');

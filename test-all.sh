@@ -5,6 +5,7 @@
 #   jsdom    nx-patch.js in a simulated Angular/Cordova environment (node + jsdom: npm install)
 #   activity nx-activity.js: the statistics from the accessory's event log (node), and its sheet (jsdom)
 #   brand    patch-16-brand.py on an invented logo: the icon, the small icon and the splash screens it makes (node + python3)
+#   gallery  nx-gallery.js (Settings > Design, the page of Material 3 Expressive) in jsdom, and patch-17-gallery.py on an invented app tree
 #   java     the logic of the native layer on a plain JVM, against android-all-10 (run ./get-tools.sh first)
 set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -25,6 +26,8 @@ echo "== activity (nx-activity.js)"
 node test/activity.test.js | tail -1 || failed=1     # without jsdom it tests the statistics only and says so
 echo "== brand (the icon and the splash screen)"
 node test/brand.test.js | tail -1 || failed=1
+echo "== gallery (Settings > Design)"
+node test/gallery.test.js | tail -1 || failed=1       # without jsdom it says that it is skipped
 echo "== java (native layer)"
 if [ -f "$TOOLS/android-all-10.jar" ]; then
   T="$(mktemp -d)"; mkdir -p "$T/stubs" "$T/classes" "$T/test"

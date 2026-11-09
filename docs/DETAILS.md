@@ -1,8 +1,104 @@
 # Details and history
 
 This is the technical background to the [README.md](../README.md): why every change exists, with the diagnoses that led to them
-(nx3 through nx21: the project's build numbers). The example values (Wi-Fi `HomeWifi`, accessory `NiceIT4WIFIAABBCC`, user
+(nx3 through nx22: the project's build numbers). The example values (Wi-Fi `HomeWifi`, accessory `NiceIT4WIFIAABBCC`, user
 `homeuser`) stand in for whatever is different in your case. The data in this document comes from one phone and one IT4WIFI module.
+
+## What is new in nx22 (Material 3 Expressive as a library, and an example page in the app)
+
+nx22 has version code 20201120 and installs over nx21 when it is signed with the same key. Nothing changed in the network layer (the native layer only reports `nx-22`). What changed is the skin (a library of the
+components of Material 3 Expressive, `skin/src/m3e.css`, and the real screens now use it), one new script (`nx-gallery.js`: the page Settings > Design), a few lines in `nx-patch.js` and `patch-17-gallery.py`.
+
+**What was reported.** *"I now want more Material 3 Expressive elements in it. I really want an example app for the use of M3E."* I took that as two things at once: the real screens should be made of the expressive parts,
+and there should be a place in the app that shows every part, working, with the numbers, so that someone who wants to use M3E in a web view can see how it is done. Both are in nx22.
+
+**Where the numbers come from.** The design site (m3.material.io) cannot be fetched from where this is built, so the numbers are taken from Google's source: the token files of `androidx.compose.material3`
+(`ButtonXSmallTokens` to `ButtonXLargeTokens`, `ConnectedButtonGroupSmallTokens`, `SplitButton*Tokens`, `Fab*Tokens`, `FabMenuBaselineTokens`, `LoadingIndicatorTokens`, `LinearProgressIndicatorTokens`, `SliderTokens`,
+`SwitchTokens`, `FloatingToolbarTokens`, `ListTokens`, `AssistChipTokens`, `TypeScaleTokens`, `ShapeTokens`, `ExpressiveMotionTokens`), `MaterialShapes` with `androidx.graphics.shapes`, the sources of the loading indicator and
+the wavy progress indicator, and the component documents of Material Components for Android. Compose is not used and no Kotlin is included: only the numbers, written down as CSS (Apache License 2.0, see
+[NOTICE.md](../NOTICE.md)). `test/skin.test.js` has them as a table (81 checks, most of them about these numbers), so changing one is a decision and not an accident.
+
+**The principles of the expressive update, and where to see them**
+
+| Principle | What it is here |
+|---|---|
+| **Shape** | Corners that morph, with a spring: a button is round or square; pressed it gets a smaller corner (8, 8, 12, 16, 16 dp for XS to XL); a toggle changes shape when it is selected (round becomes square and the other way around); in a connected group the inner corners are 8 dp (4 dp pressed) and a selected button is round all over; a list item is 4 dp inside the list, 16 dp at its ends and when it is pressed or selected. And the 35 shapes as content: the hero of the accessory screen, the avatars, the swatch of the palette in use. |
+| **Size** | Five sizes of buttons (XS 32, S 40, M 56, L 96, XL 136 dp), icon buttons in three widths each, FABs of 40, 56, 80 and 96 dp, sliders with a track of 16, 24, 40, 56 and 96 dp. Open and Close on the accessory screen are size L (XL on a screen of 840 dp or more). |
+| **Motion** | Springs instead of curves. Six of them (below). The loading indicator and the wavy progress indicator are the two moving parts of M3E. |
+| **Color** | The seven palettes of nx21 (dynamic color, tonal), light and dark; the roles are shown on the page. |
+| **Type** | The 15 roles of the scale and the emphasized styles (one weight heavier: 400 to 500, 500 to 700). |
+
+**The 35 shapes.** `skin/src/tools/build-shapes.py` is an independent port to Python of `MaterialShapes` and the parts of `androidx.graphics.shapes` that it needs (the vertices with their rounding and smoothing, the
+way a rounded corner is built, the star, circle, rectangle and pill builders, the repeat and mirror helpers and `normalized()`); the sampling of the finished outline into the points of a `clip-path` is new. It writes
+`skin/src/shapes.json`, 144 points per shape (about 2.1 KB each; the CSS has them as `--nx-v-<name>`). Because every shape has the same number of points, `clip-path` can morph from any shape to any other: 33 shapes are sampled at equal angles
+around the center (point *i* of every such shape lies on the same ray, so an interpolation is a pure radial blend); two (*puffy* and *pixel triangle*) are not star-shaped about the center and are sampled at equal arc length.
+The first point is at 3 o'clock and every polygon runs clockwise. Every vertex, rounding value and rotation was compared mechanically against `MaterialShapes.kt` (0 mismatches); what could not be compared is the numerical
+output of Google's code (there was no Android runtime), so the rest was checked analytically (tangents continuous at every junction inside a rounded corner, the circle's radial error about 1e-6, mirror and rotation symmetry)
+and by eye on a contact sheet. How close the 144 points are to the exact outline: at most 0.13 % of the box for 27 shapes; burst 0.30 %, soft burst 0.18 %, puffy diamond 0.6 %, puffy 0.78 %, pixel triangle 0.85 %, pixel circle 0.93 %
+(its steps are chamfered), boom 1.8 % (15 teeth do not divide 144, some tips are a little short) and soft boom 10.8 % at the hairline slits between its petals (the area differs 0.2 %). Of the 595 pairs of shapes only one, boom to pixel triangle, has an
+intermediate state that crosses itself. As in Google's sources, the shapes sit slightly inside the box (`normalized()` uses the control-point hull). *Very sunny* has 8 rays, as in the source.
+
+**The motion scheme.** Six springs (damping ratio / stiffness): spatial *fast* 0.6 / 800, *default* 0.8 / 380, *slow* 0.8 / 200, which move things and overshoot a little (the fast one most), and effects *fast* 1.0 / 3800, *default* 1.0 / 1600,
+*slow* 1.0 / 800, which change color and opacity and do not overshoot. `build-tokens.mjs` turns each into a CSS `linear()` easing of 41 points and a duration (the time after which the spring stays within 0.2 % of its end):
+`--nx-spatial-fast` 350 ms, `--nx-spatial` 420 ms, `--nx-spatial-slow` 570 ms, `--nx-effects-fast` 140 ms, `--nx-effects` 220 ms, `--nx-effects-slow` 300 ms (`-ms` has the duration). They replace the two springs of nx9 (`--nx-spring*`). The loading
+indicator has its own spring (0.6 / 200, cut off at the 650 ms between two shapes: `--nx-loader-spring`). The page Settings > Design has a part *Motion* in which six balls run each their own spring.
+
+**The components** (`skin/src/m3e.css`; the classes are the same in the app and on the page).
+- *Buttons* `.m3e-btn` + a size (`.m3e-xs` to `.m3e-xl`) + a style (`.m3e-filled`, `.m3e-tonal`, `.m3e-elevated`, `.m3e-outlined`, `.m3e-text`, `.m3e-error`); `.m3e-square`; `[aria-pressed]` for a toggle. The size is a set of variables
+  (`--_h`, `--_pad`, `--_gap`, `--_icon`, `--_sq`, `--_pr`, `--_fs`, `--_lh`) taken from the tokens; the corners are `--_rl` and `--_rr` (left and right), so that a group and a split button can give the inner ones another value. The state layer
+  (10 % of the text color) is an inset shadow, not a pseudo-element: the buttons of the app use `:before` for their icons. *Icon buttons* `.m3e-icon-btn` (sizes, `.m3e-narrow`, `.m3e-wide`, the same styles plus `.m3e-standard`).
+- *Groups* `.m3e-group` (12 dp apart, 18 for XS; the pressed button gets wider), `.m3e-group.m3e-connected` (2 dp, 8 dp inside, 4 dp pressed, the selected one round, the pressed one takes room from its neighbours), `.m3e-fill` (share the width).
+  *Split button* `.m3e-split` (2 dp apart, the menu button turns its chevron and becomes round while the menu is open) with `.m3e-menu`.
+- *FAB* `.m3e-fab` (+ `.m3e-fab-s`, `.m3e-fab-m`, `.m3e-fab-l`, `.m3e-ext` for the extended one, `.m3e-secondary`, `.m3e-tertiary`) and the *FAB menu* `.m3e-fabm` (the items unfold from the button one after the other, 32 ms apart).
+- *Loading indicator* `.m3e-loader` (+ `.m3e-contained`): 48 dp, the shape 38 dp, a different one of seven (soft burst, cookie 9, pentagon, pill, sunny, cookie 4, oval) every 650 ms with a spring, a quarter turn at a time (28 steps, 18.2 s, so it ends where
+  it began), and the whole shape turns once in 4.666 s. The step keyframes come from `build-css.py` (`LOADER_SEQ`) and the turn is the individual property `rotate`, which adds to the `transform` of the steps. `.m3e-morphing` is any element with that animation.
+- *Wavy progress* `.m3e-progress` (`--p` 0 to 1; `.m3e-flat`; `.m3e-indet` with two lines): 10 dp high (4 dp thick, an amplitude of 3 dp), a track of 4 dp that stops 4 dp from the wave and a dot at its end, the wave moves one wavelength per second (40 dp, 20 dp when
+  indeterminate). The wave is an SVG mask of cubic half-waves (`wave_uri` in `build-css.py`) on a layer that slides under a box that clips it (a transform, so that it runs on the compositor); the two lines of the indeterminate one are clipped with registered
+  custom properties (`@property`) that run the cycle of 1750 ms (head 0 to 1000 ms and tail 250 to 1250 ms; head 650 to 1500 ms and tail 900 to 1750 ms, on the emphasized accelerate curve), and the track leaves a gap of 4 dp around each line.
+- *Slider* `.m3e-slider` (`--v` 0 to 1; `.m3e-s` to `.m3e-xl`): a thick track, a handle that is a bar of 4 dp (2 dp while it is held) with a gap of 6 dp around it, a stop at the end and a bubble with the value while you drag.
+- *Switch* `.m3e-switch[aria-checked]`, and the same for the `ion-toggle` of the app (`.toggle .track .handle`): 52 x 32 dp, the thumb 16 dp off, 24 dp on, 28 dp pressed, a check in it when it is on.
+- *Chips* `.m3e-chip` (32 dp, 8 dp corners; assist, filter, input, suggestion), *toolbars* `.m3e-toolbar` (floating, `.m3e-vibrant`) and `.m3e-docked` (64 dp), *segmented list* `.m3e-list > .m3e-li`, *type* `.m3e-display-l` to `.m3e-label-s` and `.m3e-emph`, *shapes* `.m3e-shape`.
+
+**How the elements of the app get a button.** The screens of the app are not written by me: their buttons are `a.command` in a template, `.button` of Ionic, a `button` in a sheet. They get the behavior of an M3E button (the state layer, the corners that
+morph, the springs) by selector: `BUTTONS` in `build-css.py` is the list, and `m3e.css` writes its base rule once for `.m3e-btn` and all of them, inside `:where()` (specificity zero, so that the variants and the app's own rules always win). `skin.css` then gives each its size, shape and
+colors with the same variables. A test checks that every element in that list declares its size. One thing to know when you add to it: the app's own `style.css` has rules of three classes (`.setup-wifi-bridge .conferma .button { height: 92px }`) that beat the
+prefix `html:root body[data-ng-app]` (two classes and two elements), so the generic `.button` says `height: var(--_h) !important`.
+
+**What changed on the screens of the app**
+
+| Where | What |
+|---|---|
+| Accessory screen, the hero | The shape is a shape of M3E that changes with the state with a spring: *cookie 9* closed, *flower* open, *clover 4* stopped, *burst* obstructed. While the gate moves (opening, closing) **and while the app says "Connecting..." or "Checking..."** it is the loading indicator (the CSS asks for the label *that is shown*: `strong.nx-checking-text:not(.ng-hide)`, because the template always contains the text, hidden by `ng-hide`). |
+| Accessory screen, the buttons | Open and Close: a connected button group of size L (96 dp), 2 dp apart, round outside and 8 dp inside; the button of the state the gate is in is selected (round all over), the pressed one gets 4 dp inside corners and takes room from the other; XL (136 dp, the icon 40, the label 32 sp) when the screen is 840 dp high or more. Stop: size L, error container. The extra buttons: size M, tonal; *Choose commands*: a text button of size S with an icon. |
+| The top bar | The round buttons are icon buttons of size S (40 dp, round, pressed 8 dp) in a hit area of 48 dp (a transparent border of 4 dp around them); *Next* and *Help* are filled buttons of size S. The chip under the title has the corner of an assist chip (8 dp). |
+| Lists | Segmented as M3E has it: 2 dp apart, 4 dp inside, 16 dp at the ends and when pressed or selected (was 3, 8, 28 and 16). No scale on press, only the shape. |
+| The navigation bar | The indicator is 56 x 32 dp (was 64). |
+| Switches | Every `ion-toggle` (the optional command, IFTTT, scenes ...) is an M3E switch. |
+| Settings | *Theme* is a connected button group (Auto, Light, Dark) of size S; the swatches of *Colors* are circles and the one in use is a cookie, a little larger (the shape morphs with a spring); a row *Design* with an avatar that is a cookie (a circle while it is pressed) opens the page. |
+| Spinners | Every `ion-spinner` (the search for accessories, "Loading...") is the loading indicator: the svg of the spinner stays, invisible, so that the box keeps the size the app gave it. |
+| The status and activity sheets | The buttons are M3E buttons (size S, the footer size M); while the sheet is busy the wavy progress indicator runs along its top edge and the shape in the header is the loading indicator. |
+| Other buttons | Generic `.button`: size M (56 dp, round, pressed 12 dp), the buttons of the popups: text buttons of size S, the buttons of the wizard: size M (they were 92 dp), the tiles of the start page: corners of 48 dp (16 dp pressed), the LOG button: a small FAB (40 dp, corners of 12 dp). |
+
+**Settings > Design (`nx-gallery.js`, `skin/src/gallery.css`, `patch-17-gallery.py`).** A page in the app (an overlay on `<body>`, built the first time it is opened, `window.NxGallery.open()`; `nx-patch.js` offers `$rootScope.nxGallery()` to the settings page
+only when the script is there, and the row is not shown without it). Fourteen parts, each with a short explanation and, under every example, the class names and the numbers of the tokens: *Shapes* (the 35; tap one and the big shape morphs into it, with a Play button that goes through all of them), *Motion*
+(six balls, each with its own spring), *Buttons* (five sizes, six styles, round and square, toggles), *Icon buttons*, *Groups* (standard, connected with one or several selected, and the large one of the accessory screen), *Split button* (with its menu), *FAB* (sizes, extended, the
+menu that unfolds), *Loading and progress* (the indicator contained and not, determinate wavy progress driven by a slider, flat, indeterminate), *Sliders* (five sizes, with the value bubble), *Switches and chips*, *Toolbars* (floating, vibrant, docked), *Lists* (a segmented list: the selected
+item is 16 dp all over and its avatar becomes a cookie), *Type* (the 15 roles, a switch for the emphasized styles) and *Color* (the 16 roles of the chosen palette). At the top: the hero (the loading indicator), the theme and the palette (the same choices as in Settings: it goes through `NX.theme` and `NX.palette`,
+and without `nx-patch.js` it sets the attributes on `<html>` itself) and chips that jump to a part. Two things that took thought: the page takes no touches for 450 ms after it opens (the finger that opened it is still down, and Ionic can send a second click to the same place; in the harness that click
+landed on a palette swatch and changed the palette), and the page is `data-tap-disabled` so that Ionic leaves its taps alone. The back button of the phone closes it first (the capture phase). Menus close when you tap somewhere else. The animations only run while the page is open.
+
+**Build.** `build-css.py` has new placeholders: `{{SHAPES}}` (all `--nx-v-*`, from `shapes.json`; the old names `cookie`, `sun` and `star` in that file are copies and are not repeated), `{{WAVE}}` (the two masks of the wavy progress), `{{LOADER}}` (the keyframes of the loading indicator) and the list `BUTTONS`; it
+adds `m3e.css` and `gallery.css`; it stops when a placeholder is left. The CSS grew from 150 KB to about 290 KB (the 35 shapes are 75 KB of it). `verify-apk.py` checks the 35 shapes, the components, the page and its row in the built APK.
+
+**Not seen on a phone.** Everything was looked at in the harness (headless Chromium: the real app with a simulated bridge), light and dark: the accessory screen in its states, the lists, the wizard, the sheets, the popups and every part of the page, with the springs, the menus, the sliders and the toggles used
+(and the loading indicator paused at the end of each of its first steps to check the sequence). What I cannot know without a phone: how smooth the morphing is on your WebView (a `clip-path` of 144 points is repainted at every frame while a shape morphs, which is fine for one or two loading indicators; it is the reason the
+hero and the spinners stop with *reduce motion*), and how the page feels under a thumb. Parts that the app has no use for (the FAB, the split button, toolbars, chips, the slider) exist in the library and on the page only. Not included: the circular progress indicators (flat and wavy), the carousel, the search bar, the date and time pickers.
+
+Tests: `test/skin.test.js` 81 checks (the sizes, corners, spaces and labels of the buttons and icon buttons, the groups, split button, FAB and FAB menu, the loading indicator (29 keyframes, the order of the seven shapes, the turn), the wave (amplitude, wavelength, thickness), the indeterminate cycle,
+the slider, the switch, chips, toolbars, lists, the navigation bar, the six springs (the spatial ones overshoot and the effects ones do not), the type scale, the emphasized styles, reduced motion, the hero, the buttons of the app, every class and icon of the page, and the 35 shapes with 144 points each, made by `build-shapes.py`),
+`test/gallery.test.js` 101 checks (new: the page in jsdom: every part, every interaction, the theme and the palette with and without `NX`, the guard against the second click, the back button, and `patch-17-gallery.py` on an invented app tree: where the row and the script go, idempotent, all or nothing),
+`test/nxpatch.test.js` 295 (4 new: `nxGallery` only with the module), `test/activity.test.js` 291 and `test/brand.test.js` 46 as before. About 70 deliberate breaks of the CSS, the scripts, the patch and `build.sh` were tried on a copy; six of them were first not caught, and the tests were tightened until each was (for example:
+the loading indicator is also run by the hero, the spinners and the sheet, so a wrong speed in one place has to be seen in all of them).
 
 ## What is new in nx21 (new color palettes, and a choice of seven)
 
@@ -716,7 +812,7 @@ is a reset of the accessory.
 ## Building and the files
 
 See [README.md](../README.md) for the steps (`./get-tools.sh`, then `./build.sh <original.apk>`). The script unpacks the original APK,
-applies `patch-01-wifi-binding.py` through `patch-16-brand.py`, builds the Java layer (`java/src/com/nice/patch`) into `classes2.dex`,
+applies `patch-01-wifi-binding.py` through `patch-17-gallery.py`, builds the Java layer (`java/src/com/nice/patch`) into `classes2.dex`,
 adds it, aligns, signs with your key in `keys/` and checks the result (`verify-apk.py`, if `androguard` and `loguru` are installed).
 Every patch checks that its anchor text occurs exactly once, so a different APK version is not silently patched wrongly.
 
@@ -733,16 +829,17 @@ Every patch checks that its anchor text occurs exactly once, so a different APK 
 | `patch-14-activity.py` | nx14: `nx-activity.js` in the app (loaded before `nx-patch.js`) and the line on the accessory screen that opens the activity sheet |
 | `patch-15-state.py` | nx15: the state text and icon of the accessory screen ask `nxState` and `nxIcon` (the state settled from the log), a note under the state, and the pill of a blocked gate |
 | `patch-16-brand.py`, `brand/` | nx18/nx20: the logo of Nice from the app's own launcher icon as an adaptive icon with a monochrome layer, the small icon of the notifications, the splash icon of Android 12 and the splash screens (light and dark); the theme `NxTheme` and `SplashMaintainAspectRatio`. `brand/logo.py` takes the icon apart (gradient, house, N) and draws it sharp at any size, `brand/assets.py` says what is drawn where; both are plain Python 3 and there is no picture in the repository |
+| `patch-17-gallery.py`, `nx-gallery.js` | nx22: the page Settings > Design (the reference of Material 3 Expressive): the script in the app (loaded before `nx-patch.js`) and the row in the settings, behind the rows of Theme and Colors |
 | `patch-09-socket-fallback.py` | nx7: `socketFor` in `_openSocket` (EPERM fallback) and the VPN guard in both `bindNiceWifi` copies |
 | `patch-08-route-choice.py` | nx6: hooks in `ConnectionsManager`: `vetLocal` (vetting the local address), `noteRoute` (remembering the chosen route), `socketAddress` (name resolution with a fallback) |
 | `patch-07-vpn-binding.py` | nx4: skipping VPN networks in the bind loop, `Nx.wifiType`/`Nx.ctx` in the Wi-Fi receiver, the `__nxWrapVerify` hook in `app.min.js` |
 | `java/src/com/nice/patch` | `Nx` (helper functions), `NxWifi` (connecting via WifiNetworkSpecifier), `NxPlugin` (bridge to the JS) |
 | `java/stubs` | only signatures of app and Cordova classes that the code is compiled against; they do not end up in the dex |
-| `nx-patch.js`, `nx-theme.js`, `nx-activity.js`, `debuglog.js` | the JS improvements (nx9: also the status chip and the status sheet; nx12: the extra buttons and the theme; nx14: the activity sheet) with the early theme script, and the LOG panel |
-| `skin/` | `nx-expressive.css` (the result that goes into the app) and `fonts-nx/`; the source is in `skin/src/`: `skin.css` (the app), `status.css` (the status sheet), `activity.css` (the activity sheet and its line), `tokens.css` (the colors of the seven palettes and the spring curves, generated by `src/tools/build-tokens.mjs`), `shapes.json` (the polygons for the shapes, all 144 points), `build-css.py` assembles them. Edit the source and run `python3 skin/src/build-css.py`, never edit the result |
+| `nx-patch.js`, `nx-theme.js`, `nx-activity.js`, `nx-gallery.js`, `debuglog.js` | the JS improvements (nx9: also the status chip and the status sheet; nx12: the extra buttons and the theme; nx14: the activity sheet; nx22: the page Settings > Design) with the early theme script, and the LOG panel |
+| `skin/` | `nx-expressive.css` (the result that goes into the app) and `fonts-nx/`; the source is in `skin/src/`: `skin.css` (the app), `status.css` (the status sheet), `activity.css` (the activity sheet and its line), `tokens.css` (the colors of the seven palettes and the spring curves, generated by `src/tools/build-tokens.mjs`), `m3e.css` (nx22: the components of Material 3 Expressive), `gallery.css` (the layout of the page Settings > Design), `shapes.json` (the 35 shapes as polygons of 144 points, made by `src/tools/build-shapes.py`), `build-css.py` assembles them. Edit the source and run `python3 skin/src/build-css.py`, never edit the result |
 | `harness/` | `screens.cjs` runs the real app (unpacked from the APK: `unzip -o <apk> "assets/www/*"`, next to the script as a folder `www`) in headless Chromium with a simulated Cordova bridge (`shim.js`) and takes screenshots of every page (light, and with `COLOR_SCHEME=dark` also dark, `PRE=` for an action such as `NX.diagnose()`, `CFG=` for a different network state); `sweep.sh` does 25 screens and makes a contact sheet; `make-screenshots.py` redoes the pictures in `docs/screenshots`. Requires Node with `playwright` and Python with PIL |
 | `get-tools.sh`, `test-all.sh` | downloading the tools with a SHA-256 check, and all tests in one go |
-| `test/` and `java/test/` | the tests (jsdom: `NODE_PATH=<folder with node_modules/jsdom> node test/nxpatch.test.js`, 291 checks; `node test/masker.test.js`; `node test/activity.test.js`, 291 checks of the activity statistics, the state, the readings in the background and the sheet; `node test/skin.test.js` (38 checks) checks the CSS itself: no placeholders, braces, every variable defined, all shapes with the same number of points, icons, font and prefix, and the palettes (their blocks, the contrast of the text, the swatches); `node test/brand.test.js`, 46 checks, runs `patch-16-brand.py` on an invented logo and checks the generated icon and splash files; it needs `python3`) |
+| `test/` and `java/test/` | the tests (jsdom: `NODE_PATH=<folder with node_modules/jsdom> node test/nxpatch.test.js`, 295 checks; `node test/masker.test.js`; `node test/activity.test.js`, 291 checks of the activity statistics, the state, the readings in the background and the sheet; `node test/skin.test.js` (81 checks) checks the CSS itself: no placeholders, braces, every variable defined, the 35 shapes with 144 points each, icons, font and prefix, the palettes (their blocks, the contrast of the text, the swatches) and every number of the Material 3 Expressive components against the tokens; `node test/gallery.test.js` (101 checks) builds the page Settings > Design in jsdom and runs `patch-17-gallery.py` on an invented app tree; `node test/brand.test.js`, 46 checks, runs `patch-16-brand.py` on an invented logo and checks the generated icon and splash files; it needs `python3`) |
 
 ## Signing key
 

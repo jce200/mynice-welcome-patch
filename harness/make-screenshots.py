@@ -5,7 +5,7 @@ Usage (from this folder, with the app unpacked into ./www, see README.md):
     python3 make-screenshots.py [output-folder]        # default: ../docs/screenshots
 
 Writes overview.png (favorites, device page and status sheet, light above dark), status-states.png (the status sheet in five
-situations), extras-theme.png (the extra buttons, the page where they are ticked, the theme row and the colors row, and the buttons in dark), palettes.png
+situations), m3e-states.png (nx22: the accessory screen in five states with the shapes of Material 3 Expressive), m3e.png (nx22: five parts of Settings > Design), extras-theme.png (the extra buttons, the page where they are ticked, the theme row and the colors row, and the buttons in dark), palettes.png
 (the accessory screen in the seven palettes, dark above light) and activity.png
 (the line on the accessory screen and the activity sheet, light above dark) and blocked.png (a gate that was blocked, with a state that
 the accessory still reports as "opening").
@@ -26,7 +26,7 @@ MAC = '00:0B:6C:AA:BB:CC'
 DETAIL = f'#/tabs/favorites-device-detail/1/{MAC}'
 
 # the shapes that the native layer (Nx.netState / Nx.probe) returns; shim.js has the same defaults
-NET = {'version': 'nx-21', 'sdk': 37, 'wifi': True, 'ssid': 'HomeWifi', 'ip': '192.168.1.172', 'validated': True, 'cellular': False,
+NET = {'version': 'nx-22', 'sdk': 37, 'wifi': True, 'ssid': 'HomeWifi', 'ip': '192.168.1.172', 'validated': True, 'cellular': False,
        'vpn': False, 'module': False, 'defaultType': 'wifi', 'route': 'local', 'routeAgeSeconds': 4}
 CLOUD_OK = {'ok': True, 'dns': '63.182.6.157', 'dnsMs': 12, 'tcpMs': 60}
 STATES = {
@@ -123,5 +123,22 @@ for i, (_, label) in enumerate(PALETTES):
 palettes = labeled
 palettes.save(os.path.join(OUT, 'palettes.png'), optimize=True)
 
-for name, im in (('overview.png', overview), ('status-states.png', strip), ('extras-theme.png', extras), ('palettes.png', palettes), ('activity.png', activity), ('blocked.png', blocked)):
+# nx22: Material 3 Expressive. (1) The accessory screen in five states: the shape of the hero says what the gate does (cookie, loading indicator while it moves, flower, clover, burst) and Open and
+# Close are a connected button group with the state selected. (2) Settings > Design, the reference page, in five parts. The animations are paused at a chosen moment (the loading indicator at
+# the end of its second step, the others at 0.9 s) so that the pictures are the same every time.
+FREEZE = ("setTimeout(function () { document.getAnimations().forEach(function (a) { var n = a.animationName; a.pause(); a.currentTime = n === 'm3e-morph' ? 1300 : n === 'm3e-turn' ? 1000 : 900; }); }, %d); ")
+M3E_STATES = [('closed', {}), ('opening', {'state': 'opening'}), ('open', {'state': 'open'}), ('stopped', {'state': 'stopped'}), ('obstructed', {'obstruct': '1'})]
+m3e_states = grid([[shoot(f'ov-m3e-{scheme}-{name}', [DETAIL], cfg=cfg, scheme=scheme, pre=FREEZE % 600)[0] for name, cfg in M3E_STATES] for scheme in ('light', 'dark')], 0.4)
+m3e_states.save(os.path.join(OUT, 'm3e-states.png'), optimize=True)
+GALLERY = ['shapes', 'buttons', 'groups', 'progress', 'sliders']
+
+
+def gallery_part(scheme, part):
+    pre = ("NxGallery.open(); setTimeout(function () { document.querySelector('.nx-gal-scroll').scrollTop = document.getElementById('nx-gal-%s').offsetTop - 8; }, 800); " % part) + FREEZE % 1500
+    return shoot(f'ov-m3e-gal-{scheme}-{part}', ['#/tabs/settings/false'], scheme=scheme, pre=pre)[0]
+m3e = grid([[gallery_part(scheme, part) for part in GALLERY] for scheme in ('light', 'dark')], 0.4)
+m3e.save(os.path.join(OUT, 'm3e.png'), optimize=True)
+
+for name, im in (('overview.png', overview), ('status-states.png', strip), ('extras-theme.png', extras), ('palettes.png', palettes), ('activity.png', activity), ('blocked.png', blocked),
+                 ('m3e-states.png', m3e_states), ('m3e.png', m3e)):
     print(name, im.size, os.path.getsize(os.path.join(OUT, name)) // 1024, 'KB')

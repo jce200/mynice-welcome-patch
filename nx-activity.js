@@ -802,7 +802,7 @@
       panel.setAttribute('aria-modal', 'true');
       panel.setAttribute('aria-label', 'Activity');
       panel.innerHTML =
-        '<div class="nx-handle"><div class="nx-progress"></div></div>' +
+        '<div class="nx-handle"><div class="nx-progress m3e-progress m3e-indet" aria-hidden="true"><i></i><b></b></div></div>' +
         '<div class="nx-act-head"><div class="nx-act-titles"><h2 class="nx-act-title">Activity</h2><div class="nx-act-sub" id="nx-act-sub"></div></div>' +
         '<button type="button" class="nx-act-refresh" aria-label="Refresh"></button></div>' +
         '<div id="nx-act-body"></div>' +
