@@ -789,8 +789,10 @@ to NiceIT4WIFI… sent" or "requestNetwork failed"). Passwords are masked, but c
 
 **Tested** (without a phone): the build and signing; that every call between the new code and the app/Cordova exists with exactly the
 same signature; the logic of the new code on a plain JVM (81 checks, among them the calculation rule for the network range); the JS in
-a simulated environment (183 checks, in which the new behaviors were also checked with deliberately introduced faults), the masking
-(13 checks) and the CSS itself (19 checks); the decompiled result of the three patched places in the app; and that the patched
+a simulated environment (295 checks for `nx-patch.js`, 291 for `nx-activity.js` and its sheet and 101 for the page Settings > Design,
+in which the new behaviors were also checked with deliberately introduced faults), the masking (44 checks), the CSS itself (81
+checks, among them every number of the Material 3 Expressive components against the tokens) and the icon and splash screens that
+`patch-16-brand.py` makes from an invented logo (46 checks); the decompiled result of the three patched places in the app; and that the patched
 `app.min.js` is valid JavaScript.
 
 **Not tested** (can only be tested on a phone):
