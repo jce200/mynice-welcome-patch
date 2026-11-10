@@ -3,7 +3,7 @@
 Patch scripts that turn **your own copy** of the *MyNice Welcome* 2.2.0 Android app (`com.nice.nhk`) into a build that works on
 modern Android (10 and newer) with **Nice IT4WIFI** modules (Robus and other gate and garage-door openers). It also fixes the
 app's trouble with VPNs and mobile data, adds a connection-status sheet with a real diagnosis, and gives the app a Material 3
-Expressive look (light and dark), with a page inside the app that shows every part of that design as a working example. The latest builds (nx23, tidied up in nx24) are the result of a design review: a gate
+Expressive look (light and dark), with a page inside the app that shows every part of that design as a working example. The latest builds (nx23, tidied up in nx24 and put on one grid in nx25) are the result of a design review: a gate
 screen whose buttons never move, a line that says what became of every tap, and a state that says how old it is.
 
 > **Unofficial, and not affiliated with Nice S.p.A.** The source tree of this repository contains **no Nice binaries**: you can
@@ -116,6 +116,12 @@ screen whose buttons never move, a line that says what became of every tap, and 
 
   ![The accessory screen in the seven palettes, dark above light](docs/screenshots/palettes.png)
 
+- **A backdrop, if you want one.** Settings > Appearance > *Background*: *None*, *Glow*, *Shapes* or *Rings*: a quiet abstract picture behind the header and the cards, drawn in the
+  colors of the palette you chose, in the light and in the dark theme. Since nx25 everything also stands on one grid: every title on the same line, the header and the lists on the same
+  16 dp, the label of a list above the text of its cards, and round ends on every run of cards.
+
+  ![The backdrops Glow, Shapes and Rings on the accessory screen and in Settings, light and dark](docs/screenshots/backdrops.png)
+
 - **Light, dark or automatic.** Settings > Appearance > *Theme*. *Auto* uses what the WebView reports as the phone's scheme, which is
   what the app did before. Android takes that value from the app's own theme, and the theme of the Nice app is a dark base theme, so
   *Auto* does not necessarily follow your phone (I could not check that on every phone); *Light* and *Dark* always do what they say.
@@ -148,7 +154,7 @@ This way you don't have to trust a binary from someone else, and the app is sign
 ```
 ./get-tools.sh                               # once: downloads apktool and friends into ./tools, checked on SHA-256
 ./build.sh /path/to/MyNiceWelcome_2.2.0.apk
-# result: out/MyNiceWelcome_2.2.0_nx24.apk
+# result: out/MyNiceWelcome_2.2.0_nx25.apk
 ```
 
 The first build creates **your own signing key** in `keys/` (with a random password in `keys/password.txt`). Keep that folder

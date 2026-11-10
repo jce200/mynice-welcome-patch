@@ -137,7 +137,7 @@ m3e = m3e.replace('{{WAVE}}', '--nx-wave-40: %s;\n  --nx-wave-20: %s;' % (wave_u
 m3e = m3e.replace('{{LOADER}}', loader_keyframes())
 skin = read('skin.css')
 # nx23: one part file per workstream (nx23-gate.css, nx23-command.css, nx23-dialogs.css, nx23-lists.css, nx23-wizard.css), in name order, after everything else
-nx23 = '\n'.join(read(os.path.basename(p)) for p in sorted(glob.glob(os.path.join(HERE, 'nx23-*.css'))))
+nx23 = '\n'.join(read(os.path.basename(p)) for p in sorted(glob.glob(os.path.join(HERE, 'nx2[3-9]-*.css'))))
 extra = read('status.css') + '\n' + read('activity.css') + '\n' + m3e + '\n' + read('gallery.css') + '\n' + nx23
 extra = extra.replace('{{P}}', 'html:root body[data-ng-app]')
 skin = skin.replace('{{P}}', 'html:root body[data-ng-app]')

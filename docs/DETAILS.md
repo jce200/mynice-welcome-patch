@@ -1,8 +1,23 @@
 # Details and history
 
 This is the technical background to the [README.md](../README.md): why every change exists, with the diagnoses that led to them
-(nx3 through nx24: the project's build numbers). The example values (Wi-Fi `HomeWifi`, accessory `NiceIT4WIFIAABBCC`, user
+(nx3 through nx25: the project's build numbers). The example values (Wi-Fi `HomeWifi`, accessory `NiceIT4WIFIAABBCC`, user
 `homeuser`) stand in for whatever is different in your case. The data in this document comes from one phone and one IT4WIFI module.
+
+## What is new in nx25 (everything on one left edge, and a backdrop if you want one)
+nx24 still looked untidy, and measuring the screens showed why: things that should stand on one line did not. **The header.** The app writes the title of a page as plain text on one
+page and as an element on the next, and the rule that makes room for the status chip under the title took a title of plain text for no title: on Settings, System, About and five more pages
+the title stood 4 dp higher than on Favorites and on the page of an accessory. The script now says whether a title has text (`nx-chip-solo` on the chip of a bar that has none), so every
+title is on the same line. The bar had 14 dp at the sides and a gap of 10 dp between its parts, and the app leaves empty parts in a bar, so a title started at 14, 24, 72 or 82 dp. Now
+the bar has 16 dp at both sides like the page under it, no gap, the circle of the back button and of the buttons at the right starts and ends at 16 dp (the button at the right ended at 9),
+and a title starts at 16 dp, or at 72 dp next to a back button. **The lists.** The label above a list started 8 dp left of the text in the cards under it; it starts at the same 36 dp now.
+The first and the last card of a run have large corners and the ones between them small corners, and until nx24 the style rules told first from last by the markup, which differs from page
+to page: on the page of an accessory no run had an end, on the page of a home the name was a square card, "Add Accessory…" ended a run without a round corner. The ends are now read from
+the screen: cards that stand directly under each other are one run (`data-nx-g` = only, first, mid or last, set by nx-patch.js whenever the page changes), whatever the markup is. The list
+of All events stood against the edges of the window and has the 16 dp of the others. **A backdrop.** Settings > Appearance > *Background*: *None* (as before), *Glow* (two soft fields of
+color), *Shapes* (a large circle, a ring and a dot) or *Rings* (thin circles from the top corner). They are drawn with gradients in the colors of the palette you chose, so they follow the
+palette and the theme, they lie behind the header and the cards, and they stay where they are from page to page. The choice is kept in `localStorage` (`nxBackdrop`) and applied before
+the first paint, like the theme and the palette. nx25 has version code 20201123.
 
 ## What is new in nx24 (the accessory screen tidied up, and a failure line that the gate contradicts is withdrawn)
 The first screenshot of nx23 on the phone showed two things. **It looked untidy.** Six shape treatments stood on one screen (a rounded rectangle for the status chip, a pill for the entry to

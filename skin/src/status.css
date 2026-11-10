@@ -12,7 +12,7 @@
    sides at 150 % text and more leaves the verdict itself too little room, then it ends in an ellipsis), and the room for the buttons on the right of the header (the eye, Next) is --nx-chip-reserve (set by the
    script, 56 dp as long as it has not measured). skin.css gives .bar.bar-dark .title margin and padding 0 !important at (0,5,2): every rule on the title
    box repeats that selector. With large text the pill grows (min-height, unitless line height) instead of cutting the text. */
-{{P}} .bar .title:has(> .nx-chip:not([hidden]):not(:first-child)), {{P}} .bar.bar-dark .title:has(> .nx-chip:not([hidden]):not(:first-child)) { margin-top: 8px !important; }
+{{P}} .bar .title:has(> .nx-chip:not([hidden]):not(.nx-chip-solo)), {{P}} .bar.bar-dark .title:has(> .nx-chip:not([hidden]):not(.nx-chip-solo)) { margin-top: 8px !important; }
 {{P}} .bar .title > .nx-chip, {{P}} .bar.bar-dark .title > .nx-chip {
   all: unset; --nx-chip-h: 32px; --nx-chip-hit: 48px;
   position: relative; display: flex; align-items: center; box-sizing: border-box;
@@ -20,7 +20,7 @@
   font: 500 13px/1.25 var(--nx-font); letter-spacing: 0.1px; font-variation-settings: 'wdth' 100; text-align: left; white-space: nowrap;
   color: var(--md-sys-color-on-surface-variant); cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none;
 }
-{{P}} .bar .title > .nx-chip:first-child, {{P}} .bar.bar-dark .title > .nx-chip:first-child { margin-top: 0; }
+{{P}} .bar .title > .nx-chip.nx-chip-solo, {{P}} .bar.bar-dark .title > .nx-chip.nx-chip-solo { margin-top: 0; }
 {{P}} .bar .title > .nx-chip[hidden], {{P}} .bar.bar-dark .title > .nx-chip[hidden] { display: none !important; }
 {{P}} .bar:has(.right-buttons > *) .title > .nx-chip, {{P}} .bar.bar-dark:has(.right-buttons > *) .title > .nx-chip { --nx-chip-reserve: 56px; }
 {{P}} .bar .title > .nx-chip::before, {{P}} .bar.bar-dark .title > .nx-chip::before {

@@ -4,7 +4,7 @@
  * own prefers-color-scheme decides, as before. The same for the palette (nx21): one of the names below puts data-nx-palette on <html>;
  * the first palette, "midnight", is what the tokens have without it, so it is never set. The names are those of PALETTES in nx-patch.js
  * and of the palettes in tokens.css (test/skin.test.js checks that they agree). nx-patch.js changes the choices later on (the same keys,
- * the same attributes). */
+ * the same attributes). The same again for the backdrop (nx25, data-nx-bg). */
 (function () {
   try {
     var t = window.localStorage.getItem('nxTheme');
@@ -17,4 +17,9 @@
     var p = window.localStorage.getItem('nxPalette');
     if (/^(nice|graphite|paper|violet|pine|ember)$/.test(p)) document.documentElement.setAttribute('data-nx-palette', p);
   } catch (e) { /* no storage: the default palette */ }
+  // nx25: the backdrop (Settings > Appearance > Background), data-nx-bg on <html>; "none" is what the skin has without it, so it is never set. The names are those of BACKDROPS in nx-patch.js
+  try {
+    var b = window.localStorage.getItem('nxBackdrop');
+    if (/^(glow|shapes|rings)$/.test(b)) document.documentElement.setAttribute('data-nx-bg', b);
+  } catch (e) { /* no storage: no backdrop */ }
 })();

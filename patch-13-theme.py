@@ -72,6 +72,14 @@ ROW = ('    <div class="item item-divider" data-ng-if="nxSetTheme">Appearance</d
        '        <a class="nx-swatch" role="radio" tabindex="0" data-ng-repeat="p in nxPalettes" data-nx-pal="{{ p.id }}" data-ng-class="{ \'nx-on\': nxPalette() === p.id }" '
        'aria-checked="{{ nxPalette() === p.id }}" aria-label="{{ p.label }}" title="{{ p.label }}" data-ng-click="nxSetPalette(p.id)"></a>\n'
        '      </div>\n'
+       '    </div>\n'
+       # nx25: the backdrop
+       '    <div class="item nx-bg-row" data-ng-if="nxSetBackdrop">\n'
+       '      <span>Background</span>\n'
+       '      <div class="nx-seg" role="radiogroup" aria-label="Background">\n'
+       '        <a class="nx-seg-btn" role="radio" tabindex="0" data-ng-repeat="b in nxBackdrops" data-ng-class="{ \'nx-on\': nxBackdrop() === b.id }" '
+       'aria-checked="{{ nxBackdrop() === b.id }}" data-ng-click="nxSetBackdrop(b.id)">{{ b.label }}</a>\n'
+       '      </div>\n'
        '    </div>\n\n')
 settings = settings.replace(DIVIDER, ROW + DIVIDER)
 

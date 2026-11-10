@@ -620,6 +620,44 @@ function sheet(env) { return env.document.getElementById('nx-sheet'); }
     const noOpen = await environment(Object.assign(scen(), { preXhr: (w) => { w.NxGallery = {}; } }));
     ok('nx22 design: a module without open() is not offered', noOpen.$rootScope.nxGallery === undefined);
   }
+  // ---------------------------------------------------------------- nx25: the backdrop (Settings > Appearance > Background)
+  // 'none' (nothing saved, nothing on <html>: the plain surface, as before), or one of the backdrops of the skin (localStorage 'nxBackdrop' and data-nx-bg on <html>)
+  {
+    const env = await environment({ homes: [home([device()])], net: { wifi: true, ssid: 'HomeWifi' } });
+    const r = env.$rootScope, root = env.document.documentElement;
+    ok('nx25 backdrop: functions and the list for the settings page', typeof r.nxBackdrop === 'function' && typeof r.nxSetBackdrop === 'function' && r.nxBackdrops.map((b) => b.id).join() === 'none,glow,shapes,rings' && r.nxBackdrops.every((b) => b.label));
+    ok('nx25 backdrop: nothing chosen -> none, nothing on <html>', r.nxBackdrop() === 'none' && !root.hasAttribute('data-nx-bg') && env.w.localStorage.getItem('nxBackdrop') === null);
+    r.nxSetBackdrop('glow');
+    ok('nx25 backdrop: glow -> saved and on <html>', r.nxBackdrop() === 'glow' && root.getAttribute('data-nx-bg') === 'glow' && env.w.localStorage.getItem('nxBackdrop') === 'glow');
+    r.nxSetBackdrop('lava'); r.nxSetBackdrop(undefined); r.nxSetBackdrop({});
+    ok('nx25 backdrop: something else changes nothing', r.nxBackdrop() === 'glow' && root.getAttribute('data-nx-bg') === 'glow');
+    ok('nx25 backdrop: NX.backdrop() reads and sets', (env.w.NX.backdrop('rings'), env.w.NX.backdrop() === 'rings' && root.getAttribute('data-nx-bg') === 'rings'));
+    r.nxSetBackdrop('none');
+    ok('nx25 backdrop: none -> nothing saved and nothing on <html> again', r.nxBackdrop() === 'none' && !root.hasAttribute('data-nx-bg') && env.w.localStorage.getItem('nxBackdrop') === null);
+    // the early script and the stylesheet know the same names
+    const THEME_SRC = fs.readFileSync(path.join(__dirname, '..', 'nx-theme.js'), 'utf8');
+    const run = (stored) => {
+      const dom = new JSDOM('<!doctype html><html><head></head><body></body></html>', { url: 'http://localhost/', runScripts: 'outside-only' });
+      if (stored !== undefined) dom.window.localStorage.setItem('nxBackdrop', stored);
+      dom.window.eval(THEME_SRC);
+      return dom.window.document.documentElement.getAttribute('data-nx-bg');
+    };
+    ok('nx25 theme.js: every backdrop except none is applied before the first paint, junk is not', ['glow', 'shapes', 'rings'].every((n) => run(n) === n) && run(undefined) === null && run('none') === null && run('lava') === null && run('Glow') === null);
+    const POLISH = fs.readFileSync(path.join(__dirname, '..', 'skin', 'src', 'nx25-polish.css'), 'utf8');
+    ok('nx25 css: each backdrop has its picture, drawn with the colors of the palette only (no fixed color)', ['glow', 'shapes', 'rings'].every((n) => new RegExp('html:root\\[data-nx-bg="' + n + '"\\] \\{\\s*--nx-art:').test(POLISH)) &&
+      !/#[0-9a-f]{3,8}\b|rgba?\(/i.test(POLISH.slice(POLISH.indexOf('the backdrop\n'))));
+    ok('nx25 css: without a choice nothing of the backdrop applies (every rule of it is behind html:root[data-nx-bg])', POLISH.slice(POLISH.indexOf('the backdrop\n')).split('\n').filter((l) => /\{/.test(l) && !/^\s/.test(l)).every((l) => /^html:root\[data-nx-bg/.test(l)));
+    ok('nx25 css: the header has 16 dp at both sides and no gap, the label of a list starts at the text of the cards (20 dp inside the card)', /\.bar\.bar-header \{ padding: 0 16px !important; gap: 0; \}/.test(POLISH) && /\.item-divider \{ padding-left: 20px !important; padding-right: 20px !important; \}/.test(POLISH));
+    ok('nx25 css: the corners of a run of cards follow data-nx-g (only, first, last; the rest small)', ['first', 'last', 'only'].every((g) => POLISH.indexOf('[data-nx-g="' + g + '"]') > 0));
+    const STATUS = fs.readFileSync(path.join(__dirname, '..', 'skin', 'src', 'status.css'), 'utf8');
+    ok('nx25 css: a chip under a title is told from a chip alone by the class that the script sets, not by :first-child (a title of plain text stood 4 dp higher)', /:not\(\.nx-chip-solo\)\) \{ margin-top: 8px !important; \}/.test(STATUS) && !/nx-chip:first-child|nx-chip:not\(\[hidden\]\):not\(:first-child\)/.test(STATUS));
+    // the chip says whether the title has text of its own
+    const bar = env.document.createElement('div'); bar.className = 'bar-header'; bar.innerHTML = '<div class="title">Settings</div><div class="title"><span>Home</span></div><div class="title"></div>';
+    env.document.body.appendChild(bar);
+    env.w.NX.refresh(); await new Promise((res) => setTimeout(res, 120));
+    const chips = Array.from(bar.querySelectorAll('.title')).map((t) => t.querySelector('.nx-chip'));
+    ok('nx25 chip: nx-chip-solo only in a title without text (plain text and an element are both a title)', chips.every(Boolean) && !chips[0].classList.contains('nx-chip-solo') && !chips[1].classList.contains('nx-chip-solo') && chips[2].classList.contains('nx-chip-solo'), chips.map((c) => c && c.className).join(' | '));
+  }
   {
     // nx-theme.js (the early script) applies the palette too
     const THEME_SRC = fs.readFileSync(path.join(__dirname, '..', 'nx-theme.js'), 'utf8');

@@ -1706,7 +1706,7 @@ html:root body[data-ng-app] .setup-wifi-bridge .info .button.button-full { width
    sides at 150 % text and more leaves the verdict itself too little room, then it ends in an ellipsis), and the room for the buttons on the right of the header (the eye, Next) is --nx-chip-reserve (set by the
    script, 56 dp as long as it has not measured). skin.css gives .bar.bar-dark .title margin and padding 0 !important at (0,5,2): every rule on the title
    box repeats that selector. With large text the pill grows (min-height, unitless line height) instead of cutting the text. */
-html:root body[data-ng-app] .bar .title:has(> .nx-chip:not([hidden]):not(:first-child)), html:root body[data-ng-app] .bar.bar-dark .title:has(> .nx-chip:not([hidden]):not(:first-child)) { margin-top: 8px !important; }
+html:root body[data-ng-app] .bar .title:has(> .nx-chip:not([hidden]):not(.nx-chip-solo)), html:root body[data-ng-app] .bar.bar-dark .title:has(> .nx-chip:not([hidden]):not(.nx-chip-solo)) { margin-top: 8px !important; }
 html:root body[data-ng-app] .bar .title > .nx-chip, html:root body[data-ng-app] .bar.bar-dark .title > .nx-chip {
   all: unset; --nx-chip-h: 32px; --nx-chip-hit: 48px;
   position: relative; display: flex; align-items: center; box-sizing: border-box;
@@ -1714,7 +1714,7 @@ html:root body[data-ng-app] .bar .title > .nx-chip, html:root body[data-ng-app] 
   font: 500 13px/1.25 var(--nx-font); letter-spacing: 0.1px; font-variation-settings: 'wdth' 100; text-align: left; white-space: nowrap;
   color: var(--md-sys-color-on-surface-variant); cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none;
 }
-html:root body[data-ng-app] .bar .title > .nx-chip:first-child, html:root body[data-ng-app] .bar.bar-dark .title > .nx-chip:first-child { margin-top: 0; }
+html:root body[data-ng-app] .bar .title > .nx-chip.nx-chip-solo, html:root body[data-ng-app] .bar.bar-dark .title > .nx-chip.nx-chip-solo { margin-top: 0; }
 html:root body[data-ng-app] .bar .title > .nx-chip[hidden], html:root body[data-ng-app] .bar.bar-dark .title > .nx-chip[hidden] { display: none !important; }
 html:root body[data-ng-app] .bar:has(.right-buttons > *) .title > .nx-chip, html:root body[data-ng-app] .bar.bar-dark:has(.right-buttons > *) .title > .nx-chip { --nx-chip-reserve: 56px; }
 html:root body[data-ng-app] .bar .title > .nx-chip::before, html:root body[data-ng-app] .bar.bar-dark .title > .nx-chip::before {
@@ -3067,3 +3067,56 @@ html:root body[data-ng-app] .popup-body .nx-wz-details summary { min-height: 48p
 
 /* ============================================================ the code page promises "or take a photo", but the camera plugin is not in the app: the button draws nothing and still takes a tap */
 html:root body[data-ng-app] .photo_button { display: none !important; }
+
+/* nx25: alignment, and a backdrop.
+   One left edge and one right edge for everything: 16 dp for what has a shape (the cards, the buttons, the round buttons of the header), 36 dp for the text in a card and for the label
+   above a list. One height for a header title, whatever the app made it of. The ends of a run of cards come from the screen (data-nx-g, nx-patch.js), not from the markup. */
+
+/* ============================================================ the header */
+/* 16 dp at both sides. The round buttons are 40 dp in a hit area of 48: the area hangs 4 dp over the edge so that the circle that you see starts at 16; the title starts at 72.
+   No gap between the parts: the app leaves empty parts in a bar (a hidden button, an empty group), and with a gap an empty part moved the title 10 dp on some pages */
+html:root body[data-ng-app] .bar.bar-header { padding: 0 16px !important; gap: 0; }
+html:root body[data-ng-app] .bar.bar-header > .back-button:not(.hide):not(.ng-hide), html:root body[data-ng-app] .bar.bar-header > .buttons-left .button { margin: 0 12px 0 -4px !important; }
+html:root body[data-ng-app] .bar.bar-header > .buttons-left .button + .button { margin-left: 0 !important; }
+html:root body[data-ng-app] .bar.bar-header > .buttons-right { position: absolute; right: 12px; top: 0; bottom: 0; }
+
+/* ============================================================ lists */
+/* the label above a list starts where the text in the cards starts */
+html:root body[data-ng-app] .list .item-divider, html:root body[data-ng-app] .item-divider { padding-left: 20px !important; padding-right: 20px !important; }
+/* a list that the app put straight on the page (All events) keeps the margins of the others */
+html:root body[data-ng-app] ion-content > .scroll > .item-divider, html:root body[data-ng-app] ion-content > .scroll > .item { margin-left: 16px !important; margin-right: 16px !important; }
+/* the ends of a run of cards */
+html:root body[data-ng-app] ion-view [data-nx-g][data-nx-g][data-nx-g][data-nx-g][data-nx-g]:not(:active):not(.activated) { border-radius: var(--nx-r-s) !important; }
+html:root body[data-ng-app] ion-view [data-nx-g="first"][data-nx-g][data-nx-g][data-nx-g][data-nx-g]:not(:active):not(.activated) { border-radius: var(--nx-r-l) var(--nx-r-l) var(--nx-r-s) var(--nx-r-s) !important; }
+html:root body[data-ng-app] ion-view [data-nx-g="last"][data-nx-g][data-nx-g][data-nx-g][data-nx-g]:not(:active):not(.activated) { border-radius: var(--nx-r-s) var(--nx-r-s) var(--nx-r-l) var(--nx-r-l) !important; }
+html:root body[data-ng-app] ion-view [data-nx-g="only"][data-nx-g][data-nx-g][data-nx-g][data-nx-g]:not(:active):not(.activated) { border-radius: var(--nx-r-l) !important; }
+
+/* ============================================================ Settings > Appearance > Background */
+html:root body[data-ng-app] .item.nx-bg-row { display: flex; flex-direction: column; align-items: stretch; gap: 10px; }
+html:root body[data-ng-app] .item.nx-bg-row > .nx-seg { display: flex; }
+html:root body[data-ng-app] .item.nx-bg-row > .nx-seg > .nx-seg-btn { flex: 1 1 0; min-width: 0; padding-left: 4px; padding-right: 4px; }
+
+/* ============================================================ the backdrop
+   Three quiet abstract backdrops, drawn with gradients in the colors of the palette, so that they follow the palette and the theme. A backdrop lies on the page itself (every page is as
+   large as the window and starts at its top, so the picture stands still from page to page); the header and the scrolling part are clear glass over it, the cards and the bar at the
+   bottom stay solid. The first layer clears the top edge, where the status bar of the phone has the plain surface color. */
+html:root[data-nx-bg] { --nx-art-fade: linear-gradient(var(--md-sys-color-surface) 0, transparent 56px); }
+html:root[data-nx-bg="glow"] {
+  --nx-art: radial-gradient(85% 48% at 100% 14%, color-mix(in srgb, var(--md-sys-color-primary-container) 80%, transparent) 0, transparent 100%),
+    radial-gradient(80% 42% at 0% 92%, color-mix(in srgb, var(--md-sys-color-tertiary-container) 62%, transparent) 0, transparent 100%);
+}
+html:root[data-nx-bg="shapes"] {
+  --nx-art: radial-gradient(circle at 100% 15%, color-mix(in srgb, var(--md-sys-color-primary-container) 50%, transparent) 0 168px, transparent 169px),
+    radial-gradient(circle at 4% 80%, transparent 0 96px, color-mix(in srgb, var(--md-sys-color-tertiary-container) 46%, transparent) 97px 136px, transparent 137px),
+    radial-gradient(circle at 80% 61%, color-mix(in srgb, var(--md-sys-color-secondary-container) 44%, transparent) 0 30px, transparent 31px);
+}
+html:root[data-nx-bg="rings"] {
+  --nx-art: linear-gradient(to bottom left, transparent 0, var(--md-sys-color-surface) 72%),
+    repeating-radial-gradient(circle at 100% 12%, transparent 0 34px, color-mix(in srgb, var(--md-sys-color-primary) 11%, transparent) 35px 36.5px);
+}
+html:root[data-nx-bg] body[data-ng-app] .pane, html:root[data-nx-bg] body[data-ng-app] .view {
+  background-image: var(--nx-art-fade), var(--nx-art) !important; background-repeat: no-repeat !important; background-size: 100vw 100vh !important; background-position: 0 0 !important;
+}
+html:root[data-nx-bg] body[data-ng-app] .scroll-content { background-color: transparent !important; }
+html:root[data-nx-bg] body[data-ng-app] .bar.bar-header, html:root[data-nx-bg] body[data-ng-app] ion-nav-bar .bar, html:root[data-nx-bg] body[data-ng-app] .bar-dark.bar,
+html:root[data-nx-bg] body[data-ng-app] .nav-bar-block .bar, html:root[data-nx-bg] body[data-ng-app] .nav-bar-block, html:root[data-nx-bg] body[data-ng-app] ion-nav-bar { background: transparent !important; }

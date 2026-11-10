@@ -105,6 +105,20 @@
     if (paletteIndex(id) > 0) r.setAttribute('data-nx-palette', id); else r.removeAttribute('data-nx-palette');
   }
 
+  // ------------------------------------------------------------------ backdrop (nx25)
+  // Settings > Appearance > Background: nothing (the plain surface, as before) or one of the quiet abstract backdrops of the skin (nx25-polish.css), drawn with the colors of the
+  // palette. The choice is in localStorage ('nxBackdrop') and on <html> as data-nx-bg; nx-theme.js puts it there before the first paint. For "none" nothing is saved or set.
+  var BACKDROPS = [['none', 'None'], ['glow', 'Glow'], ['shapes', 'Shapes'], ['rings', 'Rings']];
+  var BACKDROP_KEY = 'nxBackdrop';
+  function backdropIndex(id) { for (var i = 0; i < BACKDROPS.length; i++) if (BACKDROPS[i][0] === id) return i; return -1; }
+  function readBackdrop() {
+    try { var b = window.localStorage.getItem(BACKDROP_KEY); return backdropIndex(b) > 0 ? b : BACKDROPS[0][0]; } catch (e) { return BACKDROPS[0][0]; }
+  }
+  function applyBackdrop(id) {
+    var r = document.documentElement;
+    if (backdropIndex(id) > 0) r.setAttribute('data-nx-bg', id); else r.removeAttribute('data-nx-bg');
+  }
+
   // ------------------------------------------------------------------ 1. error messages
   window.__nxMsg = function (e, fallback) {
     try {
@@ -1208,6 +1222,67 @@
         log('palette', id);
       } catch (e) { log('palette', String(e)); }
     };
+    // backdrop (nx25): the same once more
+    var backdropNow = readBackdrop();
+    applyBackdrop(backdropNow);  // nx-theme.js did this already; here in case that script is not there
+    $rootScope.nxBackdrops = BACKDROPS.map(function (p) { return { id: p[0], label: p[1] }; });
+    $rootScope.nxBackdrop = function () { return backdropNow; };
+    $rootScope.nxSetBackdrop = function (id) {
+      try {
+        if (typeof id !== 'string' || backdropIndex(id) < 0) return;
+        backdropNow = id;
+        try { if (backdropIndex(id) === 0) window.localStorage.removeItem(BACKDROP_KEY); else window.localStorage.setItem(BACKDROP_KEY, id); } catch (e) { log('backdrop: not saved', String(e)); }
+        applyBackdrop(id);
+        log('backdrop', id);
+      } catch (e) { log('backdrop', String(e)); }
+    };
+    // ---- nx25 groups: begin
+    // A list is a row of cards: the first and the last card of a run have large corners, the ones between them small corners. Until nx24 the style rules told first from last by the
+    // markup (the element after a divider, the last child of the list), and the pages of the app differ too much for that: on the page of an accessory no run had an end, on the page of
+    // a home the name was a run of its own without ends. Now the ends are read from the screen: cards that stand directly under each other (the same left edge, at most 4 dp apart) are
+    // one run, and each card gets data-nx-g = only | first | mid | last, which nx25-polish.css turns into corners. Text without a card (a hint under a list) and pills are no cards.
+    var groupTimer = 0, groupObserver = null;
+    function markGroups() {
+      groupTimer = 0;
+      try {
+        var els = document.querySelectorAll('ion-view .item:not(.item-divider), ion-view .spacer');
+        var cards = [];
+        for (var i = 0; i < els.length; i++) {
+          var el = els[i];
+          if (el.parentElement && el.parentElement.closest && el.parentElement.closest('.item')) continue;
+          var b = el.getBoundingClientRect();
+          if (b.width < 1 || b.height < 1) continue;
+          var cs = window.getComputedStyle(el);
+          if (cs.visibility === 'hidden') continue;
+          if (/rgba\([^)]*,\s*0\)|transparent/.test(cs.backgroundColor)) { if (el.hasAttribute('data-nx-g')) el.removeAttribute('data-nx-g'); continue; }
+          if (el.classList.contains('nx-fav-card') || el.classList.contains('button-assertive') || el.classList.contains('button')) continue;
+          cards.push({ el: el, top: b.top, bottom: b.bottom, left: b.left, view: el.closest('ion-view') });
+        }
+        cards.sort(function (a, c) { return a.top - c.top; });
+        for (var k = 0; k < cards.length; k++) {
+          var c = cards[k], prev = null, next = null, j;
+          for (j = 0; j < cards.length; j++) {
+            var o = cards[j];
+            if (o === c || o.view !== c.view || Math.abs(o.left - c.left) > 1) continue;
+            if (Math.abs(c.top - o.bottom) <= 4) prev = o;
+            if (Math.abs(o.top - c.bottom) <= 4) next = o;
+          }
+          var g = prev && next ? 'mid' : prev ? 'last' : next ? 'first' : 'only';
+          if (c.el.getAttribute('data-nx-g') !== g) c.el.setAttribute('data-nx-g', g);
+        }
+      } catch (e) { log('groups', String(e)); }
+    }
+    function queueGroups() { if (!groupTimer) groupTimer = setTimeout(markGroups, 60); }
+    try {
+      if (window.MutationObserver && document.body) {
+        groupObserver = new window.MutationObserver(queueGroups);
+        groupObserver.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'style', 'hidden', 'nav-view'] });
+      }
+      window.addEventListener('resize', queueGroups, false);
+      $rootScope.$on('$ionicView.afterEnter', queueGroups);
+      queueGroups();
+    } catch (e) { log('groups', String(e)); }
+    // ---- nx25 groups: end
     // ---- nx23 lists: begin
     // Favorites, Other commands and Settings (patch-19-lists.py asks for these; each is guarded, and where one does not exist the page shows what nx22 showed). They return strings, booleans or
     // nothing: a function that returns a new object on every call would make the digest spin.
@@ -1725,6 +1800,12 @@
           for (var k = 0; k < t.children.length; k++) if (t.children[k].classList.contains('nx-chip')) c = t.children[k];
           if (!c) c = makeChip();
           if (t.lastElementChild !== c) t.appendChild(c);
+          // nx25: a title is plain text on one page and an element on the next, so the style rules cannot tell a chip under a title from a chip alone in the bar (":first-child" took a
+          // title of plain text for no title, and such a title stood 4 dp higher than the others): the script says it
+          var own = '';
+          for (var n = t.firstChild; n; n = n.nextSibling) { if (n.nodeType === 3) own += n.data; else if (n.nodeType === 1 && n !== c) own += n.textContent; }
+          var solo = !own.replace(/\s+/g, '');
+          if (c.classList.contains('nx-chip-solo') !== solo) { if (solo) c.classList.add('nx-chip-solo'); else c.classList.remove('nx-chip-solo'); }
           var sig = show ? (st.show || st.word) + '|' + st.tag + '|' + st.text : '';
           var changed = c.__nxSig !== sig;
           if (changed) {
@@ -2451,6 +2532,7 @@
       checkWaitingUsers: checkWaitingUsers, refresh: refreshPill, open: openSheet, close: closeSheet,
       theme: function (mode) { if (mode) $rootScope.nxSetTheme(mode); return themeNow; },
       palette: function (id) { if (id) $rootScope.nxSetPalette(id); return paletteNow; },
+      backdrop: function (id) { if (id) $rootScope.nxSetBackdrop(id); return backdropNow; },
       activity: function (device) {
         if (!activity) return;
         var d = device || (allDevices()[0] || {}).device;
