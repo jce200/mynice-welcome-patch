@@ -7,6 +7,8 @@ var cases = [
     [SECRETS[0], SECRETS[1], SECRETS[2]], ['HomeWifi', '00:0B:6C:AA:BB:CC', 'homeuser']],
   ['connect line', '############ connect[00:0B:6C:AA:BB:CC] user: homeuser, password: aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789+/abcdEFGH=',
     [SECRETS[1]], ['user: homeuser', '00:0B:6C:AA:BB:CC']],
+  ['verify line (no colon after password)', '_updateDeviceData verify [00:0B:6C:AA:BB:CC] user: homeuser, password aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789+/abcdEFGH=',
+    [SECRETS[1]], ['user: homeuser', '00:0B:6C:AA:BB:CC']],
   ['data object', '$scope.data: {"config":"NHK","ssid":"HomeWifi","password":"Password123x","sec":"WPA2_MIXED_PSK","name":"NiceIT4WIFIAABBCC"}',
     [SECRETS[0]], ['HomeWifi', 'WPA2_MIXED_PSK', 'NiceIT4WIFIAABBCC']],
   ['plain text line setup.networkPassword', 'AddDeviceSettingsCtrl goToStepAddDevice setup.networkPassword: Password123x',

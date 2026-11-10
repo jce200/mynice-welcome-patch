@@ -1,8 +1,13 @@
 # Details and history
 
 This is the technical background to the [README.md](../README.md): why every change exists, with the diagnoses that led to them
-(nx3 through nx26: the project's build numbers). The example values (Wi-Fi `HomeWifi`, accessory `NiceIT4WIFIAABBCC`, user
+(nx3 through nx27: the project's build numbers). The example values (Wi-Fi `HomeWifi`, accessory `NiceIT4WIFIAABBCC`, user
 `homeuser`) stand in for whatever is different in your case. The data in this document comes from one phone and one IT4WIFI module.
+
+## What is new in nx27 (one more password line masked in the Debug log)
+The first Debug log of nx26 showed a line that the masking missed: `_updateDeviceData verify [..] user: homeuser, password <the pairing password>`, without a colon after the word, so
+the rule for "password: ..." did not match. A long run of base64 after the word "password" is masked now. And the hook of nx26 says once per session and type that it saw an event
+that the app reads completely (`event CHANGE: read by the app, no details in it`), so that a log without a DIAGNOSTIC line shows whether the hook saw events at all. nx27 has version code 20201125.
 
 ## What is new in nx26 (the events that the app does not read are written to the Debug log)
 The current MyNice app of Nice (1.3.1, a new native app that speaks the same protocol to the IT4WIFI) listens to an event that the app of this kit throws away: next to `CHANGE` (the

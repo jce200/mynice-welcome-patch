@@ -13,6 +13,8 @@
     [/(\\?"(?:networkPassword|pairingPassword|sessionPassword|password|setupCode|passphrase|psk|accessToken|token)\\?"\s*:\s*\\?")([^"\\]*)(\\?")/gi, '$1***$3'],
     // plain text: "password: abc", "setup.networkPassword: abc", "pairingPassword=abc"
     [/((?:network|pairing|session)?password\s*[:=]\s*)([^\s,;"'}]+)/gi, '$1***'],
+    // nx26: "user: homeuser, password mYo...=" (no colon: the line of _updateDeviceData verify): a long run of base64 after the word
+    [/(password\s+)([A-Za-z0-9+\/]{16,}={0,2})/gi, '$1***'],
     // "setupcode:  12345678"
     [/(setup\s?code\s*[:=]\s*)([^\s,;"'}]+)/gi, '$1***'],
     // "token zzFCMtok123:APA91b..." (an FCM token and the like)

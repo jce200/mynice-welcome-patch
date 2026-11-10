@@ -125,7 +125,7 @@ try { ({ JSDOM } = require('jsdom')); } catch (e) { console.log('note: jsdom is 
 
   // ------------------------------------------------------------------------------------------------ nx-patch.js: the wizard section
   const build = fs.readFileSync(path.join(ROOT, 'build.sh'), 'utf8'), all = fs.readFileSync(path.join(ROOT, 'test-all.sh'), 'utf8');
-  ok('build.sh runs patch-20-wizard.py before patch-21-copy.py, and test-all.sh runs the nx23-* tests', /patch-19-lists\.py patch-20-wizard\.py patch-21-copy\.py/.test(build) && /test\/nx23-\*\.test\.js/.test(all));
+  ok('build.sh runs patch-20-wizard.py before patch-21-copy.py, and test-all.sh runs the nx23-* tests', /patch-19-lists\.py patch-20-wizard\.py (patch-22-diagnostic\.py )?patch-21-copy\.py/.test(build) && /test\/nx23-\*\.test\.js/.test(all));
   ok('nx-patch.js: the wizard section is delimited and small', /\/\/ ---- nx23 wizard: begin/.test(SRC) && /\/\/ ---- nx23 wizard: end/.test(SRC) &&
     SRC.slice(SRC.indexOf('// ---- nx23 wizard: begin'), SRC.indexOf('// ---- nx23 wizard: end')).split('\n').length < 180);
 

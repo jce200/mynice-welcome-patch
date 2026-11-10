@@ -52,7 +52,7 @@ public final class Nx {
     private Nx() { }
 
     static final String TAG = "NX";
-    public static final String PATCH_VERSION = "nx-26";
+    public static final String PATCH_VERSION = "nx-27";
 
     /** Log channel to the LOG panel in the app (see NxPlugin 'logStream'). */
     static volatile CallbackContext logCb;
@@ -94,7 +94,11 @@ public final class Nx {
     public static void noteEvent(String xml) {
         try {
             String d = describeEvent(xml);
-            if (d != null) log(d);
+            if (d != null) { log(d); return; }
+            // an event that the app reads completely: one line per type and session, so that the log shows that this hook sees the events at all
+            String t = eventType(xml);
+            synchronized (seenEvents) { if (!seenEvents.add(t)) return; }
+            log("event " + t + ": read by the app, no details in it (said once per type)");
         } catch (Throwable ignored) { }
     }
 
@@ -102,10 +106,17 @@ public final class Nx {
      * The line for the Debug log, or null for an event that the app reads completely. An event of a type that the app does not know
      * (DIAGNOSTIC) and an event with EventDetails are written out, without the names, the addresses and the signature in them.
      */
+    private static final java.util.Set<String> seenEvents = new java.util.HashSet<String>();
+
+    static String eventType(String xml) {
+        if (xml == null) return "";
+        Matcher m = EVENT_TYPE.matcher(xml);
+        return m.find() ? m.group(1) : "";
+    }
+
     static String describeEvent(String xml) {
         if (xml == null) return null;
-        Matcher m = EVENT_TYPE.matcher(xml);
-        String type = m.find() ? m.group(1) : "";
+        String type = eventType(xml);
         boolean known = EVENT_KNOWN.matcher(type).matches();
         if (known && !xml.contains("EventDetails")) return null;
         String s = xml.replaceAll("[\\u0000-\\u001f]+", " ").replaceAll("\\s+", " ").trim();
