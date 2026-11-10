@@ -44,7 +44,7 @@ process.on('unhandledRejection', () => { unhandled++; });
     JSON.parse(read('skin/copy/command.json')).SETTINGS_DEVICE_4TH_BUTTON_PAGE_TITLE === 'Extra buttons');
   ok('live region: the line follows nxLineLive (assertive for a failure, guarded so that the template works without nx-patch.js), role status stays', /aria-live="\{\{\{\{ nxLineLive \? nxLineLive\(data\.device\) : 'polite' \}\}\}\}"/.test(p18) && /role="status"/.test(p18));
   const css = read('skin/src/nx23-command.css');
-  ok('css: the glyph before the text of the line does not add to the height of the line (two lines of 20 dp must fit the 40 dp box)', /margin: -4px 8px -4px 0; vertical-align: baseline/.test(css) && !/margin: 0 8px 0 0; vertical-align: -4px/.test(css));
+  ok('css: the glyph of a message is a part of the bar (20 dp, in the middle of its height), not of the first line of the words, so it adds nothing to the height of the line (nx24)', /\.nx-line\[data-nx-kind="bad"\]:before \{\s*content: ''; flex: 0 0 20px; width: 20px; height: 20px;/.test(css) && !/nx-line-text:before/.test(css));
 }
 
 let JSDOM;

@@ -277,6 +277,34 @@ async function environment(scen) {
   await failure('the service could not connect (a TIMEOUT of the connect, nothing was written): not sent', { connect: { fail: { code: 'TIMEOUT' } } }, 'close', true, 'No connection to the accessory. Close not sent.', 'Reconnect');
   await failure('QA review: on a screen 320 dp wide the same text has no button (it would take three lines and grow over the entry to the Activity sheet)', { exec: { fail: { code: 'NOT_CONNECTED' } } }, 'close', true,
     'No connection to the accessory. Close not sent.', '', 'bad', (e) => Object.defineProperty(e.w, 'innerWidth', { value: 320, configurable: true }));
+  // nx24 (seen on a phone on mobile data): "No connection to the accessory. Open not sent." stood next to "Opening", and the accessory had logged the Open
+  {
+    const env = await failure('nx24: through the Nice cloud a failed call is never "not sent" (nobody knows): "No answer ... it may have arrived", no Reconnect', { exec: { fail: { code: 'NOT_CONNECTED' } } }, 'open', true,
+      'No answer to Open. It may have arrived: check the gate.', '', 'bad', (e) => { e.net.route = 'cloud'; e.w.NX.refresh(); });
+    ok('nx24: ...and a refusal through the cloud is still a refusal', (await failure('nx24: code 5 through the cloud', { exec: { fail: { code: 5 } } }, 'close', true, 'Command not allowed. Close not sent.', '', 'bad', (e) => { e.net.route = 'cloud'; e.w.NX.refresh(); })) !== null);
+    const e2 = await failure('nx24: on Wi-Fi the call fails as "not sent" (as before)', { exec: { fail: { code: 'NOT_CONNECTED' } } }, 'open', true, 'No connection to the accessory. Open not sent.', 'Reconnect');
+    const d2 = e2.dev();
+    d2.properties[0].value = 'opening'; e2.report(MAC, 'opening');
+    ok('nx24: ...but when the gate then reports that it is opening, the line is withdrawn (it would contradict the state on the screen)', e2.line(d2) === '' && e2.$rootScope.nxLineKind(d2) === '' && e2.$rootScope.nxLineAct(d2) === '', e2.line(d2));
+    ok('nx24: ...and the LOG says so, once', e2.logs.filter((l) => /command: Open was reported as failed \(notsent\), but the gate reports opening: the line is withdrawn/.test(l)).length === 1 && (e2.line(d2), e2.line(d2), e2.logs.filter((l) => /the line is withdrawn/.test(l)).length === 1));
+    const e3 = await failure('nx24: a failed Close', { exec: { fail: { code: 'NOT_CONNECTED' } } }, 'close', true, 'No connection to the accessory. Close not sent.', 'Reconnect', 'bad', (e) => { e.dev().properties[0].value = 'open'; });
+    const d3 = e3.dev();
+    d3.properties[0].value = 'opening'; e3.report(MAC, 'opening');
+    ok('nx24: a report that does not agree with the command (the gate opens after a failed Close) leaves the failure where it is', e3.line(d3) === 'No connection to the accessory. Close not sent.', e3.line(d3));
+    const e4 = await failure('nx24: a failed Open on a gate that is already open', { exec: { fail: { code: 'NOT_CONNECTED' } } }, 'open', true, 'No connection to the accessory. Open not sent.', 'Reconnect', 'bad', (e) => { e.dev().properties[0].value = 'open'; });
+    e4.report(MAC, 'open');
+    ok('nx24: a gate that was already where the command takes it proves nothing: the failure stays', e4.line(e4.dev()) === 'No connection to the accessory. Open not sent.', e4.line(e4.dev()));
+  }
+  {
+    const gate = fs.readFileSync(path.join(__dirname, '..', 'skin', 'src', 'nx23-gate.css'), 'utf8'), cmd = fs.readFileSync(path.join(__dirname, '..', 'skin', 'src', 'nx23-command.css'), 'utf8');
+    ok('nx24 css: a message is a bar that reads from the left (glyph, words, button at the end with 4 dp around it); what the screen says at rest stays in the middle',
+      /\.nx-line:is\(\[data-nx-kind="busy"\], \[data-nx-kind="ok"\], \[data-nx-kind="warn"\], \[data-nx-kind="bad"\]\) \{ justify-content: flex-start; gap: 10px; padding: 4px 4px 4px 14px; text-align: left; \}/.test(gate) &&
+      /\.nx-line \{[^}]*justify-content: center;[^}]*text-align: center;/.test(gate) && /\.nx-line \.nx-line-act \{[^}]*margin: 0;/.test(cmd));
+    ok('nx24 css: one distance in the control block: the line is as far from the pad as the rows of the pad from each other, and never touches the entry to Activity', /\.nx-line \{[^}]*margin: 8px 16px var\(--nx-pad-gap\);/.test(gate) && /row-gap: var\(--nx-pad-gap\)/.test(gate));
+    ok('nx24 css: Open and Close are whole pills like Stop (the half-connected shape belonged to a gap of 2 dp), also while pressed',
+      /\.command:has\(\[translate\$="_close"\]\) \{ --_rl: var\(--_round\); --_rr: var\(--_round\); \}/.test(gate) && /\.command:has\(\[translate\$="_close"\]\):is\(:active, \.activated\) \{ --_rl: var\(--_pr\); --_rr: var\(--_pr\); \}/.test(gate));
+    ok('nx24 css: the status chip of the header is a pill like the entry to Activity', /border-radius: calc\(var\(--nx-chip-h\) \/ 2\);/.test(fs.readFileSync(path.join(__dirname, '..', 'skin', 'src', 'status.css'), 'utf8')));
+  }
   await failure('WRITE_ERROR: not sent, and the cause is the writing', { exec: { fail: { code: 'WRITE_ERROR' } } }, 'open', true, 'Writing to the accessory failed. Open not sent.', 'Reconnect');
   await failure('code 5: refused, no Reconnect (it would not help)', { exec: { fail: { code: 5 } } }, 'close', true, 'Command not allowed. Close not sent.', '');
   await failure('code 1: refused (the administrator has not confirmed this user)', { exec: { fail: { code: 1 } } }, 'close', true, 'Not confirmed by the administrator yet. Close not sent.', '');

@@ -5,7 +5,7 @@
 cd "$(dirname "$0")"
 T="${1:-run}"
 X='"secondary":["MDBk","MDFh"],"fourth":"MDBk","quick":["MDBk","MDFh"]'                       # the maintainer's case: two extra buttons
-C_CFG='{"reachable":false,"verifyFail":true,"statusFail":true,"activity":"error","secondary":["MDBk","MDFh"],"fourth":"MDBk","quick":["MDBk","MDFh"],"net":{"version":"nx-23","sdk":37,"wifi":true,"ssid":"GuestWifi","ip":"192.168.50.12","validated":true,"cellular":false,"vpn":false,"module":false,"defaultType":"wifi","route":"local","routeAgeSeconds":4}}'
+C_CFG='{"reachable":false,"verifyFail":true,"statusFail":true,"activity":"error","secondary":["MDBk","MDFh"],"fourth":"MDBk","quick":["MDBk","MDFh"],"net":{"version":"nx-24","sdk":37,"wifi":true,"ssid":"GuestWifi","ip":"192.168.50.12","validated":true,"cellular":false,"vpn":false,"module":false,"defaultType":"wifi","route":"local","routeAgeSeconds":4}}'
 TR='"trustTimes":{"StateFreshMs":3000,"StateStaleMs":7000}'
 run() {   # name view scheme cfg script [env...]   (screens.cjs runs SCRIPT after the first page)
   local n="$1" v="$2" s="$3" c="$4" sc="$5"; shift 5

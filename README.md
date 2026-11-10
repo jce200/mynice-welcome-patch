@@ -3,7 +3,7 @@
 Patch scripts that turn **your own copy** of the *MyNice Welcome* 2.2.0 Android app (`com.nice.nhk`) into a build that works on
 modern Android (10 and newer) with **Nice IT4WIFI** modules (Robus and other gate and garage-door openers). It also fixes the
 app's trouble with VPNs and mobile data, adds a connection-status sheet with a real diagnosis, and gives the app a Material 3
-Expressive look (light and dark), with a page inside the app that shows every part of that design as a working example. The latest build, nx23, is the result of a design review: a gate
+Expressive look (light and dark), with a page inside the app that shows every part of that design as a working example. The latest builds (nx23, tidied up in nx24) are the result of a design review: a gate
 screen whose buttons never move, a line that says what became of every tap, and a state that says how old it is.
 
 > **Unofficial, and not affiliated with Nice S.p.A.** The source tree of this repository contains **no Nice binaries**: you can
@@ -148,7 +148,7 @@ This way you don't have to trust a binary from someone else, and the app is sign
 ```
 ./get-tools.sh                               # once: downloads apktool and friends into ./tools, checked on SHA-256
 ./build.sh /path/to/MyNiceWelcome_2.2.0.apk
-# result: out/MyNiceWelcome_2.2.0_nx23.apk
+# result: out/MyNiceWelcome_2.2.0_nx24.apk
 ```
 
 The first build creates **your own signing key** in `keys/` (with a random password in `keys/password.txt`). Keep that folder

@@ -24,7 +24,7 @@
 {{P}} .bar .title > .nx-chip[hidden], {{P}} .bar.bar-dark .title > .nx-chip[hidden] { display: none !important; }
 {{P}} .bar:has(.right-buttons > *) .title > .nx-chip, {{P}} .bar.bar-dark:has(.right-buttons > *) .title > .nx-chip { --nx-chip-reserve: 56px; }
 {{P}} .bar .title > .nx-chip::before, {{P}} .bar.bar-dark .title > .nx-chip::before {
-  content: ''; position: absolute; inset: calc((var(--nx-chip-hit) - var(--nx-chip-h)) / 2) 0; box-sizing: border-box; border-radius: 8px;
+  content: ''; position: absolute; inset: calc((var(--nx-chip-hit) - var(--nx-chip-h)) / 2) 0; box-sizing: border-box; border-radius: calc(var(--nx-chip-h) / 2);
   background: radial-gradient(circle at 13px 50%, var(--nx-dot, transparent) 0 var(--nx-dot-r, 4.5px), transparent calc(var(--nx-dot-r, 4.5px) + .5px)) no-repeat, var(--md-sys-color-surface-container-high);
   transition: background-color var(--nx-effects-ms) var(--nx-effects), box-shadow var(--nx-effects-ms) var(--nx-effects);
 }

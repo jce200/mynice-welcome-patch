@@ -4,7 +4,7 @@ Runs the real app, unpacked from an APK, in headless Chromium with a simulated C
 page. This is how the look was checked without a phone. It needs Node with `playwright` (and Python with PIL for `sweep.sh`).
 
 ```
-unzip -o MyNiceWelcome_2.2.0_nx23.apk "assets/www/*" -d tmp && mv tmp/assets/www harness/www
+unzip -o MyNiceWelcome_2.2.0_nx24.apk "assets/www/*" -d tmp && mv tmp/assets/www harness/www
 cd harness
 node screens.cjs my-folder '#/tabs/favorites' '#/tabs/favorites-device-detail/1/00:0B:6C:AA:BB:CC'   # -> shots/my-folder/*.png
 COLOR_SCHEME=dark node screens.cjs ...            # dark mode

@@ -15,7 +15,7 @@
 //   requests    I-23: somebody waits for approval (CFG.waiting): taps "Check requests" and says whether the sheet is gone and the popup is on top
 // States for CFG are in module.exports.STATES (the invented Wi-Fi HomeWifi, accessory AABBCC). Failing states need WAIT of 6500 ms or more before the chip says
 // "Not reachable" (the app checks three times, 2.5 s apart).
-const NET = { version: 'nx-23', sdk: 37, wifi: true, ssid: 'HomeWifi', ip: '192.168.1.172', validated: true, cellular: false, vpn: false, module: false, defaultType: 'wifi', route: 'local', routeAgeSeconds: 4 };
+const NET = { version: 'nx-24', sdk: 37, wifi: true, ssid: 'HomeWifi', ip: '192.168.1.172', validated: true, cellular: false, vpn: false, module: false, defaultType: 'wifi', route: 'local', routeAgeSeconds: 4 };
 const CLOUD_OK = { ok: true, dns: '63.182.6.157', dnsMs: 12, tcpMs: 60 };
 const NONET = Object.assign({}, NET, { wifi: false, ssid: '', ip: '', cellular: false, vpn: false, defaultType: 'none', route: undefined });
 const STATES = {

@@ -13,23 +13,23 @@
 {{P}} .nx-line[data-nx-kind="bad"] { --nx-line-bg: var(--md-sys-color-error-container); --nx-line-fg: var(--md-sys-color-on-error-container); }
 {{P}} .nx-line[data-nx-kind="busy"], {{P}} .nx-line[data-nx-kind="ok"], {{P}} .nx-line[data-nx-kind="warn"], {{P}} .nx-line[data-nx-kind="bad"] { background: var(--nx-line-bg); color: var(--nx-line-fg); }
 {{P}} .nx-line .nx-line-text { min-width: 0; overflow-wrap: anywhere; }
-/* the glyph before the words: a check (sent), a triangle (warning), a circle with a mark (failure); busy is the loading indicator of M3E at 20 dp, which morphs and turns (and stands still with reduced motion) */
-{{P}} .nx-line[data-nx-kind="busy"] .nx-line-text:before, {{P}} .nx-line[data-nx-kind="ok"] .nx-line-text:before,
-{{P}} .nx-line[data-nx-kind="warn"] .nx-line-text:before, {{P}} .nx-line[data-nx-kind="bad"] .nx-line-text:before {
-  content: ''; display: inline-block; width: 20px; height: 20px; margin: -4px 8px -4px 0; vertical-align: baseline; background: currentColor;   /* (the negative margins keep the glyph out of the height of the line: two lines of 20 dp fit the 40 dp box) */
+/* the glyph in front of the words, in the middle of the height of the bar: a check (sent), a triangle (warning), a circle with a mark (failure); busy is the loading indicator of M3E at
+   20 dp, which morphs and turns (and stands still with reduced motion) */
+{{P}} .nx-line[data-nx-kind="busy"]:before, {{P}} .nx-line[data-nx-kind="ok"]:before, {{P}} .nx-line[data-nx-kind="warn"]:before, {{P}} .nx-line[data-nx-kind="bad"]:before {
+  content: ''; flex: 0 0 20px; width: 20px; height: 20px; background: currentColor;
   -webkit-mask: var(--nx-i-done) center / contain no-repeat; mask: var(--nx-i-done) center / contain no-repeat;
 }
-{{P}} .nx-line[data-nx-kind="warn"] .nx-line-text:before { -webkit-mask-image: var(--nx-i-warning); mask-image: var(--nx-i-warning); }
-{{P}} .nx-line[data-nx-kind="bad"] .nx-line-text:before { -webkit-mask-image: var(--nx-i-error); mask-image: var(--nx-i-error); }
-{{P}} .nx-line[data-nx-kind="busy"] .nx-line-text:before {
+{{P}} .nx-line[data-nx-kind="warn"]:before { -webkit-mask-image: var(--nx-i-warning); mask-image: var(--nx-i-warning); }
+{{P}} .nx-line[data-nx-kind="bad"]:before { -webkit-mask-image: var(--nx-i-error); mask-image: var(--nx-i-error); }
+{{P}} .nx-line[data-nx-kind="busy"]:before {
   -webkit-mask: none; mask: none; clip-path: var(--nx-v-softburst); animation: m3e-morph 18200ms var(--nx-loader-spring) infinite, m3e-turn 4666ms linear infinite;
 }
-@media (prefers-reduced-motion: reduce) { {{P}} .nx-line[data-nx-kind="busy"] .nx-line-text:before { animation: none !important; } }
+@media (prefers-reduced-motion: reduce) { {{P}} .nx-line[data-nx-kind="busy"]:before { animation: none !important; } }
 /* the action in the line (Reconnect, Refresh): a button of size S (40 dp) in the colours of the line turned around, with a hit area of 48 dp */
 {{P}} .nx-line .nx-line-act {
   --_h: 40px; --_pad: 16px; --_gap: 8px; --_pr: 8px; --_fs: 14px; --_lh: 20px; --_fw: 500; --_ls: .1px;
   --_bg: var(--nx-line-fg, var(--md-sys-color-primary)); --_fg: var(--nx-line-bg, var(--md-sys-color-on-primary));
-  flex: 0 0 auto; margin: 0 0 0 12px; background: var(--_bg) !important; color: var(--_fg) !important; border: 0 !important; padding: 0 var(--_pad) !important; cursor: pointer;
+  flex: 0 0 auto; margin: 0; background: var(--_bg) !important; color: var(--_fg) !important; border: 0 !important; padding: 0 var(--_pad) !important; cursor: pointer;
 }
 {{P}} .nx-line .nx-line-act:after { content: ''; position: absolute; inset: -4px 0; }
 

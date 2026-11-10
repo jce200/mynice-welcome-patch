@@ -8,7 +8,7 @@
 // contract, so that the functions of nx-patch.js are tested through the real digest: it is a test aid, not a part of the app. It reserves the 48 px of the real one.
 //
 // CFG for A and B:  '{"secondary":["MDBk","MDFh"],"fourth":"MDBk","quick":["MDBk","MDFh"]}'   (extra buttons)  and  "trustTimes":{"SilentMs":2000}  (a shorter wait for the report)
-// CFG for C:        '{"reachable":false,"verifyFail":true,"statusFail":true,"activity":"error","secondary":["MDBk","MDFh"],"fourth":"MDBk","quick":["MDBk","MDFh"],"net":{"version":"nx-23","sdk":37,"wifi":true,"ssid":"GuestWifi","ip":"192.168.50.12","validated":true,"cellular":false,"vpn":false,"module":false,"defaultType":"wifi","route":"local","routeAgeSeconds":4}}'
+// CFG for C:        '{"reachable":false,"verifyFail":true,"statusFail":true,"activity":"error","secondary":["MDBk","MDFh"],"fourth":"MDBk","quick":["MDBk","MDFh"],"net":{"version":"nx-24","sdk":37,"wifi":true,"ssid":"GuestWifi","ip":"192.168.50.12","validated":true,"cellular":false,"vpn":false,"module":false,"defaultType":"wifi","route":"local","routeAgeSeconds":4}}'
 // Run one process at a time: VIEW=360x640 COLOR_SCHEME=dark PART=A CFG='...' SCRIPT=steps-command.cjs node screens.cjs command-a '#/tabs/favorites'
 const M = '00:0B:6C:AA:BB:CC', DETAIL = '#/tabs/favorites-device-detail/1/' + M, COMMANDS = '#/tabs/favorites-device-commands/1/' + M;
 
@@ -97,7 +97,7 @@ module.exports = async (page, { goto, wait, shot }) => {
     await shot('a4-reported');
     // (b) via the cloud
     await wait(700);
-    await page.evaluate(() => { window.__netState0 = window.__NATIVE['Nx.netState']; window.__NATIVE['Nx.netState'] = () => ({ version: 'nx-23', sdk: 37, wifi: false, ssid: '', ip: '', validated: false, cellular: true, vpn: false, module: false, defaultType: 'cell', route: 'cloud', routeAgeSeconds: 3 }); NX.refresh(); });
+    await page.evaluate(() => { window.__netState0 = window.__NATIVE['Nx.netState']; window.__NATIVE['Nx.netState'] = () => ({ version: 'nx-24', sdk: 37, wifi: false, ssid: '', ip: '', validated: false, cellular: true, vpn: false, module: false, defaultType: 'cell', route: 'cloud', routeAgeSeconds: 3 }); NX.refresh(); });
     await wait(600);
     await NATIVE('nhk.executePrimaryCommand', function () { return { delay: 300, then: {} }; });
     await tapButton(page, /Close/);

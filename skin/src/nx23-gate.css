@@ -12,7 +12,7 @@
   :root { --nx-state-h: 42px; --nx-line-h: 40px; }
 }
 @media (max-height: 700px) {
-  :root { --nx-pad-gap: 12px; }
+  :root { --nx-pad-gap: 8px; }
 }
 {{P}} .full-container > .row.flex-2:has(.nx-state) { flex: 1 1 auto !important; min-height: 0; display: flex; padding: 0 20px !important; }
 {{P}} .full-container > .row.flex-2:has(.nx-state) > .col { container: nx-top / size; height: auto !important; min-height: 0; align-self: stretch; justify-content: flex-start; padding: 8px 0 0 !important; }
@@ -29,6 +29,12 @@
 {{P}} .row.flex-3:has(> .nx-line) > .device-commands {
   align-content: end; column-gap: 12px; row-gap: var(--nx-pad-gap); padding: 0 16px var(--nx-pad-bottom); flex: 0 0 auto; overflow: visible;
 }   /* (Ionic's grid pulls a row that follows a row up by 5 px: .row + .row) */
+/* One shape for everything that can be pressed here: a pill. Open and Close were the two halves of a connected group (round outside, 8 dp inside), which is right for a gap of 2 dp; with
+   12 dp between them the halves read as two odd shapes next to the whole pill of Stop. Pressed, a button takes the corner of its size (m3e.css), on both sides. */
+{{P}} .row.flex-3:has(> .nx-line) > .device-commands .command:has([translate$="_open"]),
+{{P}} .row.flex-3:has(> .nx-line) > .device-commands .command:has([translate$="_close"]) { --_rl: var(--_round); --_rr: var(--_round); }
+{{P}} .row.flex-3:has(> .nx-line) > .device-commands .command:has([translate$="_open"]):is(:active, .activated),
+{{P}} .row.flex-3:has(> .nx-line) > .device-commands .command:has([translate$="_close"]):is(:active, .activated) { --_rl: var(--_pr); --_rr: var(--_pr); }
 
 /* a lower screen: the state word gives way a little in three steps (the box keeps its height) */
 @media (max-height: 780px) { {{P}} .nx-state strong, {{P}} .nx-state strong > span { font-size: 40px; line-height: 46px; } }
@@ -56,10 +62,15 @@
    (or maybe blocked), a state that nobody knows, a state that was settled from the log. */
 {{P}} .nx-line {
   position: relative; box-sizing: border-box; flex: 0 0 auto; display: flex; align-items: center; justify-content: center; gap: 8px;
-  min-height: var(--nx-line-h); margin: 0 16px 8px; padding: 0 12px; border-radius: 16px;
+  min-height: var(--nx-line-h); margin: 8px 16px var(--nx-pad-gap); padding: 0 12px; border-radius: calc(var(--nx-line-h) / 2);   /* (8 dp above: the entry to Activity never touches it, however little room the top has) */
   font-size: 14px; line-height: 20px; font-weight: 500; text-align: center; color: var(--md-sys-color-on-surface-variant);
 }
-@media (max-height: 720px) { {{P}} .nx-line { margin-bottom: 4px; } }
+/* a message (it has a kind: nx23-command.css gives the colours and the glyph) is a bar that reads from the left: the glyph, the words in one or two lines, and the button at the end with
+   the same 4 dp around it on three sides. What the screen says by itself at rest (the Blocked pill, a note, "Updated 12:03") stays in the middle, under the state it belongs to. */
+{{P}} .nx-line:is([data-nx-kind="busy"], [data-nx-kind="ok"], [data-nx-kind="warn"], [data-nx-kind="bad"]) { justify-content: flex-start; gap: 10px; padding: 4px 4px 4px 14px; text-align: left; }
+{{P}} .nx-line:is([data-nx-kind="busy"], [data-nx-kind="ok"], [data-nx-kind="warn"], [data-nx-kind="bad"]) .nx-line-text { flex: 1 1 auto; padding-right: 10px; text-wrap: balance; }
+{{P}} .nx-line:is([data-nx-kind="busy"], [data-nx-kind="ok"], [data-nx-kind="warn"], [data-nx-kind="bad"]):has(.nx-line-act) .nx-line-text { padding-right: 0; }
+@media (max-height: 720px) { {{P}} .nx-line:is([data-nx-kind="busy"], [data-nx-kind="ok"], [data-nx-kind="warn"], [data-nx-kind="bad"]) { padding-top: 0; padding-bottom: 0; } }
 {{P}} .nx-line-text { min-width: 0; overflow-wrap: anywhere; }
 /* the button of the line goes away when the line changes: nx-patch.js (keepFocus) then puts the keyboard focus on the line itself, and a ring says where it is (inside the 4 dp that the pad keeps clear) */
 {{P}} .nx-line:focus { outline: 0; }
@@ -146,4 +157,9 @@
   {{P}} .m3e-progress.m3e-indet > i { clip-path: inset(0 40% 0 0 round 5px); }
   {{P}} .m3e-progress.m3e-indet > b { display: none; }
   {{P}} .m3e-progress.m3e-indet::before { -webkit-mask: linear-gradient(to right, transparent calc(60% + 4px), #000 calc(60% + 4px)); mask: linear-gradient(to right, transparent calc(60% + 4px), #000 calc(60% + 4px)); }
+}
+/* a lower screen: the line is 40 dp, so its button is 32 dp (still 48 dp to touch) and keeps the 4 dp around it */
+@media (max-height: 720px) {
+  {{P}} .nx-line .nx-line-act { --_h: 32px; --_pad: 12px; }
+  {{P}} .nx-line .nx-line-act:after { inset: -8px 0; }
 }

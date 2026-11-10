@@ -26,7 +26,7 @@ const esc = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const m = new RegExp('(?:^|\\})\\s*' + esc(sel) + '\\s*\\{([^}]*)\\}', 'm').exec(css); return m ? m[1] : null; };
 
   // the boxes keep their height
-  ok('the variables of the stack: state 52, line 48, pad gap 16, 16 above the tab bar; 42 and 40 on a screen lower than 720', /--nx-state-h:\s*52px/.test(skin) && /--nx-line-h:\s*48px/.test(skin) && /--nx-pad-gap:\s*16px/.test(skin) &&
+  ok('the variables of the stack: state 52, line 48, pad gap 12 (nx24: one distance between the line, Open | Close and Stop), 16 above the tab bar; 42 and 40 on a screen lower than 720', /--nx-state-h:\s*52px/.test(skin) && /--nx-line-h:\s*48px/.test(skin) && /--nx-pad-gap:\s*12px/.test(skin) &&
     /--nx-pad-bottom:\s*16px/.test(skin) && /@media \(max-height: 720px\)\s*\{\s*:root\s*\{[^}]*--nx-state-h:\s*42px;[^}]*--nx-line-h:\s*40px/.test(gate));
   ok('the state box has a height of its own (a word that changes cannot move what is under it), and a word never wraps', /\.nx-state \{[^}]*height:\s*var\(--nx-state-h\)/.test(skin) && /\.nx-state strong \{[^}]*white-space:\s*nowrap/.test(skin));
   ok('the status line reserves its height (min-height: var(--nx-line-h)) and is a box of its own', /\.nx-line \{[^}]*min-height:\s*var\(--nx-line-h\)/.test(gate));

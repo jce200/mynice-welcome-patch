@@ -1010,7 +1010,7 @@
      the space under it. A lower screen takes less (max-height 720 px, below). */
   --nx-state-h: 52px;
   --nx-line-h: 48px;
-  --nx-pad-gap: 16px;
+  --nx-pad-gap: 12px;
   --nx-pad-bottom: 16px;
   --nx-hit: 48px;   /* the smallest touch target (nx23): the visual 40 dp of a small control stays, its hit area is this tall */
   --nx-r-s: 4px;    /* an item in the middle of a segmented list (CornerExtraSmall) */
@@ -1718,7 +1718,7 @@ html:root body[data-ng-app] .bar .title > .nx-chip:first-child, html:root body[d
 html:root body[data-ng-app] .bar .title > .nx-chip[hidden], html:root body[data-ng-app] .bar.bar-dark .title > .nx-chip[hidden] { display: none !important; }
 html:root body[data-ng-app] .bar:has(.right-buttons > *) .title > .nx-chip, html:root body[data-ng-app] .bar.bar-dark:has(.right-buttons > *) .title > .nx-chip { --nx-chip-reserve: 56px; }
 html:root body[data-ng-app] .bar .title > .nx-chip::before, html:root body[data-ng-app] .bar.bar-dark .title > .nx-chip::before {
-  content: ''; position: absolute; inset: calc((var(--nx-chip-hit) - var(--nx-chip-h)) / 2) 0; box-sizing: border-box; border-radius: 8px;
+  content: ''; position: absolute; inset: calc((var(--nx-chip-hit) - var(--nx-chip-h)) / 2) 0; box-sizing: border-box; border-radius: calc(var(--nx-chip-h) / 2);
   background: radial-gradient(circle at 13px 50%, var(--nx-dot, transparent) 0 var(--nx-dot-r, 4.5px), transparent calc(var(--nx-dot-r, 4.5px) + .5px)) no-repeat, var(--md-sys-color-surface-container-high);
   transition: background-color var(--nx-effects-ms) var(--nx-effects), box-shadow var(--nx-effects-ms) var(--nx-effects);
 }
@@ -2677,23 +2677,23 @@ html:root body[data-ng-app] .nx-line[data-nx-kind="warn"] { --nx-line-bg: var(--
 html:root body[data-ng-app] .nx-line[data-nx-kind="bad"] { --nx-line-bg: var(--md-sys-color-error-container); --nx-line-fg: var(--md-sys-color-on-error-container); }
 html:root body[data-ng-app] .nx-line[data-nx-kind="busy"], html:root body[data-ng-app] .nx-line[data-nx-kind="ok"], html:root body[data-ng-app] .nx-line[data-nx-kind="warn"], html:root body[data-ng-app] .nx-line[data-nx-kind="bad"] { background: var(--nx-line-bg); color: var(--nx-line-fg); }
 html:root body[data-ng-app] .nx-line .nx-line-text { min-width: 0; overflow-wrap: anywhere; }
-/* the glyph before the words: a check (sent), a triangle (warning), a circle with a mark (failure); busy is the loading indicator of M3E at 20 dp, which morphs and turns (and stands still with reduced motion) */
-html:root body[data-ng-app] .nx-line[data-nx-kind="busy"] .nx-line-text:before, html:root body[data-ng-app] .nx-line[data-nx-kind="ok"] .nx-line-text:before,
-html:root body[data-ng-app] .nx-line[data-nx-kind="warn"] .nx-line-text:before, html:root body[data-ng-app] .nx-line[data-nx-kind="bad"] .nx-line-text:before {
-  content: ''; display: inline-block; width: 20px; height: 20px; margin: -4px 8px -4px 0; vertical-align: baseline; background: currentColor;   /* (the negative margins keep the glyph out of the height of the line: two lines of 20 dp fit the 40 dp box) */
+/* the glyph in front of the words, in the middle of the height of the bar: a check (sent), a triangle (warning), a circle with a mark (failure); busy is the loading indicator of M3E at
+   20 dp, which morphs and turns (and stands still with reduced motion) */
+html:root body[data-ng-app] .nx-line[data-nx-kind="busy"]:before, html:root body[data-ng-app] .nx-line[data-nx-kind="ok"]:before, html:root body[data-ng-app] .nx-line[data-nx-kind="warn"]:before, html:root body[data-ng-app] .nx-line[data-nx-kind="bad"]:before {
+  content: ''; flex: 0 0 20px; width: 20px; height: 20px; background: currentColor;
   -webkit-mask: var(--nx-i-done) center / contain no-repeat; mask: var(--nx-i-done) center / contain no-repeat;
 }
-html:root body[data-ng-app] .nx-line[data-nx-kind="warn"] .nx-line-text:before { -webkit-mask-image: var(--nx-i-warning); mask-image: var(--nx-i-warning); }
-html:root body[data-ng-app] .nx-line[data-nx-kind="bad"] .nx-line-text:before { -webkit-mask-image: var(--nx-i-error); mask-image: var(--nx-i-error); }
-html:root body[data-ng-app] .nx-line[data-nx-kind="busy"] .nx-line-text:before {
+html:root body[data-ng-app] .nx-line[data-nx-kind="warn"]:before { -webkit-mask-image: var(--nx-i-warning); mask-image: var(--nx-i-warning); }
+html:root body[data-ng-app] .nx-line[data-nx-kind="bad"]:before { -webkit-mask-image: var(--nx-i-error); mask-image: var(--nx-i-error); }
+html:root body[data-ng-app] .nx-line[data-nx-kind="busy"]:before {
   -webkit-mask: none; mask: none; clip-path: var(--nx-v-softburst); animation: m3e-morph 18200ms var(--nx-loader-spring) infinite, m3e-turn 4666ms linear infinite;
 }
-@media (prefers-reduced-motion: reduce) { html:root body[data-ng-app] .nx-line[data-nx-kind="busy"] .nx-line-text:before { animation: none !important; } }
+@media (prefers-reduced-motion: reduce) { html:root body[data-ng-app] .nx-line[data-nx-kind="busy"]:before { animation: none !important; } }
 /* the action in the line (Reconnect, Refresh): a button of size S (40 dp) in the colours of the line turned around, with a hit area of 48 dp */
 html:root body[data-ng-app] .nx-line .nx-line-act {
   --_h: 40px; --_pad: 16px; --_gap: 8px; --_pr: 8px; --_fs: 14px; --_lh: 20px; --_fw: 500; --_ls: .1px;
   --_bg: var(--nx-line-fg, var(--md-sys-color-primary)); --_fg: var(--nx-line-bg, var(--md-sys-color-on-primary));
-  flex: 0 0 auto; margin: 0 0 0 12px; background: var(--_bg) !important; color: var(--_fg) !important; border: 0 !important; padding: 0 var(--_pad) !important; cursor: pointer;
+  flex: 0 0 auto; margin: 0; background: var(--_bg) !important; color: var(--_fg) !important; border: 0 !important; padding: 0 var(--_pad) !important; cursor: pointer;
 }
 html:root body[data-ng-app] .nx-line .nx-line-act:after { content: ''; position: absolute; inset: -4px 0; }
 
@@ -2769,7 +2769,7 @@ html:root body[data-ng-app] .item.button { min-height: var(--nx-hit); }
   :root { --nx-state-h: 42px; --nx-line-h: 40px; }
 }
 @media (max-height: 700px) {
-  :root { --nx-pad-gap: 12px; }
+  :root { --nx-pad-gap: 8px; }
 }
 html:root body[data-ng-app] .full-container > .row.flex-2:has(.nx-state) { flex: 1 1 auto !important; min-height: 0; display: flex; padding: 0 20px !important; }
 html:root body[data-ng-app] .full-container > .row.flex-2:has(.nx-state) > .col { container: nx-top / size; height: auto !important; min-height: 0; align-self: stretch; justify-content: flex-start; padding: 8px 0 0 !important; }
@@ -2786,6 +2786,12 @@ html:root body[data-ng-app] .full-container > .row.flex-3:has(> .nx-line) { flex
 html:root body[data-ng-app] .row.flex-3:has(> .nx-line) > .device-commands {
   align-content: end; column-gap: 12px; row-gap: var(--nx-pad-gap); padding: 0 16px var(--nx-pad-bottom); flex: 0 0 auto; overflow: visible;
 }   /* (Ionic's grid pulls a row that follows a row up by 5 px: .row + .row) */
+/* One shape for everything that can be pressed here: a pill. Open and Close were the two halves of a connected group (round outside, 8 dp inside), which is right for a gap of 2 dp; with
+   12 dp between them the halves read as two odd shapes next to the whole pill of Stop. Pressed, a button takes the corner of its size (m3e.css), on both sides. */
+html:root body[data-ng-app] .row.flex-3:has(> .nx-line) > .device-commands .command:has([translate$="_open"]),
+html:root body[data-ng-app] .row.flex-3:has(> .nx-line) > .device-commands .command:has([translate$="_close"]) { --_rl: var(--_round); --_rr: var(--_round); }
+html:root body[data-ng-app] .row.flex-3:has(> .nx-line) > .device-commands .command:has([translate$="_open"]):is(:active, .activated),
+html:root body[data-ng-app] .row.flex-3:has(> .nx-line) > .device-commands .command:has([translate$="_close"]):is(:active, .activated) { --_rl: var(--_pr); --_rr: var(--_pr); }
 
 /* a lower screen: the state word gives way a little in three steps (the box keeps its height) */
 @media (max-height: 780px) { html:root body[data-ng-app] .nx-state strong, html:root body[data-ng-app] .nx-state strong > span { font-size: 40px; line-height: 46px; } }
@@ -2813,10 +2819,15 @@ html:root body[data-ng-app] .nx-last-age { flex: 0 0 auto; padding: 0 6px; borde
    (or maybe blocked), a state that nobody knows, a state that was settled from the log. */
 html:root body[data-ng-app] .nx-line {
   position: relative; box-sizing: border-box; flex: 0 0 auto; display: flex; align-items: center; justify-content: center; gap: 8px;
-  min-height: var(--nx-line-h); margin: 0 16px 8px; padding: 0 12px; border-radius: 16px;
+  min-height: var(--nx-line-h); margin: 8px 16px var(--nx-pad-gap); padding: 0 12px; border-radius: calc(var(--nx-line-h) / 2);   /* (8 dp above: the entry to Activity never touches it, however little room the top has) */
   font-size: 14px; line-height: 20px; font-weight: 500; text-align: center; color: var(--md-sys-color-on-surface-variant);
 }
-@media (max-height: 720px) { html:root body[data-ng-app] .nx-line { margin-bottom: 4px; } }
+/* a message (it has a kind: nx23-command.css gives the colours and the glyph) is a bar that reads from the left: the glyph, the words in one or two lines, and the button at the end with
+   the same 4 dp around it on three sides. What the screen says by itself at rest (the Blocked pill, a note, "Updated 12:03") stays in the middle, under the state it belongs to. */
+html:root body[data-ng-app] .nx-line:is([data-nx-kind="busy"], [data-nx-kind="ok"], [data-nx-kind="warn"], [data-nx-kind="bad"]) { justify-content: flex-start; gap: 10px; padding: 4px 4px 4px 14px; text-align: left; }
+html:root body[data-ng-app] .nx-line:is([data-nx-kind="busy"], [data-nx-kind="ok"], [data-nx-kind="warn"], [data-nx-kind="bad"]) .nx-line-text { flex: 1 1 auto; padding-right: 10px; text-wrap: balance; }
+html:root body[data-ng-app] .nx-line:is([data-nx-kind="busy"], [data-nx-kind="ok"], [data-nx-kind="warn"], [data-nx-kind="bad"]):has(.nx-line-act) .nx-line-text { padding-right: 0; }
+@media (max-height: 720px) { html:root body[data-ng-app] .nx-line:is([data-nx-kind="busy"], [data-nx-kind="ok"], [data-nx-kind="warn"], [data-nx-kind="bad"]) { padding-top: 0; padding-bottom: 0; } }
 html:root body[data-ng-app] .nx-line-text { min-width: 0; overflow-wrap: anywhere; }
 /* the button of the line goes away when the line changes: nx-patch.js (keepFocus) then puts the keyboard focus on the line itself, and a ring says where it is (inside the 4 dp that the pad keeps clear) */
 html:root body[data-ng-app] .nx-line:focus { outline: 0; }
@@ -2903,6 +2914,11 @@ html:root body[data-ng-app] .device-commands .nx-extras { max-height: 208px; ove
   html:root body[data-ng-app] .m3e-progress.m3e-indet > i { clip-path: inset(0 40% 0 0 round 5px); }
   html:root body[data-ng-app] .m3e-progress.m3e-indet > b { display: none; }
   html:root body[data-ng-app] .m3e-progress.m3e-indet::before { -webkit-mask: linear-gradient(to right, transparent calc(60% + 4px), #000 calc(60% + 4px)); mask: linear-gradient(to right, transparent calc(60% + 4px), #000 calc(60% + 4px)); }
+}
+/* a lower screen: the line is 40 dp, so its button is 32 dp (still 48 dp to touch) and keeps the 4 dp around it */
+@media (max-height: 720px) {
+  html:root body[data-ng-app] .nx-line .nx-line-act { --_h: 32px; --_pad: 12px; }
+  html:root body[data-ng-app] .nx-line .nx-line-act:after { inset: -8px 0; }
 }
 
 /* nx23: lists, settings, Favorites, forms and legacy buttons (workstream: Lists, settings, Favorites and Design page).

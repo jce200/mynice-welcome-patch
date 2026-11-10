@@ -26,7 +26,7 @@
      the space under it. A lower screen takes less (max-height 720 px, below). */
   --nx-state-h: 52px;
   --nx-line-h: 48px;
-  --nx-pad-gap: 16px;
+  --nx-pad-gap: 12px;
   --nx-pad-bottom: 16px;
   --nx-hit: 48px;   /* the smallest touch target (nx23): the visual 40 dp of a small control stays, its hit area is this tall */
   --nx-r-s: 4px;    /* an item in the middle of a segmented list (CornerExtraSmall) */

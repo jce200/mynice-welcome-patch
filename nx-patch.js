@@ -2588,10 +2588,27 @@
     function codeOf(err) { return (err && typeof err === 'object') ? err.code : err; }
     function failKind(err, c) {
       var code = codeOf(err);
-      if (c.connectFail) return 'notsent';                         // the service could not connect: nothing was written
       if (code != null && REFUSED[code]) return 'refused';
+      // Through the Nice cloud a call that failed here does not prove that nothing went out (nx24: seen on a phone on mobile data: "No connection to the accessory. Open not sent."
+      // while the gate opened and the accessory logged the Open): the words are then "No answer ... it may have arrived", never "not sent"
+      if (routeNow() === 'cloud') return 'unknown';
+      if (c.connectFail) return 'notsent';                         // the service could not connect: nothing was written
       if (code != null && NOT_SENT[code]) return 'notsent';
       return 'unknown';
+    }
+    // The gate did what the command asks, after the tap: whatever the call said, the screen shows what happened and a failure line would contradict it. Only when the gate was not
+    // already there (expectsReport) and the state was reported after the tap.
+    function agreesWith(code, st) {
+      if (MOVE_OPEN[code]) return st === 'open' || st === 'opening';
+      if (MOVE_CLOSE[code]) return st === 'closed' || st === 'closing';
+      if (code === 'stop' || code === 'MDAy') return st === 'stopped';
+      return false;
+    }
+    function gateFollowed(L, c) {
+      try {
+        if (!L || !expectsReport(c) || !(L.stateAt > (c.tapAt || c.sendAt || 0))) return false;
+        return agreesWith(c.code, stateName(liveOf({ mac: c.mac, homeId: c.homeId })));
+      } catch (e) { return false; }
     }
     function cmdFailed(c, err) {
       var t = nowMs();
@@ -2860,6 +2877,10 @@
         case 'failed':
           if (t - c.failAt > failKeepMs()) return null;
           if (c.fail === 'unknown' && L.stateAt > c.failAt) return null;   // the state was reported after it: the doubt is settled
+          if (gateFollowed(L, c)) {                                        // the gate did it after all: the line does not go on saying "not sent" next to "Opening"
+            if (!c.followed) { c.followed = true; log('command: ' + name + ' was reported as failed (' + c.fail + '), but the gate reports ' + stateName(liveOf({ mac: c.mac, homeId: c.homeId })) + ': the line is withdrawn'); }
+            return null;
+          }
           return failLine(c, name);
         case 'dropped':
           return t - c.dropAt < DROP_KEEP_MS ? { kind: 'warn', text: 'Too soon after the last command. ' + name + ' not sent: tap again.', act: '' } : null;

@@ -1,8 +1,22 @@
 # Details and history
 
 This is the technical background to the [README.md](../README.md): why every change exists, with the diagnoses that led to them
-(nx3 through nx23: the project's build numbers). The example values (Wi-Fi `HomeWifi`, accessory `NiceIT4WIFIAABBCC`, user
+(nx3 through nx24: the project's build numbers). The example values (Wi-Fi `HomeWifi`, accessory `NiceIT4WIFIAABBCC`, user
 `homeuser`) stand in for whatever is different in your case. The data in this document comes from one phone and one IT4WIFI module.
+
+## What is new in nx24 (the accessory screen tidied up, and a failure line that the gate contradicts is withdrawn)
+The first screenshot of nx23 on the phone showed two things. **It looked untidy.** Six shape treatments stood on one screen (a rounded rectangle for the status chip, a pill for the entry to
+Activity, a bar with centred text and a glyph that hung on its first line, the two halves of a connected group for Open and Close with 12 dp between them, a whole pill for Stop), and three
+different distances (8, 12 and 16 dp) between the line, Open | Close and Stop. Now there is one rule: **what can be pressed is a pill** (the status chip, the entry to Activity, Open, Close,
+Stop, the extra buttons, the button of the line), and the line itself is a bar as wide as the pad whose content reads from the left: the glyph in the middle of its height, the words in one or
+two balanced lines, the button at the end with the same 4 dp around it on three sides. What the screen says by itself at rest (the Blocked pill, a note, "Updated 12:03") stays in the middle.
+The line is 12 dp from the pad, as the rows of the pad are from each other (8 dp on a screen lower than 700 dp), and never touches the entry to Activity (8 dp). Open and Close were the halves
+of a connected group, which is right for a gap of 2 dp; nx23 widened the gap to 12 dp (two opposite commands should not share an edge) and left the halves. **It said something untrue.**
+On mobile data, through the Nice cloud, the line said *No connection to the accessory. Open not sent.* while the state said *Opening* and the accessory had logged the Open. Two changes:
+through the cloud a failed call is never "not sent" (nobody can know from here: the words are *No answer to Open. It may have arrived: check the gate.*, a refusal by the accessory stays a
+refusal), and on any route a failure line is withdrawn as soon as the gate reports, after the tap, the state that the command asks for (and was not in before): the screen then shows what
+happened, and the LOG keeps a line (`command: Open was reported as failed (notsent), but the gate reports opening: the line is withdrawn`). What exactly failed in that call is not known
+yet: the Debug log of such a moment has the line `command: Open failed {...}` with the code. nx24 has version code 20201122.
 
 ## What is new in nx23 (a design pass: a gate screen that does not move, honest feedback, answers first)
 nx23 is the result of a design review. Seven designers (visual and Material 3 Expressive, UX, safety of the gate, accessibility, wording, set-up, data screens) each looked at every screen of nx22, in light and dark, and measured what they said; a design lead merged their 59 findings into 40 changes for this release, 15 for later and 4 rejected; eight engineers built the changes at the same time, each in a copy of the code; the result was then checked again as a whole, by four more (the accessory screen and the command feedback, the chip and the dialogs, all other screens, and a read-only code review that tried to break the new code). The six principles that the lead gave every builder are the shortest summary of the release: **show how sure you are** (confirmed, unconfirmed and unknown look different; a state that is out of date says so); **nothing moves under the thumb** (the pad is bottom-anchored, nothing above it changes height, nothing modal opens over it, Stop is never delayed, dropped, dimmed or covered); **say what happened to the tap** (sent, not sent, no answer, and never a claim before it is true); **cause first, one word per thing**; **emphasis follows consequence** (Stop is solid red whenever it may be needed); **reachable by everyone, proven in the harness** (every control has a role, a name, a 48 dp hit area and a keyboard path). Only the CSS, the app's templates and the JavaScript layer were changed; the app's own logic is as it was, except for one narrow case that is described under *Stop* (it is the one change that needs your own test on the gate). Nothing leaves the phone.
