@@ -1,0 +1,54 @@
+/* nx23: the setup wizard and the loading overlay (workstream: Setup wizard).
+   Rules go through {{P}} like everything else; a new animation needs its prefers-reduced-motion twin; a new button element is added to its own
+   BUTTONS += [...] line in build-css.py and declares --_h.
+
+   What is here: the words that patch-20-wizard.py (templates) and nx-patch.js (the waits and the popups) add to the wizard, and the full-screen waits of the app (the loading overlay:
+   $ionicLoading with the template of showLoadingAction). Nothing here changes the stage (the dark slab with Nice's icons) or the navigation of the wizard. */
+
+/* ============================================================ the full-screen waits (search, identify, configure, request: showLoadingAction of the app)
+   style.css colors every paragraph of the overlay black with !important (.popUp p): unreadable on the dark theme (1.1:1), so the text of the overlay gets its role here. */
+{{P}} .loading-container .popUp p { color: var(--md-sys-color-on-surface-variant) !important; }
+{{P}} .loading-container .popUp h2 { color: var(--md-sys-color-on-surface); }
+/* the stage of the overlay holds only the loading shape (no icon that could be cut), so it gives room to the words: 30 % of the height, between 168 and 300 dp (it was 46 %) */
+{{P}} .loading-container .area.bg-black-one { flex: 0 0 auto; height: clamp(168px, 30vh, 300px); }
+{{P}} .loading-container .popUp { flex: 1 1 auto; min-height: 0; }
+
+/* what the wait waits for, and what to do: the call to action in a tonal block, then the rest as plain text, the progress, and a line that comes when it takes long */
+{{P}} .loading-container .popUp .nx-wz-lead {
+  margin: 8px 24px 0; padding: 10px 16px; border-radius: var(--nx-r-l); text-align: left; font-size: 14px; line-height: 20px;
+  background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container);
+}
+{{P}} .loading-container .popUp .nx-wz-lead b { font-weight: 700; }
+{{P}} .loading-container .popUp .nx-wz-sub, {{P}} .loading-container .popUp .nx-wz-late {
+  margin: 8px 24px 0; text-align: left; font-size: 13px; line-height: 18px; color: var(--md-sys-color-on-surface-variant);
+}
+{{P}} .loading-container .popUp .nx-wz-late { color: var(--md-sys-color-on-surface); font-weight: 500; }
+{{P}} .loading-container .popUp .nx-wz-late:empty { display: none; }
+{{P}} .loading-container .popUp .nx-wz-progress { margin: 16px 24px 0; width: auto; }
+
+/* ============================================================ notes on the pages of the wizard (patch-20-wizard.py): what will happen, what to check. A tonal block under the text; the
+   warning is for something that is wrong right now (the phone is on the accessory's own network). They sit inside .info, in the same text column (24 dp from the edge). */
+{{P}} .setup-wifi-bridge .info .nx-wz-note, {{P}} .setup-wifi-bridge .info .nx-wz-warn {
+  margin: 12px 24px 0; padding: 12px 16px; border-radius: var(--nx-r-l); text-align: left; font-size: 14px; line-height: 20px;
+  background: var(--md-sys-color-surface-container-low); color: var(--md-sys-color-on-surface-variant);
+}
+{{P}} .setup-wifi-bridge .info .nx-wz-warn { background: var(--nx-warn-container); color: var(--nx-on-warn-container); font-weight: 500; }
+{{P}} .setup-wifi-bridge .info .nx-wz-note b { color: var(--md-sys-color-on-surface); font-weight: 600; }
+{{P}} .setup-wifi-bridge .info p.nx-wz-hint { margin-top: 4px; font-size: 14px; line-height: 20px; }
+/* a page with the large button at its foot (Welcome, Done): the button is placed over the bottom of the page, so the text area ends above it and the added notes can be scrolled into view */
+{{P}} .setup-wifi-bridge:has(> .conferma) .info { padding-bottom: 88px; }
+/* the second line of the note under the sign-up fields */
+{{P}} .nx-wz-more { display: block; margin-top: 8px; }
+
+/* ============================================================ the lines of a popup that only appear when they are true (Location is off, a VPN is on, ...), and the technical details of an error */
+{{P}} .popup-body .nx-wz-why {
+  margin: 0 0 8px; padding: 8px 12px; border-radius: 12px; text-align: left; font-size: 14px; line-height: 20px;
+  background: var(--nx-warn-container); color: var(--nx-on-warn-container);
+}
+{{P}} .popup-body .nx-wz-why b { font-weight: 700; }
+{{P}} .popup-body .nx-wz-whys:empty { display: none; }
+{{P}} .popup-body .nx-wz-details { margin-top: 4px; font-size: 13px; line-height: 18px; color: var(--md-sys-color-on-surface-variant); }
+{{P}} .popup-body .nx-wz-details summary { min-height: 48px; box-sizing: border-box; padding: 14px 0; font-weight: 500; color: var(--md-sys-color-primary); cursor: pointer; }
+
+/* ============================================================ the code page promises "or take a photo", but the camera plugin is not in the app: the button draws nothing and still takes a tap */
+{{P}} .photo_button { display: none !important; }

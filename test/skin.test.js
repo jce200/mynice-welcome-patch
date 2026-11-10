@@ -103,7 +103,7 @@ ok('no placeholders ({{...}}) left', !/\{\{|\}\}/.test(css));
   const selectors = [];
   let rest = withoutBlocks;
   // top-level rules and rules inside @media
-  rest = rest.replace(/@media[^{]*\{/g, '').replace(/\}\s*\}/g, '}');
+  rest = rest.replace(/@(?:media|container)[^{]*\{/g, '').replace(/\}\s*\}/g, '}');   // (nx23: the hero of the accessory screen hides itself with a container query)
   const splitTop = (text) => { const out = []; let depth = 0, cur = ''; for (const c of text) { if (c === '(') depth++; if (c === ')') depth--; if (c === ',' && depth === 0) { out.push(cur); cur = ''; } else cur += c; } out.push(cur); return out; };
   for (const m of rest.matchAll(/([^{}]+)\{[^{}]*\}/g)) selectors.push(...splitTop(m[1]).map((s) => s.trim()).filter(Boolean));
   // (the token blocks of the dark variants and of the palettes are :root as well, with the theme and palette attributes)
@@ -119,7 +119,9 @@ ok('no placeholders ({{...}}) left', !/\{\{|\}\}/.test(css));
   const classes = new Set();
   for (const m of js.matchAll(/(?<![-\w])nx-[a-z]+(?:-[a-z]+)*-?/g)) classes.add(m[0]);
   // not styling classes: file names, a dummy URL path, element ids (nx-sheet-*) and the state marker nx-via-local (only nx-via-cloud has a rule)
-  const notStyleClasses = new Set(['nx-patch', 'nx-theme', 'nx-activity', 'nx-gallery', 'nx-expressive', 'nx-cloud-skipped', 'nx-via-local', 'nx-sheet-title', 'nx-sheet-explanation', 'nx-sheet-route', 'nx-sheet-facts', 'nx-sheet-text']);
+  const notStyleClasses = new Set(['nx-patch', 'nx-theme', 'nx-activity', 'nx-gallery', 'nx-expressive', 'nx-cloud-skipped', 'nx-via-local', 'nx-sheet-title', 'nx-sheet-explanation', 'nx-sheet-route', 'nx-sheet-facts', 'nx-sheet-text', 'nx-sheet-todo',
+    // nx23 (dialogs): hooks and ids of the accessibility layer, not styles: .nx-state is the state word of the new gate screen (its rules are the gate workstream's), the popup's title and body get ids
+    'nx-state', 'nx-popup-title', 'nx-popup-body']);
   // a name that ends in a hyphen in the JS is a prefix with a value appended to it: then at least one class starting with it must exist
   const withoutRule = Array.from(classes).filter((k) => !notStyleClasses.has(k) && !new RegExp('[.#]' + k + (k.endsWith('-') ? '' : '(?![\\w-])')).test(css));
   ok('every nx class from the JS appears in the CSS', withoutRule.length === 0, withoutRule.join(', '));
@@ -137,12 +139,15 @@ ok('no placeholders ({{...}}) left', !/\{\{|\}\}/.test(css));
   // the classes that the template patches (patch-11 "Checking...", patch-12 extra buttons, patch-13 theme, patch-14 activity, patch-15 state) put in the app
   // have a rule, and nx-patch.js and nx-activity.js offer every function that those templates ask for
   const js = fs.readFileSync(path.join(__dirname, '..', 'nx-patch.js'), 'utf8') + fs.readFileSync(path.join(__dirname, '..', 'nx-activity.js'), 'utf8');
-  const patches = ['patch-11-checking-state.py', 'patch-12-extra-commands.py', 'patch-13-theme.py', 'patch-14-activity.py', 'patch-15-state.py', 'patch-17-gallery.py'].map((f) => fs.readFileSync(path.join(__dirname, '..', f), 'utf8'));
+  const patches = ['patch-11-checking-state.py', 'patch-12-extra-commands.py', 'patch-13-theme.py', 'patch-14-activity.py', 'patch-15-state.py', 'patch-17-gallery.py', 'patch-18-accessory-layout.py', 'patch-19-lists.py', 'patch-20-wizard.py'].map((f) => fs.readFileSync(path.join(__dirname, '..', f), 'utf8'));
   const classes = Array.from(new Set(patches.flatMap((t) => Array.from(t.matchAll(/class=\\?"([^"\\]*nx-[^"\\]*)\\?"/g)).flatMap((m) => m[1].split(/\s+/)).filter((k) => /^nx-[a-z-]+$/.test(k)))));
   const without = classes.filter((k) => !new RegExp('\\.' + k + '(?![\\w-])').test(css));
   ok('the classes of the template patches have a rule (' + classes.join(', ') + ')', classes.length >= 8 && without.length === 0, without.join(', '));
   const asked = Array.from(new Set(patches.flatMap((t) => Array.from(t.matchAll(/\b(nx[A-Z][A-Za-z]*)\b/g)).map((m) => m[1]))));
-  const offered = asked.filter((n) => !new RegExp('\\$(?:rootScope|rs)\\.' + n + '\\s*=').test(js));
+  // nx23: the status line above the pad asks for these, every call guarded (`nxLine ? nxLine(...) : ''`); the workstream "Command feedback and trust" offers them in nx-patch.js, so that
+  // a build without it shows the resting content of the line. nxLine and the others must not be in a template unguarded: test/nx23-gate.test.js checks that.
+  const OFFERED_BY_COMMAND = ['nxLine', 'nxLineKind', 'nxLineAct', 'nxLineDo', 'nxTrust', 'nxUnsure'];
+  const offered = asked.filter((n) => !OFFERED_BY_COMMAND.includes(n) && !new RegExp('\\$(?:rootScope|rs)\\.' + n + '\\s*=').test(js));
   ok('nx-patch.js and nx-activity.js offer what the patched templates ask (' + asked.join(', ') + ')', asked.length >= 15 && offered.length === 0, offered.join(', '));
   ok('the "Checking..." animations stand still with reduced motion', /prefers-reduced-motion[^{]*\{[^}]*nx-checking:before[^}]*animation:\s*none/.test(css) && /prefers-reduced-motion[^{]*\{[^}]*nx-checking-text[^}]*animation:\s*none/.test(css));
   // nx18: "Connecting..." (a new attempt after "Not usable"): the chip, the labels, and the chip that stops before the buttons on the right
@@ -276,7 +281,8 @@ ok('no placeholders ({{...}}) left', !/\{\{|\}\}/.test(css));
   ok('buttons: the state layer is an inset shadow of the text color (10 % when pressed, everywhere), not a pseudo-element', veils.length >= 2 && veils.every((v) => v === '10') && /inset 0 0 0 100vmax var\(--_veil, transparent\)/.test(bare), veils.join());
   // every element of the app that gets a button by selector (BUTTONS in build-css.py) has its size declared in skin.css, status.css or activity.css
   const build = fs.readFileSync(path.join(SKIN, 'src', 'build-css.py'), 'utf8');
-  const list = Array.from(((build.match(/BUTTONS = \[([\s\S]*?)\]/) || [])[1] || '').matchAll(/'([^']+)'/g)).map((m) => m[1]);
+  const list = Array.from(((build.match(/BUTTONS = \[([\s\S]*?)\]/) || [])[1] || '').matchAll(/'([^']+)'/g)).map((m) => m[1])
+    .concat(Array.from(build.matchAll(/^BUTTONS \+= \[([^\]]*)\]/gm)).flatMap((x) => Array.from(x[1].matchAll(/'([^']+)'/g)).map((m) => m[1])));
   const lacking = list.filter((sel) => !/^\.m3e-/.test(sel) && !new RegExp('(?:^|[}\\s,])' + P + esc(sel) + '(?::[a-z-]+)*(?:\\s|,)[^{]*\\{[^}]*--_h:', 'm').test(bare) &&
     !new RegExp(P + '[^{}]*' + esc(sel) + '[^{}]*\\{[^}]*--_h:').test(bare));
   ok('the elements of the app that are buttons all declare their size (' + list.length + ': ' + list.join(' ') + ')', list.length >= 9 && lacking.length === 0, lacking.join(', '));
@@ -372,9 +378,9 @@ ok('no placeholders ({{...}}) left', !/\{\{|\}\}/.test(css));
     /\.device-icon:has\(i\.stopped\):before \{[^}]*var\(--nx-v-clover4\)/.test(bare) && /\.device-icon:has\(i\.status-1\):before \{[^}]*var\(--nx-v-burst\)/.test(bare) &&
     /\.device-icon:has\(i\.opening\):before, [^{]*\.device-icon:has\(i\.closing\):before, [^{]*\{\s*clip-path:\s*var\(--nx-v-softburst\);\s*animation:\s*m3e-morph/.test(bare));
   ok('hero: "Connecting..." counts only while that text is shown (the template always contains it, hidden by ng-hide)', /:has\(strong\.nx-checking-text:not\(\.ng-hide\)\) \.device-icon:before/.test(bare) && !/:has\(strong\.nx-checking-text\) \.device-icon/.test(bare));
-  ok('Open and Close: a connected group of size L (96 dp; 136 dp on a tall screen), the state of the accessory selected (round all over), the pressed one grows', /\.device-commands a\.command \{[^}]*--_h:\s*96px/.test(bare) && /@media \(min-height: 840px\)/.test(bare) && /--_h:\s*136px/.test(bare) &&
-    /\.device-commands:has\(\.command:has\(\[translate\$="_open"\]\):active\)[^{]*\{\s*grid-template-columns:\s*1\.3fr 1fr/.test(bare) && /i\.open\) \.device-commands \.command:has\(\[translate\$="_open"\]\),\s*html:root body\[data-ng-app\] \.full-container:has\(\.device-icon i\.closed\) \.device-commands \.command:has\(\[translate\$="_close"\]\) \{ --_rl: var\(--_round\); --_rr: var\(--_round\); \}/.test(bare) &&
-    /column-gap:\s*2px/.test(bare));
+  ok('Open and Close: a pair of buttons of size L (96 dp; 136 dp on a tall screen), 12 dp apart, none "selected" (nx23: they are momentary commands), the pressed one grows', /\.device-commands a\.command \{[^}]*--_h:\s*96px/.test(bare) && /@media \(min-height: 840px\)/.test(bare) && /--_h:\s*136px/.test(bare) &&
+    /\.device-commands:has\(\.command:has\(\[translate\$="_open"\]\):active\)[^{]*\{\s*grid-template-columns:\s*1\.3fr 1fr/.test(bare) && !/\.device-icon i\.(open|closed)\) \.device-commands \.command/.test(bare) &&
+    /\.row\.flex-3:has\(> \.nx-line\) > \.device-commands \{[^}]*column-gap:\s*12px/.test(bare));   // (the pad of the accessory; the general rule keeps 2 dp for the other screens)
   ok('spinners: every ion-spinner is the loading indicator (the svg stays, invisible, for its size)', /ion-spinner svg \{ visibility:\s*hidden/.test(bare) && /ion-spinner:before \{[^}]*clip-path:\s*var\(--nx-v-softburst\);\s*animation:\s*m3e-morph/.test(bare));
   ok('the busy status sheet: the wavy progress along the top and the loading indicator as the shape', /\.nx-progress\.m3e-progress \{/.test(bare) && /\.nx-l-busy \.nx-shape:before \{[^}]*animation:\s*m3e-morph/.test(bare));
   // the gallery: every class that nx-gallery.js puts on an element is in the CSS, and every icon it uses is defined
@@ -389,6 +395,10 @@ ok('no placeholders ({{...}}) left', !/\{\{|\}\}/.test(css));
   const iconsMissing = Array.from(iconsUsed).filter((n) => !new RegExp('--nx-i-' + n + '\\s*:').test(bare));
   ok('every icon that the gallery uses is defined (' + iconsUsed.size + ')', iconsUsed.size >= 20 && iconsMissing.length === 0, iconsMissing.join(', ') + ' / ' + Array.from(iconsUsed).join(','));
 }
+
+// nx23 QA review: a sheet that is closing (nx-open gone, still displayed for 420 ms) must not take the tap that is meant for Open, Close or Stop
+ok('a closing sheet, scrim or page takes no touch (:not(.nx-open) { pointer-events: none })', /\.nx-scrim:not\(\.nx-open\),[^{]*\.nx-sheet:not\(\.nx-open\),[^{]*\.nx-gal:not\(\.nx-open\) \{\s*pointer-events:\s*none;\s*\}/.test(bare));
+ok('the box of the state word cannot grow wider than its column (max-width: 100%), so that a long word ends in an ellipsis', /\.nx-state \{[^}]*max-width:\s*100%;[^}]*min-width:\s*0/.test(bare));
 
 console.log(failures ? failures + ' of ' + total + ' FAILED' : 'ALL OK (' + total + ' checks)');
 process.exit(failures ? 1 : 0);

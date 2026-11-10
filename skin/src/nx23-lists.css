@@ -1,0 +1,91 @@
+/* nx23: lists, settings, Favorites, forms and legacy buttons (workstream: Lists, settings, Favorites and Design page).
+   Rules go through {{P}} like everything else; a new animation needs its prefers-reduced-motion twin; a new button element is added to its own
+   BUTTONS += [...] line in build-css.py and declares --_h. */
+
+/* ============================================================ legacy buttons (I-24)
+   style.css gives the buttons of the original app a text color of their own with !important (.btn-text-blue #4a86e6 is 2.8:1 on the tonal fill of the skin, .btn-text-green 1.9:1, .btn-text-red is 1.16:1 on the
+   dark surface), a gray border and a margin of -1 px; and `.item { height: auto !important }` (skin.css) took the height of a button that is an item as well: "New accessory" was 24 px high. Now the text has the
+   color that the skin chose for the variant (tonal, text or filled), green and red keep their meaning (ok and error) in the pair of the theme, the border and the negative margin are gone, and a button is 56 dp high. */
+{{P}} .button.btn-text-blue, {{P}} .button.btn-text-black, {{P}} .button.btn-text-grey { color: var(--_fg) !important; border: 0; margin: 0; }
+{{P}} .button.btn-text-green { --_bg: var(--nx-ok-container); --_fg: var(--nx-on-ok-container); color: var(--_fg) !important; border: 0; margin: 0; }
+{{P}} .button.btn-text-red { --_bg: var(--md-sys-color-error-container); --_fg: var(--md-sys-color-on-error-container); color: var(--_fg) !important; border: 0; margin: 0; }
+{{P}} .button.item { height: auto !important; min-height: var(--_h); white-space: normal; text-align: center; }
+/* Add accessory: the page has its title in the bar ("Add Accessory") and repeated it as a heading ("Add accessory"); only this page uses that heading */
+{{P}} .top-bianco h2[translate="ADD_DEVICE"] { display: none; }
+/* the bars that the original draws between list-like buttons (a gray line above and below, !important): the buttons are cards now */
+{{P}} .button.btn-border-bottom, {{P}} .button.btn-border-topBottom { border: 0 !important; }
+/* Add accessory: "New accessory" is the only way to start a pairing from Settings, so it is the filled primary button; "Demo" below it is a text button (found by what they do: the other
+   pages of the wizard have buttons of the same class too) */
+{{P}} .button.btn-text-blue[data-ng-click="addNewDevice()"] { --_bg: var(--md-sys-color-primary); --_fg: var(--md-sys-color-on-primary); }
+{{P}} .button.btn-text-blue[ng-click="gotoDemo()"], {{P}} .button.btn-text-blue[data-ng-click="gotoDemo()"] { --_bg: transparent; --_fg: var(--md-sys-color-primary); background: transparent !important; }
+
+/* ============================================================ forms and lists (I-44) */
+/* rows that hold a button with a chevron (Select accessory, Add accessory): the name at the left, the chevron at the right, 64 dp high. The button covers the row, so that the whole row is one target and the chevron
+   stands where it stands in every other list (it was under the name: rows of 94 dp) */
+{{P}} .item.item-button-right { flex-direction: row; align-items: center; justify-content: flex-start; min-height: 64px; }
+{{P}} .item.item-button-right > .button.button-clear {
+  position: absolute; inset: 0; width: auto; min-width: 0; height: auto !important; min-height: 0; max-height: none; margin: 0; padding: 0; background: transparent !important; box-shadow: none; border-radius: inherit;
+}
+/* About: a value that the accessory did not report was an empty space next to its label */
+{{P}} .spacer .item-note:empty:after { content: 'Not reported'; }
+/* a field that cannot be edited (the date, the time and the days of a scheduled action that is switched off) looks like one that cannot: the same dimming as a switch that is disabled.
+   Not a field that is always disabled in the template (data-ng-disabled="true": the name on "Identify accessory" is only there to be read, and at .38 it was 1.9:1) */
+{{P}} .item-input:has(input:disabled:not([data-ng-disabled="true"]), select:disabled, textarea:disabled), {{P}} .checkbox:has(input:disabled) { opacity: .38; }
+/* the stage of "Accessory ready" is green with a white check: the light mint of the dark theme gave the check 1.7:1; in the dark theme the stage is the deep green of the ok container (white 9:1) */
+@media (prefers-color-scheme: dark) {
+  html:root:not([data-nx-theme="light"]) body[data-ng-app] .setup-wifi-bridge .area.bg-verde, html:root:not([data-nx-theme="light"]) body[data-ng-app] .bg-verde { background-color: var(--nx-ok-container) !important; }
+}
+html:root[data-nx-theme="dark"] body[data-ng-app] .setup-wifi-bridge .area.bg-verde, html:root[data-nx-theme="dark"] body[data-ng-app] .bg-verde { background-color: var(--nx-ok-container) !important; }
+
+/* ============================================================ Favorites (I-25)
+   A row of the list says what the accessory is doing: Online, Checking…, Connecting… or Not reachable, and, when the state of the gate is confirmed at this moment, that state. With exactly one favorite
+   the row is a card (the home screen of every launch). The states are asked of nxFavState, the state of the gate of nxFavGate (patch-19-lists.py, nx-patch.js). */
+{{P}} .list:has(> .item-favorites) { padding-top: 12px !important; }
+{{P}} .item-favorites .nx-fav-legacy { display: contents; }
+{{P}} .item-favorites .nx-fav-status { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; min-width: 0; margin-top: 6px; }
+/* the four states are one pill with a dot (Checking… and Connecting… are the pills of nx11 and nx18, with the dot that beats) */
+{{P}} .item-favorites .nx-fav-status > .item-nota {
+  display: inline-flex; align-items: center; gap: 6px; width: auto; margin: 0; padding: 2px 10px 2px 8px; border-radius: 10px; font-size: 12px; line-height: 18px; font-weight: 600;
+}
+{{P}} .item-favorites .nx-fav-status > .item-nota:before { content: ''; flex: 0 0 auto; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+{{P}} .item-favorites .nx-fav-status > .nx-online { background: var(--nx-ok-container); color: var(--nx-on-ok-container) !important; }
+{{P}} .item-favorites .nx-fav-status > .nx-offline { background: var(--md-sys-color-error-container); color: var(--md-sys-color-on-error-container) !important; }
+{{P}} .item-favorites .nx-fav-gate, {{P}} .item-favorites .nx-fav-obst { font-size: 14px; line-height: 20px; font-weight: 600; letter-spacing: .1px; }
+{{P}} .item-favorites .nx-fav-gate { color: var(--md-sys-color-on-surface) !important; }
+{{P}} .item-favorites .nx-fav-obst { color: var(--md-sys-color-error) !important; }
+
+/* the card: a neutral shape of 96 dp with the gate in it (neutral: the shape does not say open or closed, the word does, and only when it is confirmed), the state at its right, the name below it */
+{{P}} .list a.item.item-favorites.nx-fav-card {
+  display: grid; grid-template-columns: 96px minmax(0, 1fr); grid-template-areas: "shape status" "name name" "home home"; align-items: center; column-gap: 16px; row-gap: 0;
+  min-height: 0; padding: 24px 24px 20px !important; border-radius: 28px !important;
+}
+{{P}} .list a.item.item-favorites.nx-fav-card:before {
+  grid-area: shape; position: static; width: 96px; height: 96px; margin: 0; border-radius: 0; clip-path: var(--nx-v-cookie9); background: var(--md-sys-color-secondary-container);
+}
+{{P}} .list a.item.item-favorites.nx-fav-card:after {
+  grid-area: shape; position: static; place-self: center; width: 44px; height: 44px; margin: 0; background: var(--md-sys-color-on-secondary-container);
+  -webkit-mask: var(--nx-i-gate) center / contain no-repeat; mask: var(--nx-i-gate) center / contain no-repeat;
+}
+{{P}} .item-favorites.nx-fav-card .nx-fav-status { grid-area: status; flex-direction: column; align-items: flex-start; gap: 8px; margin: 0; }
+{{P}} .item-favorites.nx-fav-card .nx-fav-status > .item-nota { padding: 4px 14px 4px 12px; border-radius: 12px; font-size: 14px; line-height: 20px; }
+{{P}} .item-favorites.nx-fav-card .nx-fav-status > .item-nota:before { width: 8px; height: 8px; }
+{{P}} .item-favorites.nx-fav-card .nx-fav-gate, {{P}} .item-favorites.nx-fav-card .nx-fav-obst { font-size: 24px; line-height: 32px; font-weight: 700; letter-spacing: 0; font-variation-settings: 'wdth' 105; }
+{{P}} .item-favorites.nx-fav-card .nx-fav-name { grid-area: name; margin-top: 16px; font-size: 24px; line-height: 32px; font-weight: 600; letter-spacing: -.2px; font-variation-settings: 'wdth' 105; overflow-wrap: anywhere; }
+{{P}} .item-favorites.nx-fav-card .nx-fav-home { grid-area: home; margin: 0; }
+{{P}} .item-favorites.nx-fav-card > .icon { top: 72px !important; right: 20px !important; }
+
+/* ============================================================ Other commands (I-34)
+   A tap runs the command at once, so a row shows the play glyph, not the chevron of a page that opens; a new group of commands (what the command does: it moves the gate, blocks, releases, light) starts 12 dp lower
+   and is a segmented block of its own, so that a thumb that scrolls has somewhere to land (nxCmdGap, patch-19-lists.py) */
+{{P}} .list.commands .item .icon.icon-play:before { -webkit-mask-image: var(--nx-i-play); mask-image: var(--nx-i-play); }
+{{P}} .list.commands .item[data-nx-gap="1"] { margin-top: 12px !important; }
+{{P}} .list.commands .item[data-nx-gap="1"], {{P}} .list.commands .nx-pick-hint + .item { border-top-left-radius: var(--nx-r-l) !important; border-top-right-radius: var(--nx-r-l) !important; }
+{{P}} .list.commands .item:has(+ .item[data-nx-gap="1"]), {{P}} .list.commands .item:has(+ .spacer) { border-bottom-left-radius: var(--nx-r-l) !important; border-bottom-right-radius: var(--nx-r-l) !important; }
+{{P}} .list.commands .nx-pick-hint { padding: 0 20px 12px; }
+/* the settings button at the top of the page (a glyph of the app's own font in a button that the skin takes for a text button like Next, so it was a filled pill with a cogwheel of 14 px): a round icon button like the others in the bar */
+{{P}} .bar .button.header-item:not(.icon-occhio):not([class*="ion-"]):has(> .icon-settings) { --_bg: var(--md-sys-color-surface-container-high); --_fg: var(--md-sys-color-on-surface-variant); width: 48px; padding: 0 !important; }
+{{P}} .bar .button > .icon-settings { font-size: 0 !important; color: var(--_fg) !important; }   /* the original paints this glyph white (1.2:1 on the pale tonal circle of the light theme) */
+{{P}} .bar .button > .icon-settings:before {
+  content: '' !important; display: block; width: 24px; height: 24px; background: currentColor; font-size: 0;
+  -webkit-mask: var(--nx-i-settings) center / contain no-repeat; mask: var(--nx-i-settings) center / contain no-repeat;
+}

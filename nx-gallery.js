@@ -1,7 +1,9 @@
 /* nx-gallery.js (nx22): Settings > Design. A reference page of Material 3 Expressive, built with the stylesheet of the app itself (nx-expressive.css): what you see here
  * is what the screens of the app are made of. Every part is a working example (press it, drag it, switch it) with the numbers of the official tokens under it and the class
  * names to use. It adds to the app only what it needs: one overlay on <body>, built the first time it is opened, and window.NxGallery.{open, close, isOpen}.
- * nx-patch.js offers $rootScope.nxGallery() to the Settings page (patch-17-gallery.py puts the row there).
+ * nx-patch.js offers $rootScope.nxGallery() to the Settings page (patch-17-gallery.py puts the row there, "Design reference", at the end of OTHER).
+ * It is a demo, not a setting (nx23): a banner under the bar says that nothing on the page controls the gate, the buttons that look like the real Open and Close say "(demo)", the
+ * examples have neutral names, and the class names and token values (everything with .nx-gal-dev) are behind the switch "Developer notes" at the top.
  *
  * The principles of Material 3 Expressive, and where to see them:
  *   shape    corners that morph (buttons when pressed and selected, lists, the 35 shapes), and shapes as content (avatars, the hero of the accessory screen)
@@ -108,7 +110,7 @@
       var row = h('div', 'nx-gal-row');
       (Array.isArray(kids) ? kids : [kids]).forEach(function (k) { if (k) row.appendChild(k); });
       p.appendChild(row);
-      if (spec) p.appendChild(h('p', 'nx-gal-spec m3e-label-s', { text: spec }));
+      if (spec) p.appendChild(h('p', 'nx-gal-spec nx-gal-dev m3e-label-s', { text: spec }));   // class names and numbers: developer notes
       s.appendChild(p);
       return row;
     };
@@ -146,7 +148,16 @@
       }
     });
     d.appendChild(h('div', 'nx-gal-card', null, [h('h3', 'nx-gal-name m3e-title-s', { text: 'Theme' }), theme, h('h3', 'nx-gal-name m3e-title-s', { text: 'Colors' }), sw,
-      h('p', 'nx-gal-spec m3e-label-s', { text: 'The same choices as Settings > Appearance. Everything on this page answers to them at once.' })]));
+      h('p', 'nx-gal-note m3e-label-s', { text: 'The same choices as Settings > Appearance. Everything on this page answers to them at once.' })]));
+    // developer notes: the class names and the numbers of the tokens under every example are hidden until this is switched on
+    var devSw = h('button', 'm3e-switch', { type: 'button', role: 'switch', 'aria-checked': 'false', 'aria-label': 'Developer notes' }, h('i'));
+    on(devSw, 'click', function () {
+      var onNow = devSw.getAttribute('aria-checked') !== 'true';
+      devSw.setAttribute('aria-checked', onNow ? 'true' : 'false');
+      panel.classList.toggle('nx-dev', onNow);
+    });
+    d.appendChild(h('div', 'nx-gal-card', null, [h('div', 'nx-gal-line', null, [h('span', 'm3e-label-l', { text: 'Developer notes' }), devSw]),
+      h('p', 'nx-gal-note m3e-label-s', { text: 'Class names, token names and sizes under every example.' })]));
     // jump chips
     var jump = h('div', 'nx-gal-jump', { role: 'navigation', 'aria-label': 'Parts' });
     PARTS.forEach(function (p) {
@@ -163,12 +174,14 @@
   function shapes() {
     var s = section('shapes', 'Shapes', '35 shapes, each a polygon of 144 points. Because every shape has the same number of points, clip-path can morph from any shape to any other, with a spring.');
     var big = h('div', 'm3e-shape nx-gal-bigshape', { 'aria-hidden': 'true', style: 'clip-path:var(--nx-v-cookie9)' });
-    var name = h('code', 'nx-gal-code', { text: '--nx-v-cookie9' });
+    var label = h('b', 'nx-gal-shapename m3e-title-m', { text: 'Cookie 9' });
+    var name = h('code', 'nx-gal-code nx-gal-dev', { text: '--nx-v-cookie9' });
     var grid = h('div', 'nx-gal-shapes', { role: 'listbox', 'aria-label': 'Shapes' });
     var playing = null, idx = 19;
-    function show(id, label) {
+    function show(id, lab) {
       big.style.clipPath = 'var(--nx-v-' + id + ')';
       name.textContent = '--nx-v-' + id;
+      label.textContent = lab;
       for (var i = 0; i < grid.children.length; i++) grid.children[i].setAttribute('aria-selected', grid.children[i].getAttribute('data-id') === id ? 'true' : 'false');
     }
     SHAPES.forEach(function (sh, i) {
@@ -186,7 +199,7 @@
       }
     });
     s.add('Morph', 'Tap a shape. .m3e-shape + clip-path: var(--nx-v-<name>) + transition: clip-path var(--nx-spatial-ms) var(--nx-spatial)',
-      [h('div', 'nx-gal-morph', null, [big, name, play]), grid], 'nx-gal-col');
+      [h('div', 'nx-gal-morph', null, [big, label, name, play]), grid], 'nx-gal-col');
     s._stop = function () { if (playing) { clearInterval(playing); playing = null; play.setAttribute('aria-pressed', 'false'); } };
     return s;
   }
@@ -260,9 +273,14 @@
       toggle(ibtn('bold', 'Bold', 'm3e-m m3e-filled m3e-wide', { 'aria-pressed': 'true' })), toggle(ibtn('italic', 'Italic', 'm3e-m m3e-filled m3e-wide', { 'aria-pressed': 'false' })),
       toggle(ibtn('underline', 'Underline', 'm3e-m m3e-filled m3e-wide', { 'aria-pressed': 'false' }))]);
     s.add('Connected, several selected', 'icon buttons with aria-pressed, size M, wide', multi);
-    var big = single(h('div', 'm3e-group m3e-connected m3e-fill', { role: 'radiogroup', 'aria-label': 'Gate' }, [
-      btn('Open', 'm3e-l m3e-filled', 'arrow-up', { role: 'radio', 'aria-pressed': 'false' }), btn('Close', 'm3e-l m3e-filled', 'arrow-down', { role: 'radio', 'aria-pressed': 'true' })]));
-    s.add('Large: the accessory screen', 'Open and Close on the accessory screen are this group, with the button of the state of the gate selected (round all over)', big);
+    // a demo of a large pair: it looks like Open and Close of the accessory screen and does nothing, so the buttons say so; momentary buttons, none of them is selected
+    function demoBtn(word, ico, cls) {
+      var b = h('button', 'm3e-btn m3e-l ' + cls + ' nx-gal-demobtn', { type: 'button', 'aria-label': word + ' (demo)' }, [icon(ico),
+        h('span', null, null, [h('b', 'nx-gal-demoword', { text: word }), h('small', 'nx-gal-demotag', { text: '(demo)' })])]);
+      return b;
+    }
+    var big = h('div', 'm3e-group m3e-connected m3e-fill', { role: 'group', 'aria-label': 'Large buttons (demo)' }, [demoBtn('Open', 'arrow-up', 'm3e-filled'), demoBtn('Close', 'arrow-down', 'm3e-tonal')]);
+    s.add('Large buttons (demo)', 'Open and Close on the accessory screen are a pair like this one: momentary buttons, so none is selected (nx23: the screen shows the state of the gate in the hero, not in the buttons)', big);
     return s;
   }
 
@@ -387,10 +405,10 @@
       if (trail) c.appendChild(icon(trail));
       return c;
     }
-    var f1 = toggle(h('button', 'm3e-chip', { type: 'button', 'aria-pressed': 'true' }, [h('i', 'm3e-i m3e-chk', { 'aria-hidden': 'true', style: '--i:var(--nx-i-done)' }), h('span', null, { text: 'Garage' })]));
-    var f2 = toggle(h('button', 'm3e-chip', { type: 'button', 'aria-pressed': 'false' }, [h('i', 'm3e-i m3e-chk', { 'aria-hidden': 'true', style: '--i:var(--nx-i-done)' }), h('span', null, { text: 'Gate' })]));
+    var f1 = toggle(h('button', 'm3e-chip', { type: 'button', 'aria-pressed': 'true' }, [h('i', 'm3e-i m3e-chk', { 'aria-hidden': 'true', style: '--i:var(--nx-i-done)' }), h('span', null, { text: 'Filter A' })]));
+    var f2 = toggle(h('button', 'm3e-chip', { type: 'button', 'aria-pressed': 'false' }, [h('i', 'm3e-i m3e-chk', { 'aria-hidden': 'true', style: '--i:var(--nx-i-done)' }), h('span', null, { text: 'Filter B' })]));
     s.add('Chips', '.m3e-chip: assist (icon), filter (a toggle: tonal with a check when selected), input (removable), suggestion (.m3e-fill-s)',
-      [chip('Add a user', 'm3e-assist m3e-lead', null, 'add'), f1, f2, chip('Anna', 'm3e-lead', null, 'person', 'close'), chip('Open at 8:00', 'm3e-fill-s')]);
+      [chip('Assist', 'm3e-assist m3e-lead', null, 'add'), f1, f2, chip('Input', 'm3e-lead', null, 'person', 'close'), chip('Suggestion', 'm3e-fill-s')]);
     return s;
   }
 
@@ -415,8 +433,8 @@
   // --- lists
   function lists() {
     var s = section('lists', 'Lists', 'A segmented list: 2 dp between the items, the first and the last 16 dp round, the ones in between 4 dp. Pressed or selected an item is 16 dp all over, and its avatar becomes a cookie.');
-    var list = h('div', 'm3e-list', { role: 'listbox', 'aria-label': 'Accessories' });
-    [['Garage door', 'Closed · 22:00', 'gate'], ['Front gate', 'Open', 'gate'], ['Side gate', 'Not usable', 'wifi-off'], ['Driveway', 'Checking…', 'refresh']].forEach(function (it, i) {
+    var list = h('div', 'm3e-list', { role: 'listbox', 'aria-label': 'Example items' });
+    [['Example item 1', 'Supporting text', 'favorite'], ['Example item 2', 'Selected item', 'bookmark'], ['Example item 3', 'Supporting text', 'bell'], ['Example item 4', 'Supporting text', 'person']].forEach(function (it, i) {
       list.appendChild(h('div', 'm3e-li', { role: 'option', tabindex: '0', 'aria-selected': i === 1 ? 'true' : 'false' }, [h('span', 'm3e-lead', null, icon(it[2])),
         h('span', 'm3e-txt', null, [h('b', 'm3e-title-m', { text: it[0] }), h('span', 'm3e-sup m3e-body-m', { text: it[1] })])]));
     });
@@ -483,9 +501,11 @@
   function build() {
     if (built) return;
     built = true;
-    panel = h('div', 'nx-gal', { id: 'nx-gallery', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Design', 'data-tap-disabled': 'true' });
+    panel = h('div', 'nx-gal', { id: 'nx-gallery', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Design reference', 'data-tap-disabled': 'true' });
     var bar = h('div', 'nx-gal-bar', null, [ibtn('arrow-back', 'Back', 'm3e-s m3e-tonal nx-gal-back'),
-      h('div', 'nx-gal-title', null, [h('h1', 'm3e-title-l', { text: 'Design' }), h('span', 'm3e-label-m', { text: 'Material 3 Expressive' })])]);
+      h('div', 'nx-gal-title', null, [h('h1', 'm3e-title-l', { text: 'Design reference' }), h('span', 'm3e-label-m', { text: 'The look of this app' })])]);
+    // it stays under the bar while the page scrolls: wherever a demo button is, the page says that it does nothing
+    var demo = h('p', 'nx-gal-demo m3e-label-l', { role: 'note', text: 'Demo only. Nothing on this page controls your gate.' });
     on(bar.firstChild, 'click', close);
     var scroll = h('div', 'nx-gal-scroll');
     scroll.appendChild(head());
@@ -493,6 +513,7 @@
     parts.forEach(function (p) { scroll.appendChild(p); });
     scroll.appendChild(h('p', 'nx-gal-credit m3e-body-s', { text: 'Material 3 Expressive is a design system by Google. The shapes, sizes and springs on this page follow the tokens of androidx.compose.material3 (Apache License 2.0), see NOTICE.md in the patch kit.' }));
     panel.appendChild(bar);
+    panel.appendChild(demo);
     panel.appendChild(scroll);
     // a tap anywhere else closes a menu that is open (the split button, the FAB menu)
     on(panel, 'click', function (e) {

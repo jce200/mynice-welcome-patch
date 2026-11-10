@@ -1,0 +1,11 @@
+{
+  "_what": "English wording of the setup wizard (nx23, workstream Setup wizard): the cause first, then one action, at most two sentences. Only keys that no other workstream owns; ERR_TIMEOUT_RETRY is left as it is, because the app also shows it for sensors and remote controls: nx-patch.js words it for the Wi-Fi configuration only.",
+  "BRIDGE_SEARCH_TEXT": "Looking for the accessory's own Wi-Fi network.",
+  "BRIDGE_NOT_FOUND_TEXT": "No accessory Wi-Fi network was found. Check that the accessory is powered on and within a few metres of the phone.",
+  "ADD_DEVICE_LABEL_INFO_NO_DEVICES": "Not listed? Check that your phone is on the same Wi-Fi as the accessory, with Location on and VPN and mobile data off. Use New accessory only for an accessory that is new or was reset.",
+  "DEVICE_CODE_TEXT": "Enter the code printed on the label of the accessory.",
+  "NHK_ERROR-13": "The accessory did not accept the Wi-Fi settings, most likely because of a wrong password. Check the password and try again.",
+  "LOCALIZATION_PERMISSION_REQUIRED_ERROR": "Location is off, or this app is not allowed to use it. Android needs it to find nearby Wi-Fi networks: turn it on and try again.",
+  "ALERT_MESSAGE_WIFI_WRONG": "The phone is not on your home Wi-Fi. Connect it to this network: ",
+  "USER_PAIRING_MAX_USER_REACHED_MESSAGE": "This accessory has reached its maximum number of users."
+}

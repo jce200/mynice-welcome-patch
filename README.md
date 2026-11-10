@@ -3,7 +3,8 @@
 Patch scripts that turn **your own copy** of the *MyNice Welcome* 2.2.0 Android app (`com.nice.nhk`) into a build that works on
 modern Android (10 and newer) with **Nice IT4WIFI** modules (Robus and other gate and garage-door openers). It also fixes the
 app's trouble with VPNs and mobile data, adds a connection-status sheet with a real diagnosis, and gives the app a Material 3
-Expressive look (light and dark), with a page inside the app that shows every part of that design as a working example.
+Expressive look (light and dark), with a page inside the app that shows every part of that design as a working example. The latest build, nx23, is the result of a design review: a gate
+screen whose buttons never move, a line that says what became of every tap, and a state that says how old it is.
 
 > **Unofficial, and not affiliated with Nice S.p.A.** The source tree of this repository contains **no Nice binaries**: you can
 > build the patched app yourself, from an APK you obtained yourself, or take the prebuilt APK from the
@@ -17,6 +18,20 @@ Expressive look (light and dark), with a page inside the app that shows every pa
 
 ## What it fixes and adds
 
+- **New in nx23: a design pass over the whole app.** Seven designers reviewed every screen in light and dark; 40 of their findings are built (the review, what was done and
+  what was put off is in [docs/DETAILS.md](docs/DETAILS.md)):
+  - **A gate screen that does not move.** The command pad is anchored to the bottom and nothing above it changes height, so a Blocked pill, a note or an obstruction never
+    moves Open, Close or Stop. Stop is solid red whenever it may be needed.
+  - **Every tap says what became of it.** A line above the pad: *Sending Open…*, *Open sent 12:03:41 · via cloud*, *No answer to Close. It may have arrived: check the gate.*,
+    *Not sent*, with the cause and a Reconnect button when the accessory does not answer. A Stop that comes within 500 ms of another command, which the app ignored, is sent after all.
+  - **A state says how old it is.** Live, *Checking…*, *Updated 12:03* or *Last confirmed 12:03* (with Refresh); after the app resumes it no longer shows the state of the last
+    session as if it were live.
+  - **A status that is an answer.** The chip is a real button, the sheet never opens by itself, and its verdict names the cause first and then one action.
+  - **Nothing sits on the controls.** A request for access is a snack on the accessory screen (a popup elsewhere), the Debug log is a sheet that you can close, and the floating
+    bug button is gone.
+  - **For screen readers and keyboards.** Roles, names, headings, focus handling, Back and Escape for every dialog; the click of a key press or of TalkBack reaches the controls.
+  - **Answers first.** Activity opens with what happened (a third shorter, charts that never draw an unknown day as zero), Favorites is a status card, the set-up says what it
+    waits for, and the English of the original app is rewritten.
 - **Pairing on Android 10+.** The wizard joins the accessory's Wi-Fi through Android's `WifiNetworkSpecifier` dialog (the old Wi-Fi
   APIs no longer work), falls back to the manual route, waits longer for slow modules, and fills in the home network when Android
   no longer lists known networks.
@@ -29,11 +44,12 @@ Expressive look (light and dark), with a page inside the app that shows every pa
   `Network.bindSocket` call (`EPERM`), and the original app does that on every connection, so everything failed with the VPN on.
   The patched app falls back to a normal socket. It also chooses between the local connection and the Nice cloud on what actually
   works, so it works away from home too (through the cloud).
-- **Approve new users.** A popup "X requests access" for pairing requests, for example from a Home Assistant integration. It says that
-  it is working, and when it fails it says why (the app's own explanation of the error code), also in the log.
-- **A connection status you can read.** A chip under the page title ("Accessory online · cloud", "Accessory not reachable · no
-  Wi-Fi, VPN, mobile"), and a sheet behind it with the route (phone, cloud, accessory), the measurements (TCP and TLS times),
-  plain-language advice and buttons for *Reconnect*, *New users*, *Copy* and *Log*.
+- **Approve new users.** A request for access ("X wants access", for example from a Home Assistant integration) opens as a popup, except on the accessory screen, where it is a
+  snack with a *Review* button so that nothing covers the controls. It says that it is working, and when it fails it says who and why (the app's own explanation of the error
+  code), also in the log.
+- **A connection status you can read.** A chip under the page title ("Accessory online · cloud", "Not reachable · no Wi-Fi"), a real button, and a sheet behind it that
+  opens only when you ask: the verdict (the cause first, then one action), the route (phone, cloud, accessory), the measurements (TCP and TLS times) under Technical details,
+  and buttons for *Reconnect*, *Check requests*, *Copy details* and *Debug log*.
 
   ![The status sheet: checking, online over Wi-Fi, online through the Nice cloud with a VPN, not reachable, and the accessory's own Wi-Fi](docs/screenshots/status-states.png)
 
@@ -132,7 +148,7 @@ This way you don't have to trust a binary from someone else, and the app is sign
 ```
 ./get-tools.sh                               # once: downloads apktool and friends into ./tools, checked on SHA-256
 ./build.sh /path/to/MyNiceWelcome_2.2.0.apk
-# result: out/MyNiceWelcome_2.2.0_nx22.apk
+# result: out/MyNiceWelcome_2.2.0_nx23.apk
 ```
 
 The first build creates **your own signing key** in `keys/` (with a random password in `keys/password.txt`). Keep that folder
@@ -188,6 +204,9 @@ The full notes, with the diagnoses that led to each fix, are in [docs/DETAILS.md
 - The app's own screens follow the phone's language (the app ships 17 languages). The texts this patch adds (status chip and sheet,
   diagnosis, approval popup, error messages) are English only; translations are welcome, the strings are in `nx-patch.js`.
 - Only the Latin subset of Roboto Flex is included.
+- A status sheet that you open yourself covers the command pad (one tap on the scrim closes it), and the app's own alert after a failed command still lands on the pad.
+- A Stop within 500 ms of another command, which the original app ignores, is now sent from here (`STOP_BYPASS` in `nx-patch.js`); try it on your own gate before you rely on it
+  (see [docs/DETAILS.md](docs/DETAILS.md)).
 
 ## Contributing
 

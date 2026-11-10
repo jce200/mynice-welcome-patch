@@ -208,7 +208,10 @@ function environment(opts) {
     e.click(multi[1]);
     ok('groups: with several selected, each button toggles by itself', multi[0].getAttribute('aria-pressed') === 'true' && multi[1].getAttribute('aria-pressed') === 'true' && multi[2].getAttribute('aria-pressed') === 'false');
     const big = groups[3].children;
-    ok('groups: the large group has Open and Close at size L, one selected', big.length === 2 && big[0].classList.contains('m3e-l') && big[1].getAttribute('aria-pressed') === 'true');
+    ok('groups: the large group has Open and Close at size L, a pair of momentary buttons: none is selected (nx23)', big.length === 2 && big[0].classList.contains('m3e-l') && big[1].classList.contains('m3e-l') &&
+      !big[0].hasAttribute('aria-pressed') && !big[1].hasAttribute('aria-pressed') && groups[3].getAttribute('role') === 'group');
+    e.click(big[1]);
+    ok('groups: a tap on one of them selects nothing', !big[0].hasAttribute('aria-pressed') && !big[1].hasAttribute('aria-pressed'));
   }
   {
     // split button and its menu
@@ -333,8 +336,10 @@ function environment(opts) {
     fs.mkdirSync(path.join(www, 'js'), { recursive: true });
     fs.mkdirSync(path.join(www, 'templates', 'settings'), { recursive: true });
     const INDEX = '<html><body>\n        <script src="js/nx-activity.js"></script>\n        <script src="js/nx-patch.js"></script>\n</body></html>\n';
+    // (nx23: the row is at the end of OTHER, in front of the lines with the version and the user)
     const SETTINGS = '<div class="list">\n    <div class="item item-divider" data-ng-if="nxSetTheme">Appearance</div>\n    <div class="item nx-palette-row" data-ng-if="nxSetPalette"></div>\n\n' +
-      '    <div class="item item-divider" translate="SETTINGS_PAGE_LABEL_MORE"></div>\n      <div class="item item-icon-right" data-ng-click="gotoDemo()"></div>\n</div>\n';
+      '    <div class="item item-divider" translate="SETTINGS_PAGE_LABEL_MORE"></div>\n      <div class="item item-icon-right" data-ng-click="gotoDemo()"></div>\n\n' +
+      '    <div class="spacer bordo_filetto_grigio">\n      <span translate="SETTINGS_PAGE_APP_VERSION"></span>\n    </div>\n</div>\n';
     const w = (rel, text) => fs.writeFileSync(path.join(www, rel), text);
     const r = (rel) => fs.readFileSync(path.join(www, rel), 'utf8');
     w('index.html', INDEX); w('templates/settings/settings.html', SETTINGS);
@@ -344,8 +349,9 @@ function environment(opts) {
     ok('patch-17: it runs and says what it patched', res.status === 0 && /patched \(nx22 design\)/.test(res.stdout), res.stdout + res.stderr);
     ok('patch-17: js/nx-gallery.js is the file of the kit', fs.existsSync(path.join(www, 'js', 'nx-gallery.js')) && r('js/nx-gallery.js') === SRC);
     ok('patch-17: index.html loads it before nx-patch.js (and after nx-activity.js)', idx.indexOf('js/nx-activity.js') < idx.indexOf('js/nx-gallery.js') && idx.indexOf('js/nx-gallery.js') < idx.indexOf('js/nx-patch.js') && (idx.match(/nx-gallery\.js/g) || []).length === 1);
-    ok('patch-17: settings.html gets the row Design, behind the rows of Theme and Colors and before "More", only when nxGallery exists', set.indexOf('nx-palette-row') < set.indexOf('nx-design-row') && set.indexOf('nx-design-row') < set.indexOf('SETTINGS_PAGE_LABEL_MORE') &&
-      /data-ng-if="nxGallery" data-ng-click="nxGallery\(\)"/.test(set) && /<span>Design<\/span>/.test(set) && /Material 3 Expressive/.test(set) && /ion-ios-arrow-forward/.test(set));
+    ok('patch-17: settings.html gets the row "Design reference" at the end of OTHER (behind the divider "More" and the rows, in front of the version), only when nxGallery exists',
+      set.indexOf('nx-palette-row') < set.indexOf('SETTINGS_PAGE_LABEL_MORE') && set.indexOf('SETTINGS_PAGE_LABEL_MORE') < set.indexOf('gotoDemo') && set.indexOf('gotoDemo') < set.indexOf('nx-design-row') && set.indexOf('nx-design-row') < set.indexOf('SETTINGS_PAGE_APP_VERSION') &&
+      /data-ng-if="nxGallery" data-ng-click="nxGallery\(\)"/.test(set) && /<span>Design reference<\/span>/.test(set) && !/Material 3 Expressive/.test(set) && !/<span>Design<\/span>/.test(set) && /ion-ios-arrow-forward/.test(set));
     const res2 = run();
     ok('patch-17: a second run stops ("already patched") and changes nothing', res2.status !== 0 && /already patched/.test(res2.stdout + res2.stderr) && r('index.html') === idx && r('templates/settings/settings.html') === set);
     // all or nothing
@@ -359,6 +365,8 @@ function environment(opts) {
     ok('patch-17: without the nx-patch.js line in index.html it stops and writes nothing', noAnchor.x.status !== 0 && /nx-patch\.js/.test(noAnchor.x.stdout + noAnchor.x.stderr) && noAnchor.untouched);
     const noDivider = bad(INDEX, SETTINGS.replace(/.*SETTINGS_PAGE_LABEL_MORE.*\n/, ''));
     ok('patch-17: without the "More" divider it stops and writes nothing', noDivider.x.status !== 0 && /divider/.test(noDivider.x.stdout + noDivider.x.stderr) && noDivider.untouched);
+    const noVersion = bad(INDEX, SETTINGS.replace('SETTINGS_PAGE_APP_VERSION', 'SOMETHING_ELSE'));
+    ok('patch-17: without the line of the app version (the end of the OTHER rows) it stops and writes nothing', noVersion.x.status !== 0 && /app version/.test(noVersion.x.stdout + noVersion.x.stderr) && noVersion.untouched);
     const noRows = bad(INDEX, SETTINGS.replace('nxSetPalette', 'nothing'));
     ok('patch-17: without the Appearance rows of patch-13 it stops (the row would stand alone) and writes nothing', noRows.x.status !== 0 && /patch-13/.test(noRows.x.stdout + noRows.x.stderr) && noRows.untouched);
     fs.rmSync(tmp, { recursive: true, force: true });
@@ -366,7 +374,7 @@ function environment(opts) {
   {
     // build.sh and test-all.sh run it
     const build = fs.readFileSync(path.join(ROOT, 'build.sh'), 'utf8'), all = fs.readFileSync(path.join(ROOT, 'test-all.sh'), 'utf8');
-    ok('build.sh runs patch-17-gallery.py after patch-16-brand.py, and test-all.sh runs this test', /patch-16-brand\.py patch-17-gallery\.py; do/.test(build) && /test\/gallery\.test\.js/.test(all));
+    ok('build.sh runs patch-17-gallery.py after patch-16-brand.py, and test-all.sh runs this test', /patch-16-brand\.py patch-17-gallery\.py/.test(build) && /test\/gallery\.test\.js/.test(all));
   }
 
   console.log(failures ? failures + ' of ' + total + ' FAILED' : 'ALL OK (' + total + ' checks)');

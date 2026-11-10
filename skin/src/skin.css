@@ -22,6 +22,13 @@
   --nx-font: 'Roboto Flex Variable', 'Roboto Flex', Roboto, 'Google Sans', system-ui, sans-serif;
   --nx-bar-h: 80px;
   --nx-tabs-h: 84px;
+  /* the accessory screen is a stack of boxes that keep their height whatever they say (nx23): the state word, the status line above the pad, the space between the rows of the pad,
+     the space under it. A lower screen takes less (max-height 720 px, below). */
+  --nx-state-h: 52px;
+  --nx-line-h: 48px;
+  --nx-pad-gap: 16px;
+  --nx-pad-bottom: 16px;
+  --nx-hit: 48px;   /* the smallest touch target (nx23): the visual 40 dp of a small control stays, its hit area is this tall */
   --nx-r-s: 4px;    /* an item in the middle of a segmented list (CornerExtraSmall) */
   --nx-r-m: 16px;   /* an item that is pressed or selected (CornerLarge) */
   --nx-r-l: 16px;   /* the first and the last item of a list (CornerLarge) */
@@ -111,6 +118,8 @@ html[data-nx-status="connecting"]:root body[data-ng-app] .bar .title::after {
 @property --nx-dot-r { syntax: '<length>'; inherits: false; initial-value: 4.5px; }
 @keyframes nx-dot-beat { 0%, 100% { --nx-dot-r: 2.5px; } 50% { --nx-dot-r: 4.5px; } }
 @media (prefers-reduced-motion: reduce) { html[data-nx-status="connecting"]:root body[data-ng-app] .bar .title::after { animation: none; } }
+/* nx23: the chip is a real button now (status.css, .nx-chip); the line above is only the fallback for a header that the script could not put the button in */
+{{P}} .bar .title:has(> .nx-chip:not([hidden]))::after { content: none; display: none; }
 {{P}} .bar .buttons, {{P}} .bar .left-buttons, {{P}} .bar .right-buttons { display: flex; align-items: center; gap: 8px; margin: 0; padding: 0; }
 /* an icon button of size S (40 dp, round, pressed: 8 dp) in a hit area of 48 dp: the 4 dp around it is a transparent border, the background stops at the padding box */
 {{P}} .bar .button, {{P}} .bar button.button, {{P}} .bar .back-button, {{P}} .bar .button-icon {
@@ -134,7 +143,8 @@ html[data-nx-status="connecting"]:root body[data-ng-app] .bar .title::after {
   content: '' !important; display: block; width: 24px; height: 24px; background: currentColor; font-size: 0;
   -webkit-mask: var(--nx-i-arrow-back) center / contain no-repeat; mask: var(--nx-i-arrow-back) center / contain no-repeat;
 }
-{{P}} .bar .button.icon-occhio:before { -webkit-mask-image: var(--nx-i-visibility); mask-image: var(--nx-i-visibility); }
+/* the button of the accessory screen that opens "Other commands" (the app calls its class an eye): the glyph says "commands to choose from", not "show or hide" */
+{{P}} .bar .button.icon-occhio:before { -webkit-mask-image: var(--nx-i-tune); mask-image: var(--nx-i-tune); }
 {{P}} .bar .button.ion-ios-arrow-forward:before { -webkit-mask-image: var(--nx-i-chevron); mask-image: var(--nx-i-chevron); }
 {{P}} .bar .button.ion-android-add:before { -webkit-mask-image: var(--nx-i-add); mask-image: var(--nx-i-add); }
 /* the app's page headers that used to change color per page (green, blue, white): the same surface everywhere. style.css colors everything
@@ -179,13 +189,18 @@ html[data-nx-status="connecting"]:root body[data-ng-app] .bar .title::after {
 {{P}} .tab-item.tab-item-active .tab-title, {{P}} .tab-item.active .tab-title { font-weight: 700; }
 {{P}} .tab-item.tab-item-active .icon, {{P}} .tab-item.active .icon { background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container) !important; }
 {{P}} .tab-item:active .icon { transform: scale(0.9); }
+/* a request for access waits (nx23: the popup does not open over the accessory screen): a dot on the Settings tab, until the request is answered or snoozed */
+html:root[data-nx-pending] body[data-ng-app] .tab-item .icon-settings:after {
+  content: ''; position: absolute; top: 0; right: 13px; width: 8px; height: 8px; border-radius: 50%; background: var(--md-sys-color-error); box-shadow: 0 0 0 2px var(--md-sys-color-surface-container);
+}
 
 /* ============================================================ lists: a segmented list of cards with large corners at the ends */
 {{P}} .list { margin: 0 !important; padding: 0 16px 24px !important; background: transparent !important; border: 0 !important; }
 {{P}} .list .item-divider, {{P}} .item-divider {
   background: transparent !important; border: 0 !important;
-  padding: 24px 12px 10px !important; margin: 0 !important;
-  font-size: 14px; line-height: 20px; font-weight: 700; letter-spacing: 0.3px; text-transform: none !important;
+  padding: 24px 12px 8px !important; margin: 0 !important;
+  /* a section header is a label (M3 label medium, tracked), in capitals whatever the string says: the original has HOMES and OTHER, the patches add Appearance */
+  font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase !important;
   color: var(--md-sys-color-primary) !important; text-align: left;
 }
 {{P}} .list .item:where(:not(.item-divider):not(.item-input):not(.item-checkbox):not(.item-toggle):not(.item-select):not(.item-radio)),
@@ -285,7 +300,8 @@ html[data-nx-status="connecting"]:root body[data-ng-app] .bar .title::after {
 {{P}} .item-input input, {{P}} .item-input textarea, {{P}} input[type="text"], {{P}} input[type="password"], {{P}} input[type="email"], {{P}} input[type="number"] {
   color: var(--md-sys-color-on-surface) !important; background: transparent !important; font-size: 17px; caret-color: var(--md-sys-color-primary);
 }
-{{P}} input::placeholder, {{P}} textarea::placeholder { color: var(--md-sys-color-outline) !important; opacity: 1; }
+/* a hint inside a field: the outline color is 4.05:1 on the card, a hint has to be read like any other text (4.5:1); the typed text stays one step stronger (on-surface) */
+{{P}} input::placeholder, {{P}} textarea::placeholder { color: color-mix(in srgb, var(--md-sys-color-on-surface-variant) 85%, transparent) !important; opacity: 1; }
 {{P}} .item-checkbox, {{P}} .item-toggle, {{P}} .item-select { background: var(--md-sys-color-surface-container-low) !important; color: var(--md-sys-color-on-surface) !important; border: 0 !important; border-radius: var(--nx-r-s) !important; margin: 0 0 var(--nx-gap) !important; }
 {{P}} .toggle input:checked + .track { background: var(--md-sys-color-primary) !important; border-color: var(--md-sys-color-primary) !important; }
 
@@ -317,12 +333,12 @@ html[data-nx-status="connecting"]:root body[data-ng-app] .bar .title::after {
   background: var(--md-sys-color-primary-container);
   clip-path: var(--nx-v-cookie9);
   transition: clip-path var(--nx-spatial-ms) var(--nx-spatial), background-color var(--nx-effects-ms) var(--nx-effects);
-  animation: nx-spin 60s linear infinite;
 }
 {{P}} .device-icon i { position: relative; z-index: 1; font-size: 88px !important; line-height: 1; color: var(--md-sys-color-on-primary-container) !important; transition: color var(--nx-effects-ms) var(--nx-effects); }
 /* The shape says what the accessory does. At rest it is one of the shapes of Material 3 Expressive and changes into another one with a spring (equal point counts: clip-path morphs):
    closed = cookie with 9 sides, open = flower, stopped = clover, obstructed = burst. While it moves (and while the app connects) the shape is the loading indicator of M3E: it morphs through
-   seven shapes, a quarter turn at a time, and turns around once in 4.7 seconds (keyframes m3e-morph and m3e-turn in the M3E part of this file). */
+   seven shapes, a quarter turn at a time, and turns around once in 4.7 seconds (keyframes m3e-morph and m3e-turn in the M3E part of this file). Only that moves: a shape that turns at rest
+   would read as "moving" (nx23). What the app does not know has its own look: nx23-gate.css. */
 {{P}} .device-icon:has(i.opening):before, {{P}} .device-icon:has(i.closing):before, {{P}} .full-container:has(strong.nx-checking-text:not(.ng-hide)) .device-icon:before {
   clip-path: var(--nx-v-softburst); animation: m3e-morph 18200ms var(--nx-loader-spring) infinite, m3e-turn 4666ms linear infinite;
 }
@@ -332,32 +348,31 @@ html[data-nx-status="connecting"]:root body[data-ng-app] .bar .title::after {
 {{P}} .device-icon:has(i.open) i { color: var(--nx-on-ok-container) !important; }
 {{P}} .device-icon:has(i.stopped):before { background: var(--nx-warn-container); clip-path: var(--nx-v-clover4); }
 {{P}} .device-icon:has(i.stopped) i { color: var(--nx-on-warn-container) !important; }
-{{P}} .device-icon:has(i.status-1):before { background: var(--md-sys-color-error-container); clip-path: var(--nx-v-burst); animation-duration: 12s; }
+{{P}} .device-icon:has(i.status-1):before { background: var(--md-sys-color-error-container); clip-path: var(--nx-v-burst); }
 {{P}} .device-icon:has(i.status-1) i { color: var(--md-sys-color-on-error-container) !important; }
 @keyframes nx-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { {{P}} .device-icon:before { animation: none !important; } }
 
 {{P}} .device-info { padding: 0 !important; max-height: none !important; overflow: visible !important; text-align: center; font-size: 16px; line-height: 24px; color: var(--md-sys-color-on-surface-variant) !important; width: 100%; }
 {{P}} .device-info .device-row { overflow: visible; white-space: normal; }
-{{P}} .device-info .device-row > span[translate="DEVICE_DETAIL_LABEL_STATE"] { display: none; }
-{{P}} .device-info .device-row:first-child { margin: 4px 0 12px; }
-{{P}} .device-info .device-row:first-child strong, {{P}} .device-info .device-row:first-child strong span {
-  font-size: 44px; line-height: 52px; font-weight: 700; letter-spacing: -0.5px; color: var(--md-sys-color-on-surface); display: inline;
-  font-variation-settings: 'wdth' 110;
+{{P}} .device-info .device-row:first-child { margin: 4px 0 12px; }   /* the first row of a scene: its first command */
+/* the state word: a box of a fixed height (--nx-state-h), so that nothing under it moves when the word changes: "Closed", "Checking...", "Not usable", an obstruction with its second line. The word
+   never wraps (an ellipsis is better than a second line that pushes the pad). */
+{{P}} .nx-state { height: var(--nx-state-h); display: flex; align-items: center; justify-content: center; margin: 0; text-align: center; max-width: 100%; min-width: 0; }   /* (max-width: a long word, e.g. "waiting for confirmation" in Russian on a 360 dp screen, ends in an ellipsis instead of leaving the screen) */
+{{P}} .nx-state strong, {{P}} .nx-state strong > span {
+  font-size: 44px; line-height: 52px; font-weight: 700; letter-spacing: -0.5px; color: var(--md-sys-color-on-surface); font-variation-settings: 'wdth' 110;
 }
-{{P}} .device-info .device-row:first-child .status-1 { color: var(--md-sys-color-error) !important; }
-{{P}} .device-info .device-row:first-child strong span[translate="DEVICE_STATE_OBSTRUCTED"] {
-  display: block; font-size: 18px; line-height: 24px; font-weight: 600; letter-spacing: 0; color: var(--md-sys-color-error) !important; margin-top: 2px;
-  font-variation-settings: 'wdth' 100;
-}
-{{P}} .device-info .device-row:first-child strong span[translate="CONTROLS_DEVICE_NOT_READY"] { font-size: 28px; line-height: 36px; color: var(--md-sys-color-error); }
-{{P}} .device-info .device-row:first-child strong.nx-checking-text {
+{{P}} .nx-state strong { display: block; max-width: 100%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+{{P}} .nx-state strong > span[translate="DEVICE_STATE_CONFIRMATION_PENDING"] { font-size: 28px; line-height: 36px; font-weight: 600; letter-spacing: 0; font-variation-settings: 'wdth' 100; }
+{{P}} .nx-state strong.nx-unusable > span { font-size: 28px; line-height: 36px; color: var(--md-sys-color-error); }
+{{P}} .nx-state strong.nx-checking-text {
   font-size: 28px; line-height: 36px; font-weight: 600; letter-spacing: 0; color: var(--md-sys-color-on-surface-variant);
   font-variation-settings: 'wdth' 100; animation: nx-fade 1.4s ease-in-out infinite;
 }
-{{P}} .device-info .device-row:first-child strong.nx-checking-text.nx-connecting { color: var(--md-sys-color-primary); }
-@keyframes nx-fade { 0%, 100% { opacity: .45; } 50% { opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { {{P}} .device-info .device-row:first-child strong.nx-checking-text { animation: none; } }
+{{P}} .nx-state strong.nx-checking-text.nx-connecting { color: var(--md-sys-color-primary); }
+/* "Checking..." breathes between 70 and 100 %: at 70 % the word still has 4:1 against the surface (28 sp bold counts as large text); it was 45 % and 2.2:1 */
+@keyframes nx-fade { 0%, 100% { opacity: .7; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { {{P}} .nx-state strong.nx-checking-text { animation: none; } }
 {{P}} .device-info .device-row:not(:first-child) {
   display: inline-flex; align-items: center; gap: 6px; margin: 0 4px 8px; padding: 6px 14px;
   border-radius: 12px; background: var(--md-sys-color-surface-container-high); color: var(--md-sys-color-on-surface);
@@ -365,14 +380,18 @@ html[data-nx-status="connecting"]:root body[data-ng-app] .bar .title::after {
 }
 {{P}} .device-info .device-row:not(:first-child) > span { font-weight: 400; color: var(--md-sys-color-on-surface-variant); }
 
-/* ============================================================ accessory detail: the buttons. Open and Close are a connected button group of size L (96 dp): 2 dp apart, round on the outside and 8 dp
-   on the inside. The button of the state the accessory is in is selected: round all over, as M3E does for a selected button. A pressed button gets 4 dp on the inside, the other one
-   gives way (the columns). Stop is an L button of its own. The label is the icon and the word in a row (24 sp). */
+/* ============================================================ accessory detail: the buttons. Open and Close are a pair of buttons of size L (96 dp), round on the outside and 8 dp on the inside, 12 dp
+   apart (a touch between them hits nothing). They are momentary commands, not a choice: neither is ever "selected", their fills are fixed (Open primary, Close tonal) and the hero says
+   what the gate does. A pressed button gets 4 dp on the inside, the other one gives way (the columns). Stop is an L button of its own, 16 dp under them, solid red whenever it may be
+   needed (below). On the accessory screen the pad sits at the bottom, 16 dp above the tab bar, and nothing above it changes its height after the first paint: it never moves under the thumb
+   (nx23-gate.css). The label is the icon and the word in a row (24 sp). */
 {{P}} .device-commands {
   display: grid !important; grid-template-columns: 1fr 1fr; grid-template-rows: auto auto; grid-auto-rows: auto; align-content: start; column-gap: 2px; row-gap: 8px;
   padding: 8px 16px 18px; width: 100%; min-height: 0; box-sizing: border-box; flex: 1 1 auto; overflow-y: auto; overscroll-behavior: contain;
   transition: grid-template-columns var(--nx-spatial-fast-ms) var(--nx-spatial-fast);
 }
+/* (the pad of the accessory, the one with the status line above it, is laid out in nx23-gate.css: at the bottom, 12 dp between Open and Close, 16 dp above Stop, nothing scrolls; scenes,
+   bridge screens and the demo pages keep this) */
 {{P}} .device-commands:has(.command:has([translate$="_open"]):active), {{P}} .device-commands:has(.command:has([translate$="_open"]).activated) { grid-template-columns: 1.3fr 1fr; }
 {{P}} .device-commands:has(.command:has([translate$="_close"]):active), {{P}} .device-commands:has(.command:has([translate$="_close"]).activated) { grid-template-columns: 1fr 1.3fr; }
 {{P}} .device-commands .command, {{P}} .device-commands a.command {
@@ -396,17 +415,15 @@ html[data-nx-status="connecting"]:root body[data-ng-app] .bar .title::after {
 {{P}} .device-commands .command:has([translate$="_close"]) {
   --_bg: var(--md-sys-color-secondary-container); --_fg: var(--md-sys-color-on-secondary-container); --_rl: var(--_in); --_rr: var(--_round); grid-column: 2; grid-row: 1;
 }
+/* Stop: solid red (the error color, 6.5:1 with its label in light and 7.7:1 in dark, the same hue in every palette) whenever it may be needed: the gate moves, stopped, obstructed, or the
+   app does not know. Only at confirmed rest (open or closed, nothing flagged, nothing in doubt) it is the quieter error container with a 2 dp error outline: nx23-gate.css. Solid is the default,
+   so that a state that this file does not know gets the strong look. */
 {{P}} .device-commands .command:has([translate$="_stop"]) {
-  --_bg: var(--md-sys-color-error-container); --_fg: var(--md-sys-color-on-error-container); grid-column: 1 / -1; grid-row: 2;
+  --_bg: var(--md-sys-color-error); --_fg: var(--md-sys-color-on-error); --_sh: 0 0 0 0 transparent; grid-column: 1 / -1; grid-row: 2;
 }
-/* selected: the state the accessory is in */
-{{P}} .full-container:has(.device-icon i.open) .device-commands .command:has([translate$="_open"]),
-{{P}} .full-container:has(.device-icon i.closed) .device-commands .command:has([translate$="_close"]) { --_rl: var(--_round); --_rr: var(--_round); }
-/* pressed: 4 dp on the inside (a selected button: 16 dp all round) */
+/* pressed: 4 dp on the inside */
 {{P}} .device-commands .command:has([translate$="_open"]):active, {{P}} .device-commands .command:has([translate$="_open"]).activated { --_rr: 4px; }
 {{P}} .device-commands .command:has([translate$="_close"]):active, {{P}} .device-commands .command:has([translate$="_close"]).activated { --_rl: 4px; }
-{{P}} .full-container:has(.device-icon i.open) .device-commands .command:has([translate$="_open"]):active,
-{{P}} .full-container:has(.device-icon i.closed) .device-commands .command:has([translate$="_close"]):active { --_rl: var(--_pr); --_rr: var(--_pr); }
 {{P}} .device-commands .command [translate$="_open"]:before { -webkit-mask-image: var(--nx-i-arrow-up); mask-image: var(--nx-i-arrow-up); }
 {{P}} .device-commands .command [translate$="_close"]:before { -webkit-mask-image: var(--nx-i-arrow-down); mask-image: var(--nx-i-arrow-down); }
 {{P}} .device-commands .command [translate$="_stop"]:before { -webkit-mask-image: var(--nx-i-stop); mask-image: var(--nx-i-stop); }
@@ -418,8 +435,8 @@ html[data-nx-status="connecting"]:root body[data-ng-app] .bar .title::after {
     --_h: 136px; --_icon: 40px; --_gap: 16px; --_fs: clamp(22px, 7.4vw, 32px); --_lh: 40px;
   }
 }
-/* extra buttons (patch-12): the commands the user ticked, as buttons of size M (56 dp, tonal) under Open, Close and Stop; an odd one out spans the row */
-{{P}} .device-commands .nx-extras { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; }
+/* extra buttons (patch-12): the commands the user ticked, as buttons of size M (56 dp, tonal) under Open, Close and Stop, 24 dp under Stop and under a caption; an odd one out spans the row */
+{{P}} .device-commands .nx-extras { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
 {{P}} .device-commands .nx-extras .command.nx-extra {
   --_h: 56px; --_pad: 16px; --_gap: 8px; --_icon: 24px; --_pr: 12px; --_fs: 16px; --_lh: 20px; --_fw: 500; --_ls: 0.1px;
   --_bg: var(--md-sys-color-surface-container-high); --_fg: var(--md-sys-color-on-surface); --_rl: var(--_round); --_rr: var(--_round);
@@ -427,10 +444,10 @@ html[data-nx-status="connecting"]:root body[data-ng-app] .bar .title::after {
 }
 {{P}} .device-commands .nx-extras .command.nx-extra span { display: block !important; white-space: normal; line-height: inherit; }
 {{P}} .device-commands .nx-extras .command.nx-extra span:before { display: none; }
-{{P}} .device-commands .nx-extras .command.nx-extra:last-child:nth-child(odd) { grid-column: 1 / -1; }
-/* "Choose commands": a text button of size S with an icon */
+{{P}} .device-commands .nx-extras .command.nx-extra:last-of-type:nth-of-type(odd) { grid-column: 1 / -1; }   /* (of-type: the caption in front of the buttons is a div, it does not count) */
+/* "Choose commands": a text button with an icon, 48 dp high so that the hit area is 48 dp (size S of M3E is 40) */
 {{P}} .device-commands .nx-extra-edit {
-  --_h: 40px; --_pad: 16px; --_gap: 8px; --_icon: 20px; --_pr: 8px; --_fs: 14px; --_lh: 20px; --_fw: 500; --_ls: 0.1px; --_bg: transparent; --_fg: var(--md-sys-color-primary);
+  --_h: 48px; --_pad: 16px; --_gap: 8px; --_icon: 20px; --_pr: 8px; --_fs: 14px; --_lh: 20px; --_fw: 500; --_ls: 0.1px; --_bg: transparent; --_fg: var(--md-sys-color-primary);
   grid-column: 1 / -1; justify-self: center; background: var(--_bg) !important; color: var(--_fg) !important; cursor: pointer;
 }
 {{P}} .device-commands .nx-extra-edit:before {
@@ -450,11 +467,11 @@ html[data-nx-status="connecting"]:root body[data-ng-app] .bar .title::after {
   content: ''; position: absolute; inset: 0; background: var(--md-sys-color-on-primary);
   -webkit-mask: var(--nx-i-done) center / 70% no-repeat; mask: var(--nx-i-done) center / 70% no-repeat;
 }
-/* theme choice (patch-13): Auto | Light | Dark as a connected button group of size S (40 dp): round on the outside, 8 dp on the inside, the selected one filled and round all over */
+/* theme choice (patch-13): Auto | Light | Dark as a connected button group (48 dp high, the size of a touch target; the labels are those of size S): round on the outside, 8 dp on the inside, the selected one filled and round all over */
 {{P}} .item.nx-theme-row { display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; }
 {{P}} .nx-seg { display: inline-flex; flex: 0 0 auto; gap: 2px; }
 {{P}} .nx-seg-btn {
-  --_h: 40px; --_pad: 16px; --_in: 8px; --_pr: 8px; --_fs: 14px; --_lh: 20px; --_fw: 500; --_ls: 0.1px;
+  --_h: 48px; --_pad: 16px; --_in: 8px; --_pr: 8px; --_fs: 14px; --_lh: 20px; --_fw: 500; --_ls: 0.1px;
   --_bg: var(--md-sys-color-surface-container-highest); --_fg: var(--md-sys-color-on-surface-variant);
   --_rl: var(--_in); --_rr: var(--_in);
   background: var(--_bg) !important; color: var(--_fg) !important; border: 0 !important; padding: 0 var(--_pad) !important;
@@ -466,37 +483,32 @@ html[data-nx-status="connecting"]:root body[data-ng-app] .bar .title::after {
 {{P}} .nx-seg-btn:first-child:active { --_rl: var(--_round); }
 {{P}} .nx-seg-btn:last-child:active { --_rr: var(--_round); }
 {{P}} .nx-seg-btn.nx-on:active { --_rl: var(--_round); --_rr: var(--_round); }
-/* Settings > Design (patch-17): a list item with a leading avatar that is a shape of M3E, a cookie that becomes a circle while the item is pressed (the avatar of the lists in the M3E documents) */
-{{P}} .item.nx-design-row { padding-left: 76px !important; min-height: 72px; }
-{{P}} .item.nx-design-row:before {
-  content: ''; position: absolute; left: 20px; top: 50%; width: 40px; height: 40px; margin-top: -20px; background: var(--md-sys-color-primary-container); clip-path: var(--nx-v-cookie9);
-  transition: clip-path var(--nx-spatial-fast-ms) var(--nx-spatial-fast);
-}
-{{P}} .item.nx-design-row:after {
-  content: ''; position: absolute; left: 30px; top: 50%; width: 20px; height: 20px; margin-top: -10px; background: var(--md-sys-color-on-primary-container);
-  -webkit-mask: var(--nx-i-palette) center / contain no-repeat; mask: var(--nx-i-palette) center / contain no-repeat;
-}
-{{P}} .item.nx-design-row:active:before, {{P}} .item.nx-design-row.activated:before { clip-path: var(--nx-v-circle); }
+/* Settings > Design reference (patch-17): a plain row at the end of OTHER, like the others (until nx22 it was the heaviest row of the page: an avatar, a second line, in the Appearance card) */
+{{P}} .item.nx-design-row { min-height: 64px; }
 /* color choice (nx21, patch-13): the palettes as swatches in the settings. A swatch is a circle; the one in use is a cookie, a little larger: the shape morphs, with a spring.
    Every swatch has its own colors (--nx-swatch-<name> in the tokens: the primary color against the dark surface of that palette), whichever palette is active. A name here must also
    be in PALETTES (nx-patch.js) and in nx-theme.js. */
 {{P}} .item.nx-palette-row { display: block; }
 {{P}} .nx-palette-head { display: flex; flex-direction: row; align-items: baseline; justify-content: space-between; gap: 12px; }
 {{P}} .nx-palette-head small { color: var(--md-sys-color-on-surface-variant); font-size: 14px; line-height: 20px; }
-{{P}} .nx-swatches { display: flex; flex-direction: row; flex-wrap: wrap; justify-content: space-between; gap: 10px 6px; margin-top: 12px; }
+{{P}} .nx-swatches { display: grid; grid-template-columns: repeat(auto-fill, var(--nx-hit)); justify-content: space-between; gap: 0; margin: 4px -4px 0; }
+/* seven swatches with a hit area of 48 dp do not fit in one row of a 360 dp wide phone: they would wrap as 6 and 1; as 4 and 3 it looks meant (nx23) */
+@media (max-width: 400px) { {{P}} .nx-swatches { grid-template-columns: repeat(4, var(--nx-hit)); } }
 {{P}} .nx-swatch {
-  --sw: transparent;
-  display: block; box-sizing: border-box; flex: 0 0 auto; width: 40px; height: 40px; cursor: pointer; position: relative;
-  background: var(--md-sys-color-outline-variant); clip-path: var(--nx-v-circle);
-  transition: clip-path var(--nx-spatial-fast-ms) var(--nx-spatial-fast), transform var(--nx-spatial-fast-ms) var(--nx-spatial-fast);
+  --sw: transparent; --k: 1;
+  display: block; box-sizing: border-box; width: var(--nx-hit); height: var(--nx-hit); cursor: pointer; position: relative; background: none; outline: 0;
 }
-{{P}} .nx-swatch:before {   /* the color, inside a rim of 1.5 dp (the same shape, a little smaller) */
-  content: ''; position: absolute; inset: 1.5px; background: var(--sw); clip-path: var(--nx-v-circle);
-  transition: clip-path var(--nx-spatial-fast-ms) var(--nx-spatial-fast);
+{{P}} .nx-swatch:before, {{P}} .nx-swatch:after {
+  content: ''; position: absolute; clip-path: var(--nx-v-circle); transform: scale(var(--k));
+  transition: clip-path var(--nx-spatial-fast-ms) var(--nx-spatial-fast), transform var(--nx-spatial-fast-ms) var(--nx-spatial-fast), background-color var(--nx-effects-ms) var(--nx-effects);
 }
-{{P}} .nx-swatch.nx-on { clip-path: var(--nx-v-cookie9); transform: scale(1.08); }
-{{P}} .nx-swatch.nx-on:before { clip-path: var(--nx-v-cookie9); }
-{{P}} .nx-swatch:active { transform: scale(.92); }
+{{P}} .nx-swatch:before { inset: 4px; background: var(--md-sys-color-outline-variant); }                 /* the rim, 40 dp */
+{{P}} .nx-swatch:after { inset: 5.5px; background: var(--sw); }                                          /* the color, inside a rim of 1.5 dp */
+{{P}} .nx-swatch.nx-on { --k: 1.08; }
+{{P}} .nx-swatch.nx-on:before, {{P}} .nx-swatch.nx-on:after { clip-path: var(--nx-v-cookie9); }
+{{P}} .nx-swatch:active { --k: .92; }
+/* the focus ring cannot be an outline here (it would follow the box, not the shape): the rim becomes a thick ring in the focus color */
+{{P}} .nx-swatch:focus-visible:before { inset: 1px; background: var(--md-sys-color-secondary); }
 {{P}} .nx-swatch[data-nx-pal="midnight"] { --sw: var(--nx-swatch-midnight); }
 {{P}} .nx-swatch[data-nx-pal="nice"] { --sw: var(--nx-swatch-nice); }
 {{P}} .nx-swatch[data-nx-pal="graphite"] { --sw: var(--nx-swatch-graphite); }
@@ -551,13 +563,18 @@ html[data-nx-status="connecting"]:root body[data-ng-app] .bar .title::after {
 {{P}} .loading-container .loading { border-radius: 28px; background: var(--md-sys-color-surface-container-high) !important; color: var(--md-sys-color-on-surface) !important; }
 {{P}} .action-sheet-backdrop .action-sheet, {{P}} .action-sheet { border-radius: 28px 28px 0 0; background: var(--md-sys-color-surface-container-low); }
 
-/* ============================================================ the LOG button: small, round, tonal (debuglog.js) */
+/* ============================================================ the Debug log button (debuglog.js, nx23): hidden everywhere. The ways in are the "Debug log" button of the status sheet
+   and the row in Settings. While the app has no accessory (the setup wizard: no chip, no status sheet; html[data-nx-chip="0"], set by nx-patch.js) a small button is docked in the
+   header: 32 dp to look at, 48 dp to touch, at 100 px from the left, in the gap between Back/Help and the right edge; never over an input or a button of the page. */
 {{P}} #nx-log-button {
-  --_h: 40px; --_pad: 0px; --_r: 12px; --_pr: 6px; --_bg: var(--md-sys-color-surface-container-highest); --_fg: var(--md-sys-color-on-surface-variant); --_sh: var(--nx-elev-1);
-  left: 12px !important; bottom: calc(var(--nx-tabs-h) + 12px) !important; width: 40px; height: 40px; padding: 0 !important;
-  background: var(--_bg) !important; color: var(--_fg) !important; opacity: .72 !important; display: grid !important; place-items: center; font-size: 0 !important;
+  --_h: 48px; --_pad: 0px; --_pr: 24px; --_bg: var(--md-sys-color-surface-container-high); --_fg: var(--md-sys-color-on-surface-variant); --_sh: 0 0 0 0 transparent;
+  display: none !important; position: fixed; top: 16px; left: 100px; width: 48px; height: 48px; padding: 0 !important; z-index: 20;
+  border: 8px solid transparent !important; background: var(--_bg) !important; background-clip: padding-box !important; color: var(--_fg) !important;
+  place-items: center; font-size: 0 !important; opacity: 1;
 }
-{{P}} #nx-log-button:before { content: ''; display: block; width: 22px; height: 22px; background: currentColor; -webkit-mask: var(--nx-i-bug) center / contain no-repeat; mask: var(--nx-i-bug) center / contain no-repeat; }
+html:root[data-nx-chip="0"] body[data-ng-app] #nx-log-button { display: grid !important; }
+html:root[data-nx-chip="0"][data-nx-logfit="0"] body[data-ng-app] #nx-log-button { display: none !important; }
+{{P}} #nx-log-button:before { content: ''; display: block; width: 18px; height: 18px; background: currentColor; -webkit-mask: var(--nx-i-bug) center / contain no-repeat; mask: var(--nx-i-bug) center / contain no-repeat; }
 
 /* ============================================================ selection lists (ion-radio): no fixed height, check mark on the right */
 {{P}} .item-radio, {{P}} label.item.item-radio {
@@ -572,8 +589,6 @@ html[data-nx-status="connecting"]:root body[data-ng-app] .bar .title::after {
 {{P}} .card { background: var(--md-sys-color-surface-container-low) !important; border: 0 !important; border-radius: var(--nx-r-l) !important; box-shadow: none !important; margin: 8px 16px !important; overflow: hidden; }
 {{P}} .card .item { background: transparent !important; border: 0 !important; }
 {{P}} .item.item-text-wrap, {{P}} .item-body { background: transparent !important; color: var(--md-sys-color-on-surface-variant); }
-/* the LOG button must not cover the accessory's control buttons */
-html:root body[data-ng-app]:has(.device-commands) #nx-log-button { display: none !important; }
 
 /* ============================================================ start page: two large tiles */
 {{P}} .start-commands { display: grid !important; grid-template-rows: 1fr 1fr; gap: 12px; padding: 12px 16px 20px; box-sizing: border-box; width: 100%; height: 100%; }

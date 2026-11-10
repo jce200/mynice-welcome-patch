@@ -366,7 +366,7 @@ const LIGHT = rgbOf(LIGHT_HEX), DARK = rgbOf(DARK_HEX);
 // ---- wiring
 {
   const build = fs.readFileSync(path.join(ROOT, 'build.sh'), 'utf8'), all = fs.readFileSync(path.join(ROOT, 'test-all.sh'), 'utf8');
-  ok('build.sh runs patch-16-brand.py after the others, and test-all.sh runs this test', /patch-15-state\.py patch-16-brand\.py patch-17-gallery\.py; do/.test(build) && /node test\/brand\.test\.js/.test(all));
+  ok('build.sh runs patch-16-brand.py after the others, and test-all.sh runs this test', /patch-15-state\.py patch-16-brand\.py patch-17-gallery\.py/.test(build) && /node test\/brand\.test\.js/.test(all));
   ok('the repository has no Nice artwork: brand/ holds only code (logo.py, assets.py), no picture', fs.readdirSync(path.join(ROOT, 'brand')).filter((f) => !/\.(py)$|^__pycache__$/.test(f)).length === 0, fs.readdirSync(path.join(ROOT, 'brand')).join());
 }
 console.log(failures ? failures + ' of ' + total + ' FAILED' : 'ALL OK (' + total + ' checks)');

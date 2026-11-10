@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Combines tokens.css + skin.css + status.css + activity.css + m3e.css (with icons, shapes, waves and the loading indicator filled in) into ../nx-expressive.css
 (what patch-10-skin.py puts in the app)."""
-import json, math, os, re, urllib.parse
+import json, math, os, re, urllib.parse, glob
 HERE = os.path.dirname(os.path.abspath(__file__))
 ICON_PATHS = {  # Material icons, 24x24
  'star': 'M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z',
@@ -35,6 +35,7 @@ ICON_PATHS = {  # Material icons, 24x24
  'tune': 'M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z',
  'done': 'M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z',
  'lock': 'M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z',
+ 'lock-open': 'M12 17c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm6-9h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6h1.9c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm0 12H6V10h12v10z',  # nx23 (activity): not blocked
  'favorite': 'M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z',
  'share': 'M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z',
  'edit': 'M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z',
@@ -115,12 +116,29 @@ def read(name):
 BUTTONS = ['.m3e-btn', '.m3e-icon-btn', '.device-commands .command', '.start-commands .command', '.bar .button', '.button', '.nx-seg-btn', '.nx-extra-edit', '#nx-log-button',
            '.nx-sheet button']
 
+# nx23: one line per workstream for the selectors of NEW buttons (each owner edits only its own line; the test of skin.css checks that each declares --_h)
+BUTTONS += ['.nx-last', '.nx-pill', '.nx-line-act']   # gate screen
+
+BUTTONS += ['.nx-line-act']   # command feedback
+
+BUTTONS += []   # status chip and sheet
+
+BUTTONS += ['.nx-snack button']   # dialogs, LOG, accessibility
+
+BUTTONS += []   # lists, settings, Favorites
+
+BUTTONS += []   # setup wizard
+
+BUTTONS += []   # Activity sheet
+
 m3e = read('m3e.css')
 m3e = m3e.replace('{{BTN}}', ', '.join(BUTTONS))
 m3e = m3e.replace('{{WAVE}}', '--nx-wave-40: %s;\n  --nx-wave-20: %s;' % (wave_uri(40), wave_uri(20)))
 m3e = m3e.replace('{{LOADER}}', loader_keyframes())
 skin = read('skin.css')
-extra = read('status.css') + '\n' + read('activity.css') + '\n' + m3e + '\n' + read('gallery.css')
+# nx23: one part file per workstream (nx23-gate.css, nx23-command.css, nx23-dialogs.css, nx23-lists.css, nx23-wizard.css), in name order, after everything else
+nx23 = '\n'.join(read(os.path.basename(p)) for p in sorted(glob.glob(os.path.join(HERE, 'nx23-*.css'))))
+extra = read('status.css') + '\n' + read('activity.css') + '\n' + m3e + '\n' + read('gallery.css') + '\n' + nx23
 extra = extra.replace('{{P}}', 'html:root body[data-ng-app]')
 skin = skin.replace('{{P}}', 'html:root body[data-ng-app]')
 skin = skin.replace('{{ICONS}}', icons)

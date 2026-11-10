@@ -1,0 +1,149 @@
+/* nx23: the accessory screen: state block, status line, command pad, extra commands (workstream: Accessory screen).
+   Rules go through {{P}} like everything else; a new animation needs its prefers-reduced-motion twin; a new button element is added to its own
+   BUTTONS += [...] line in build-css.py and declares --_h. */
+
+/* ============================================================ the stack
+   Top to bottom: the hero, the state word and the entry to the Activity sheet (the last command: it says who did what to the gate, the state word says where the gate is; the hero gives way:
+   it is as big as the screen allows, 176 dp at most), then the status line and the pad (Open and Close, Stop, the extra commands). The pad is anchored to the bottom, 16 dp above the tab
+   bar. Every box above it has a height that does not depend on what it says (--nx-state-h, --nx-line-h; the chip is 40 dp), so a pill, a note, an obstruction or a message that arrives
+   late changes nothing on the screen but its own text: Open, Close and Stop never move under the thumb.
+   (Only the accessory slide is laid out this way: a scene has no state box and keeps what the first rules of skin.css make of it.) */
+@media (max-height: 720px) {
+  :root { --nx-state-h: 42px; --nx-line-h: 40px; }
+}
+@media (max-height: 700px) {
+  :root { --nx-pad-gap: 12px; }
+}
+{{P}} .full-container > .row.flex-2:has(.nx-state) { flex: 1 1 auto !important; min-height: 0; display: flex; padding: 0 20px !important; }
+{{P}} .full-container > .row.flex-2:has(.nx-state) > .col { container: nx-top / size; height: auto !important; min-height: 0; align-self: stretch; justify-content: flex-start; padding: 8px 0 0 !important; }
+{{P}} .row.flex-2:has(.nx-state) .device-icon {
+  flex: 0 1 176px; min-height: 0; width: auto; height: auto; aspect-ratio: 1; container-type: size; margin: auto auto 4px;
+}
+{{P}} .row.flex-2:has(.nx-state) .device-icon i { font-size: 50cqmin !important; }
+{{P}} .row.flex-2:has(.nx-state) .device-info { flex: none; margin-bottom: auto; display: flex; flex-direction: column; align-items: center; }
+{{P}} .nx-home { font-size: 13px; line-height: 18px; font-weight: 500; color: var(--md-sys-color-on-surface-variant); }
+/* no room for the hero (less than 48 dp): it gives way completely, the state word and the chip stay (the box that is asked is the top of the screen: state word, chip, 4 dp and the hero) */
+@media (min-height: 721px) { @container nx-top (max-height: 152px) { {{P}} .device-icon { display: none; } } }
+@media (max-height: 720px) { @container nx-top (max-height: 138px) { {{P}} .device-icon { display: none; } } }
+{{P}} .full-container > .row.flex-3:has(> .nx-line) { flex: 0 0 auto !important; flex-direction: column; align-items: stretch; margin-top: 0; }
+{{P}} .row.flex-3:has(> .nx-line) > .device-commands {
+  align-content: end; column-gap: 12px; row-gap: var(--nx-pad-gap); padding: 0 16px var(--nx-pad-bottom); flex: 0 0 auto; overflow: visible;
+}   /* (Ionic's grid pulls a row that follows a row up by 5 px: .row + .row) */
+
+/* a lower screen: the state word gives way a little in three steps (the box keeps its height) */
+@media (max-height: 780px) { {{P}} .nx-state strong, {{P}} .nx-state strong > span { font-size: 40px; line-height: 46px; } }
+@media (max-height: 720px) { {{P}} .nx-state strong, {{P}} .nx-state strong > span { font-size: 36px; line-height: 42px; } }
+@media (max-height: 660px) { {{P}} .nx-state strong, {{P}} .nx-state strong > span { font-size: 32px; line-height: 38px; } }
+{{P}} .nx-state strong.nx-checking-text, {{P}} .nx-state strong.nx-unusable > span, {{P}} .nx-state strong > span[translate="DEVICE_STATE_CONFIRMATION_PENDING"] { font-size: 28px; line-height: 36px; }
+
+/* ============================================================ the entry to the Activity sheet: a tonal chip with the history icon (it is a button, 40 dp, in a hit area of 48 dp) */
+{{P}} .nx-last {
+  --_h: 40px; --_pad: 12px; --_gap: 8px; --_pr: 14px; --_fs: 14px; --_lh: 20px; --_fw: 600; --_ls: .1px;
+  --_bg: var(--md-sys-color-secondary-container); --_fg: var(--md-sys-color-on-secondary-container);
+  max-width: 100%; margin: 8px 0 0; padding: 0 14px 0 12px; background: var(--_bg); color: var(--_fg);
+}
+/* the hit area (48 dp) grows upwards only, into the state word above it (not interactive): the status line is directly under it (no gap), and its button (or the Blocked pill) grows 4 to 8 dp upwards
+   into this one. The visible entry wins that stretch (z-index), so a tap on any pixel of it opens the Activity sheet, and the entry takes nothing from the control under it */
+{{P}} .nx-last { z-index: 1; }
+{{P}} .nx-last:after { content: ''; position: absolute; inset: -8px 0 0; }
+{{P}} .nx-last-icon { flex: 0 0 auto; width: 18px; height: 18px; background: currentColor; -webkit-mask: var(--nx-i-history) center / contain no-repeat; mask: var(--nx-i-history) center / contain no-repeat; }
+{{P}} .nx-last-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+{{P}} .nx-last-age { flex: 0 0 auto; padding: 0 6px; border-radius: 8px; border: 1.5px dashed currentColor; font-size: 12px; line-height: 17px; font-weight: 600; }   /* the log was not read for a while: said, dashed like everything that is unsure */
+@media (max-height: 720px) { {{P}} .nx-last { margin-top: 4px; } }
+
+/* ============================================================ the status line: always there, directly above the pad, its height reserved. It says one thing at a time: what the
+   Command workstream puts in it (nx-patch.js, kind and trust colors in nx23-command.css), and when that has nothing to say what the accessory screen knows by itself: a gate that is blocked
+   (or maybe blocked), a state that nobody knows, a state that was settled from the log. */
+{{P}} .nx-line {
+  position: relative; box-sizing: border-box; flex: 0 0 auto; display: flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: var(--nx-line-h); margin: 0 16px 8px; padding: 0 12px; border-radius: 16px;
+  font-size: 14px; line-height: 20px; font-weight: 500; text-align: center; color: var(--md-sys-color-on-surface-variant);
+}
+@media (max-height: 720px) { {{P}} .nx-line { margin-bottom: 4px; } }
+{{P}} .nx-line-text { min-width: 0; overflow-wrap: anywhere; }
+/* the button of the line goes away when the line changes: nx-patch.js (keepFocus) then puts the keyboard focus on the line itself, and a ring says where it is (inside the 4 dp that the pad keeps clear) */
+{{P}} .nx-line:focus { outline: 0; }
+{{P}} .nx-line:focus-visible { outline: 2px solid var(--md-sys-color-secondary); outline-offset: 0; }
+{{P}} .nx-line-act { --_h: 40px; --_pad: 12px; --_gap: 8px; --_pr: 12px; --_fs: 14px; --_lh: 20px; --_fw: 600; --_ls: .1px; flex: 0 0 auto; }
+{{P}} .nx-line-act:after { content: ''; position: absolute; inset: -4px 0; }
+/* a gate that was blocked (the last Block command is not followed by a Release): a pill that is a button, to the Activity sheet that explains it. Maybe blocked (the accessory restarted since and
+   forgot its log): the same pill, empty and dashed. */
+{{P}} .nx-pill { --_h: 32px; --_pad: 14px; --_gap: 8px; --_pr: 12px; --_fs: 14px; --_lh: 20px; --_fw: 650; --_ls: .1px; max-width: 100%; }
+{{P}} .nx-pill:after { content: ''; position: absolute; inset: -8px 0; }
+{{P}} .nx-pill.nx-block { --_bg: var(--nx-warn-container); --_fg: var(--nx-on-warn-container); padding: 0 var(--_pad) 0 10px; background: var(--_bg); color: var(--_fg); }
+{{P}} .nx-pill.nx-block > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+{{P}} .nx-pill.nx-block.nx-maybe { --_bg: transparent; border: 2px dashed var(--nx-on-warn-container); padding: 0 calc(var(--_pad) - 2px) 0 8px; }
+/* nothing says what the gate does */
+{{P}} .nx-unknown {
+  display: inline-flex; align-items: center; box-sizing: border-box; height: 32px; max-width: 100%; padding: 0 12px; border-radius: 16px; border: 2px dashed var(--md-sys-color-outline);
+  color: var(--md-sys-color-on-surface); font-size: 14px; line-height: 20px; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* the state was settled from the log: the accessory still reports a movement */
+{{P}} .nx-settled { min-width: 0; font-size: 13px; line-height: 18px; font-weight: 500; color: var(--md-sys-color-on-surface-variant); }
+
+/* ============================================================ an obstruction: the news is the chip (an error chip with an icon, 20 sp), the position of the gate is context under it. The box of the
+   state word keeps its height: 32 dp of chip and a line of 20 dp make the 52 dp of a word. */
+{{P}} .nx-state strong:has(> .nx-obst:not(.ng-hide)) { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+{{P}} .nx-state strong > .nx-obst {
+  order: -1; display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 14px 0 10px; border-radius: 16px; max-width: 100%;
+  background: var(--md-sys-color-error); color: var(--md-sys-color-on-error); font-size: 20px; line-height: 32px; font-weight: 700; letter-spacing: 0; font-variation-settings: 'wdth' 100;
+}
+{{P}} .nx-obst-icon { flex: 0 0 auto; width: 22px; height: 22px; background: currentColor; -webkit-mask: var(--nx-i-warning) center / contain no-repeat; mask: var(--nx-i-warning) center / contain no-repeat; }
+{{P}} .nx-state strong:has(> .nx-obst:not(.ng-hide)) > span.status-1 {
+  font-size: 14px; line-height: 20px; font-weight: 500; letter-spacing: 0; color: var(--md-sys-color-on-surface-variant) !important; font-variation-settings: 'wdth' 100; overflow: hidden; text-overflow: ellipsis;
+}
+{{P}} .nx-state strong:has(> .nx-obst:not(.ng-hide)) > span.status-1:before { content: "Check the gate's path \00b7  Gate: "; }
+@media (max-height: 720px) {
+  {{P}} .nx-state strong > .nx-obst { height: 26px; font-size: 17px; line-height: 26px; }
+  {{P}} .nx-state strong:has(> .nx-obst:not(.ng-hide)) > span.status-1 { font-size: 13px; line-height: 16px; }
+}
+
+/* ============================================================ the hero when the app does not know
+   Open, closed, moving, stopped and obstructed are known: each has its shape and its color (skin.css). What the app does not know has none of them: "Not usable", "Checking..." and "Connecting..."
+   (the word says it) and a state that nobody knows (the class unknown): a neutral fill, a plain gate instead of a drawing of a closed one, a question mark, and for "Not usable" and "unknown" the
+   pixel circle, a shape of low fidelity. "Checking" and "Connecting" keep the loading indicator (the shape that moves: something is happening). What was known once but not confirmed for a
+   while (the status line says so with data-nx-trust) keeps its drawing, but pale and with the question mark; while the app asks again the shape moves. */
+{{P}} .full-container:is(:has(.nx-unusable:not(.ng-hide)), :has(strong.nx-checking-text:not(.ng-hide)), :has(.device-icon i.unknown), :has(.nx-line[data-nx-trust="checking"]), :has(.nx-line[data-nx-trust="stale"])) .device-icon:before {
+  background: var(--md-sys-color-surface-container-high);
+}
+{{P}} .full-container:is(:has(.nx-unusable:not(.ng-hide)), :has(.device-icon i.unknown)) .device-icon:before { clip-path: var(--nx-v-pixelcircle); }
+{{P}} .full-container:has(.nx-line[data-nx-trust="checking"]) .device-icon:before { clip-path: var(--nx-v-softburst); animation: m3e-morph 18200ms var(--nx-loader-spring) infinite, m3e-turn 4666ms linear infinite; }
+{{P}} .full-container:is(:has(.nx-unusable:not(.ng-hide)), :has(strong.nx-checking-text:not(.ng-hide)), :has(.device-icon i.unknown), :has(.nx-line[data-nx-trust="checking"]), :has(.nx-line[data-nx-trust="stale"])) .device-icon i {
+  color: var(--md-sys-color-on-surface-variant) !important; opacity: .7;
+}
+{{P}} .full-container:is(:has(.nx-unusable:not(.ng-hide)), :has(strong.nx-checking-text:not(.ng-hide)), :has(.device-icon i.unknown)) .device-icon i:before {
+  content: '' !important; display: block; width: 1em; height: 1em; background: currentColor; -webkit-mask: var(--nx-i-gate) center / 64% no-repeat; mask: var(--nx-i-gate) center / 64% no-repeat;
+}
+{{P}} .full-container:is(:has(.nx-unusable:not(.ng-hide)), :has(strong.nx-checking-text:not(.ng-hide)), :has(.device-icon i.unknown), :has(.nx-line[data-nx-trust="checking"]), :has(.nx-line[data-nx-trust="stale"])) .device-icon:after {
+  content: '?' / ''; position: absolute; right: 0; top: 0; z-index: 2; display: grid; place-items: center; width: max(20px, 18cqmin); height: max(20px, 18cqmin); border-radius: 50%;
+  background: var(--md-sys-color-surface-container-highest); color: var(--md-sys-color-on-surface); font: 700 max(12px, 11cqmin)/1 var(--nx-font); box-shadow: 0 0 0 2px var(--md-sys-color-surface);
+}
+/* the word of a state that is in doubt is pale too (the same color as "Checking...", 4.5:1 or more) */
+{{P}} .full-container:is(:has(.nx-line[data-nx-trust="checking"]), :has(.nx-line[data-nx-trust="stale"])) .nx-reach > span:not(.status-1) { color: var(--md-sys-color-on-surface-variant); }
+
+/* ============================================================ Stop
+   solid red whenever it may be needed (skin.css); at confirmed rest the quieter error container with a 2 dp error outline: the gate is open or closed, nothing flagged (status-0), the app
+   is not checking or connecting, "Not usable" is not shown, nobody waits for a confirmation, and the status line does not say that the state is old or being checked. */
+{{P}} .full-container:has(.device-icon i:is(.open, .closed).status-0):not(:has(.nx-unusable:not(.ng-hide))):not(:has(strong.nx-checking-text:not(.ng-hide))):not(:has(span[translate="DEVICE_STATE_CONFIRMATION_PENDING"]:not(.ng-hide))):not(:has(.nx-line:is([data-nx-trust="checking"], [data-nx-trust="aging"], [data-nx-trust="stale"]))) .device-commands .command:has([translate$="_stop"]) {
+  --_bg: var(--md-sys-color-error-container); --_fg: var(--md-sys-color-on-error-container); --_sh: inset 0 0 0 2px var(--md-sys-color-error);
+}
+
+/* ============================================================ the extra commands: a caption, 24 dp under Stop; a lower screen has no room for the caption and the link, the buttons are 48 dp high there
+   and, whatever the screen, at most as many rows as fit: the rest scrolls inside (Stop never does). */
+{{P}} .nx-extras-cap { grid-column: 1 / -1; padding: 0 4px; text-align: left; font-size: 13px; line-height: 16px; font-weight: 650; letter-spacing: .3px; color: var(--md-sys-color-on-surface-variant); }
+{{P}} .device-commands .nx-extras { max-height: 208px; overflow-y: auto; overscroll-behavior: contain; }
+@media (max-height: 700px) {
+  {{P}} .nx-extras-cap { display: none; }
+  {{P}} .device-commands .nx-extras { margin-top: 0; max-height: 104px; }
+  {{P}} .device-commands .nx-extras .command.nx-extra { --_h: 48px; min-height: 48px; padding: 4px 12px !important; }
+  {{P}} .device-commands .nx-extra-edit { display: none; }   /* Settings > the accessory > Extra buttons has the same list */
+}
+
+/* ============================================================ what moves stands still with reduced motion: the bars of the wavy progress (m3e.css stops the waves only). A bar that is not moving
+   is a bar of 60 % of the track. */
+@media (prefers-reduced-motion: reduce) {
+  {{P}} .m3e-progress.m3e-indet > i, {{P}} .m3e-progress.m3e-indet > b { animation: none !important; }
+  {{P}} .m3e-progress.m3e-indet > i { clip-path: inset(0 40% 0 0 round 5px); }
+  {{P}} .m3e-progress.m3e-indet > b { display: none; }
+  {{P}} .m3e-progress.m3e-indet::before { -webkit-mask: linear-gradient(to right, transparent calc(60% + 4px), #000 calc(60% + 4px)); mask: linear-gradient(to right, transparent calc(60% + 4px), #000 calc(60% + 4px)); }
+}

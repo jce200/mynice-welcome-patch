@@ -1,0 +1,45 @@
+[
+  {
+    "_why": "The titles of six pages of the setup are raw ids ('start', 'add_new_device', ...), although the keys exist in all 17 languages. 'start' and the two pages that only ask a question or offer one row have no title, like their neighbours (a single space).",
+    "file": "templates/first_setup/start.html",
+    "old": "title=\"start\"",
+    "new": "title=\" \""
+  },
+  {
+    "file": "templates/first_setup/add_device_2.html",
+    "old": "title=\"add_device_2\"",
+    "new": "title=\" \""
+  },
+  {
+    "file": "templates/first_setup/add_new_device_alternatives.html",
+    "old": "title=\"add_new_device_alternatives\"",
+    "new": "title=\" \""
+  },
+  {
+    "file": "templates/first_setup/add_device_settings.html",
+    "old": "title=\"add_device_settings\"",
+    "new": "title=\"{{ 'ADD_DEVICE_SETTINGS_PAGE_TITLE' | translate }}\""
+  },
+  {
+    "file": "templates/first_setup/add_device_setup_name.html",
+    "old": "title=\"add_device_setup_name\"",
+    "new": "title=\"{{ 'ADD_DEVICE_SETUP_NAME_PAGE_TITLE' | translate }}\""
+  },
+  {
+    "file": "templates/first_setup/add_new_device.html",
+    "old": "title=\"add_new_device\"",
+    "new": "title=\"{{ 'ADD_NEW_DEVICE_PAGE_TITLE' | translate }}\""
+  },
+  {
+    "_why": "A divider that only says the title again (the page is one list). The element is taken out (ng-if), so it is neither drawn nor read out. The attribute is inserted between two pieces of the old text, so that the new text does not contain the old one.",
+    "file": "templates/settings/settings_triggers.html",
+    "old": "class=\"item item-divider\" translate=\"SETTINGS_PAGE_LABEL_TRIGGERS\"",
+    "new": "class=\"item item-divider\" data-ng-if=\"false\" translate=\"SETTINGS_PAGE_LABEL_TRIGGERS\""
+  },
+  {
+    "_why": "nx23 QA (screens): the page 'Identify accessory' has one field, and the divider above it says its name again (NAME, then NAME AABBCC). Taken out like the other dividers that repeat the next line.",
+    "file": "templates/first_setup/add_device_setup_name.html",
+    "old": "class=\"item item-divider\"><span translate=\"ADD_DEVICE_SETUP_NAME_LABEL_NAME\"",
+    "new": "class=\"item item-divider\" data-ng-if=\"false\"><span translate=\"ADD_DEVICE_SETUP_NAME_LABEL_NAME\""
+  }
+]

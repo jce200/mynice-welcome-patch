@@ -8,6 +8,7 @@
   var SECONDARY = CFG.secondary || [];
   function seed() {
     try {
+      if (CFG.firstRun) return;   // nx23 wizard: CFG.firstRun: a phone that was never set up (no accessory, no chip): the start of the wizard as a new owner sees it
       if (localStorage.getItem('keyHomes')) return;
       var device = {
         mac: MAC, name: 'NiceIT4WIFIAABBCC', description: 'AABBCC', address: '192.168.1.72', homeId: HOME,
@@ -17,7 +18,12 @@
           fourthButtonEnabled: !!CFG.fourth, fourthButton: CFG.fourth ? { code: CFG.fourth } : undefined,
           secondaryCommands: SECONDARY.map(function (c) { return { code: c }; }), enabledSecondaryCommands: SECONDARY.length ? true : [], properties: [] }]
       };
-      var homes = [{ homeId: HOME, name: 'Home', phoneName: 'Pixel', userName: 'homeuser', networkSsid: 'HomeWifi', networkPassword: 'x', devices: [device] }];
+      var devices = [device];
+      // nx23 lists: CFG.second -> a second accessory (a garage door module, also a favorite), to see the list of Favorites with more than one accessory
+      if (CFG.second) devices.push({ mac: '00:0B:6C:AA:BB:DD', name: 'NiceIT4WIFIAABBDD', description: 'Garage', address: '192.168.1.73', homeId: HOME, pairingUsername: 'homeuser', pairingPassword: 'x',
+        reachable: CFG.second !== 'unreachable', favorites: true, paired: true, permissions: { isAdmin: true, isUser: true }, properties: [{ value: 'open' }, { value: '0' }],
+        automations: [{ id: '1', type: 'sectional', primaryCommands: ['open', 'stop', 'close'], fourthButtonEnabled: false, secondaryCommands: [], enabledSecondaryCommands: [], properties: [] }] });
+      var homes = [{ homeId: HOME, name: 'Home', phoneName: 'Pixel', userName: 'homeuser', networkSsid: 'HomeWifi', networkPassword: 'x', devices: devices }];
       localStorage.setItem('keyHomes', JSON.stringify(homes));
       localStorage.setItem('keyIsFirstSetupCompleted', 'true');
       if (CFG.quick) localStorage.setItem('nxQuick', JSON.stringify({ [MAC]: CFG.quick }));   // CFG.quick: the codes ticked as extra buttons
@@ -32,7 +38,7 @@
   var log = window.__nativeLog = [];
   function status() {
     return { interface: { settings: [{ value: 'AABBCC' }] },
-      devices: [{ properties: [{ value: CFG.state || 'closed' }, { value: CFG.obstruct || '0' }] }] };
+      devices: [{ properties: [{ value: CFG.statusState || CFG.state || 'closed' }, { value: CFG.obstruct || '0' }] }] };   // nx23 command: CFG.statusState: what the accessory answers when the stored state (CFG.state) is another one
   }
   var verifyCount = 0;
   // nx14: the event log of the accessory (made up). CFG.activity: 'none' (an empty log), 'error' (reading fails), 'slow' (answers after 4 s),
@@ -85,6 +91,10 @@
   // { deviceId: '1', source: 'CTRL-ANNA-0001', type: 'MDEw', time: Date.now() }); CFG.activityTimes: the times of the readings in the background
   // of nx-activity.js in milliseconds, for example { "PollMs": 3000, "ResumeMs": 500 } (the same names as window.__nxActivity<Name>)
   Object.keys(CFG.activityTimes || {}).forEach(function (k) { window['__nxActivity' + k] = CFG.activityTimes[k]; });
+  // nx23 command: CFG.trustTimes: the times of the state and command feedback of nx-patch.js in milliseconds, for example { "StateFreshMs": 3000, "StateStaleMs": 7000, "SilentMs": 2000,
+  // "FailKeepMs": 9000 } (the same names as window.__nx<Name>: __nxStateFreshMs, __nxStateStaleMs, __nxSilentMs, __nxFailKeepMs); CFG.stopBypass: 'guard' | 'always' | 'off'
+  Object.keys(CFG.trustTimes || {}).forEach(function (k) { window['__nx' + k] = CFG.trustTimes[k]; });
+  if (CFG.stopBypass) window.__nxStopBypass = CFG.stopBypass;
   // window.__logsOverride: the whole answer ({ interfaceLogs, deviceLogs }), for a script that builds a log relative to "now" (a restart an hour ago, ...)
   function activityAnswer() {
     if (CFG.activity === 'error') return { fail: { code: 3 } };
@@ -97,13 +107,17 @@
     // The check of the accessory. The answer of a paired, reachable accessory has its permissions: the list shows no "Not usable".
     // CFG.verifyFail: it always fails. CFG.verifyScript: the outcomes of the successive checks ('fail' or 'ok'; the last one repeats).
     // CFG.verifyDelay: how many milliseconds a check takes (to look at the "Checking..." state).
-    'nhk.verify': function () {
+    'nhk.verify': function (a) {
+      if (window.__verifyCode) return { fail: { code: window.__verifyCode } };   // nx23 wizard: set by steps-wizard.cjs just before the wizard calls verify
       var step = CFG.verifyScript ? CFG.verifyScript[Math.min(verifyCount++, CFG.verifyScript.length - 1)] : (CFG.verifyFail ? 'fail' : 'ok');
+      if (CFG.second === 'unreachable' && a && a[0] === '00:0B:6C:AA:BB:DD') step = 'fail';   // nx23 lists: the second accessory does not answer
       var answer = step === 'fail' ? { fail: 'timeout' } : { isAdmin: true, isUser: true };
       return CFG.verifyDelay ? { delay: CFG.verifyDelay, then: answer } : answer;
     },
     'nhk.connect': function () { return CFG.verifyFail ? { fail: 'timeout' } : {}; },
-    'nhk.status': status,
+    // nx23 command: CFG.statusFail: the request for the state fails (the accessory does not answer; a text, so the app shows no popup: error.code is undefined);
+    // CFG.statusDelay: how many milliseconds the answer takes (over the cloud it takes seconds)
+    'nhk.status': function () { if (CFG.statusFail) return { fail: 'timeout' }; return CFG.statusDelay ? { delay: CFG.statusDelay, then: status() } : status(); },
     'nhk.discoverConfiguredDevices': function () { return []; },
     'nhk.getUsersPermissions': function () { return { devices: [{ secondaryCommands: SECONDARY.map(function (c) { return { code: c }; }) }] }; },
     'nhk.executePrimaryCommand': function () { return {}; },
@@ -112,7 +126,9 @@
     'WifiWizard.enableEvents': function () { return { none: true }; },
     'CoreAndroid.messageChannel': function () { return { none: true }; },
     'Keyboard.init': function () { return { none: true }; },
-    'SQLitePlugin.backgroundExecuteSqlBatch': function (a) { var ex = (a[0] && a[0].executes) || []; return ex.map(function (e) { return { qid: e.qid, type: 'success', result: { rows: [], rowsAffected: 0, insertId: null } }; }); },
+    // nx23 command: CFG.sqliteBackup: the recovery database of the app answers one row to its SELECT, so that a Cordova 'resume' runs the app's real path (resumeOperations,
+    // updateDeviceData: every accessory is marked not reachable and checked again). Without it a resume does nothing of that.
+    'SQLitePlugin.backgroundExecuteSqlBatch': function (a) { var ex = (a[0] && a[0].executes) || []; return ex.map(function (e) { var row = CFG.sqliteBackup && /SELECT/i.test(e.sql || ''); return { qid: e.qid, type: 'success', result: { rows: row ? [{ localStorageData: '{}' }] : [], rowsAffected: 0, insertId: null } }; }); },
     'nhk.executePrimaryCommand': function () { return {}; },
     'nhk.closeConnection': function () { return {}; },
     // CFG.waiting: users that wait for approval, as the accessory lists them (for example [{ id: 2, username: 'Home assistant' }]);
@@ -121,8 +137,15 @@
     'nhk.logs': activityAnswer,
     'nhk.userNew': function () { return CFG.approveError ? { fail: { code: CFG.approveError } } : {}; },   // what the app calls "userApproved"
     'nhk.getCurrentSSID': function () { return 'HomeWifi'; },
-    'WifiWizard.isLocalizationEnabled': function () { return true; },
-    'WifiWizard.getScanResults': function () { return [{ SSID: 'HomeWifi', level: -48, BSSID: 'aa:bb:cc:00:11:22', capabilities: '[WPA2-PSK-CCMP]' }, { SSID: 'NiceIT4WIFIAABBCC', level: -60, BSSID: 'aa:bb:cc:00:11:23', capabilities: '[WPA2-PSK-CCMP]' }]; },
+    // nx23 wizard: CFG.location false: Location is off (the plugin answers "0"); CFG.scan: 'none' (no accessory network: the "Accessory not found" case), 'two' (two accessories)
+    'WifiWizard.isLocalizationEnabled': function () { return CFG.location === false ? '0' : '1'; },
+    'WifiWizard.getScanResults': function () {
+      var list = [{ SSID: 'HomeWifi', level: -48, BSSID: 'aa:bb:cc:00:11:22', capabilities: '[WPA2-PSK-CCMP]' }];
+      if (CFG.scan !== 'none') list.push({ SSID: 'NiceIT4WIFIAABBCC', level: -60, BSSID: 'aa:bb:cc:00:11:23', capabilities: '[WPA2-PSK-CCMP]' });
+      if (CFG.scan === 'two') list.push({ SSID: 'NiceIT4WIFIDDEEFF', level: -71, BSSID: 'aa:bb:cc:00:11:24', capabilities: '[WPA2-PSK-CCMP]' });
+      return list;
+    },
+    'WifiWizard.listNetworks': function () { return [{ networkId: 1, SSID: '"HomeWifi"', security: 'WPA2', wps: false }]; },
     'WifiWizard.getCurrentSSID': function () { return '"HomeWifi"'; },
     'WifiWizard.getCurrentBSSID': function () { return 'aa:bb:cc:00:11:22'; },
     'WifiWizard.isWifiEnabled': function () { return true; },
@@ -133,14 +156,14 @@
     'NetworkStatus.getConnectionInfo': function () { return 'wifi'; },
     'Globalization.getPreferredLanguage': function () { return { value: CFG.lang || 'en-US' }; },
     'Globalization.getLocaleName': function () { return { value: CFG.lang || 'en-US' }; },
-    'Nx.version': function () { return 'nx-22'; },
+    'Nx.version': function () { return 'nx-23'; },
     'Nx.logStream': function () { return { keep: true, none: true }; },
     'Nx.setHints': function () { return {}; },
     'Nx.release': function () { return {}; },
     'Nx.reconnect': function () { return {}; },
     'Nx.checkSucceeded': function () { return {}; },
     'Nx.checkFailed': function () { return {}; },
-    'Nx.netState': function () { return CFG.net || { version: 'nx-22', sdk: 37, wifi: true, ssid: 'HomeWifi', ip: '192.168.1.172', validated: true, cellular: false, vpn: false, module: false, defaultType: 'wifi', route: 'local', routeAgeSeconds: 4 }; },
+    'Nx.netState': function () { return CFG.net || { version: 'nx-23', sdk: 37, wifi: true, ssid: 'HomeWifi', ip: '192.168.1.172', validated: true, cellular: false, vpn: false, module: false, defaultType: 'wifi', route: 'local', routeAgeSeconds: 4 }; },
     'Nx.probe': function () { return CFG.probe || { ok: true, tcpMs: 14, tlsMs: 380, bound: true, cloud: { ok: true, dns: '63.182.6.157', dnsMs: 12, tcpMs: 20 } }; }
   };
   function answer(callbackId, r) {
@@ -155,7 +178,7 @@
       var key = service + '.' + action, args = [];
       try { args = JSON.parse(argsJson); } catch (e) {}
       log.push(key);
-      (window.__calls = window.__calls || []).push({ key: key, args: args });
+      (window.__calls = window.__calls || []).push({ key: key, args: args, t: Date.now() });   // nx23 command: t, so that a step can measure tap to call
       var h = NATIVE[key];
       setTimeout(function () {
         try {

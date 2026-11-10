@@ -266,7 +266,7 @@ with zipfile.ZipFile(path) as z:
             errors.append('nx-expressive.css does not style ' + m)
     # nx15: the state of the gate settled from the log, and the pill for a blocked gate
     detail15 = text('assets/www/templates/system/device_detail.html')
-    for m in ('nxState', 'nxIcon', 'nxSettled', 'nxBlock', 'nx-block-row'):
+    for m in ('nxState', 'nxIcon', 'nxSettled', 'nxBlock', 'nx-pill'):   # (nx23: the pill is a button in the status line, no longer a .nx-block-row)
         if m not in detail15:
             errors.append('device_detail.html does not know %s (patch-15)' % m)
     for m in ('lastMovement', 'blockInfo', 'settledOf', 'device not found'):
@@ -282,6 +282,181 @@ with zipfile.ZipFile(path) as z:
     for m in ('nx-log-button', '__nxLogShow', 'NOISE', '__nxLogAll'):
         if m not in dl:
             errors.append('debuglog.js is missing ' + m)
+    # nx23 (gate screen): the state box, the status line above the pad (always in the DOM, with the bindings of the contract), the Activity chip, the extras caption; the skin and the functions behind them
+    d23 = text('assets/www/templates/system/device_detail.html')
+    for m in ('class="nx-state"', 'class="nx-unusable"', 'class="nx-reach"', 'class="nx-obst"', 'class="nx-line"', 'role="status"', 'aria-live="{{ nxLineLive ? nxLineLive(data.device) : \'polite\' }}"', 'data-nx-kind="{{ nxLineKind ? nxLineKind(data.device) : \'\' }}"',
+              'data-nx-trust="{{ nxTrust ? nxTrust(data.device) : \'\' }}"', 'ng-attr-data-nx-unsure=', 'class="nx-last"', 'class="nx-pill nx-block"', 'class="nx-unknown"', 'class="nx-extras-cap"'):
+        if m not in d23:
+            errors.append('device_detail.html does not have %s (patch-18, nx23)' % m)
+    if re.search(r'<div class="nx-line"[^>]*ng-(if|show|hide)', d23) or 'nx-block-row' in d23 or 'nx-last-row' in d23 or 'DEVICE_DETAIL_LABEL_DEVICE' in d23:
+        errors.append('device_detail.html: the status line must always be in the DOM (no ng-if, ng-show, ng-hide), and the rows of nx14/nx15 and the chip "Accessory:" must be gone (patch-18, nx23)')
+    for m in ('--nx-state-h', '--nx-line-h', '.nx-line', '.nx-pill', '.nx-obst', '.nx-unknown', '.nx-extras-cap', '@container nx-top', 'pixelcircle'):
+        if m not in css:
+            errors.append('nx-expressive.css does not have %s (nx23, gate screen)' % m)
+    if 'nx-spin 60s' in css:
+        errors.append('nx-expressive.css: the hero must not turn at rest (nx23, I-39)')
+    for m in ('NX_WORDS', 'nxBlockMaybe', 'nxManyHomes', 'nxLastSpoken', 'nxUnknown', 'maybeBlocked'):
+        if m not in act:
+            errors.append('nx-activity.js is missing %s (nx23, gate screen)' % m)
+
+    # nx23 (command feedback): the taps of the pad go through nxRun (the app's runCommand is called first and unchanged), the status line functions and the trust, the page of the extra buttons
+    detail23 = text('assets/www/templates/system/device_detail.html')
+    if 'nxRun ? nxRun(data.device, item, true, runCommand) : runCommand(item, true)' not in detail23 or 'data-ng-click="runCommand(item, true)"' in detail23 or 'nxSent' in detail23:
+        errors.append('device_detail.html: Open, Close and Stop must go through nxRun (patch-12, nx23), and the "sent" message of nx12 must be gone')
+    if 'nxRun ? nxRun(data.device, code, false, runCommand)' not in detail23 or 'Edit extra buttons' not in detail23 or 'Add extra buttons' not in detail23:
+        errors.append('device_detail.html: the extra buttons must go through nxRun and the link must say "Edit extra buttons" (patch-12, nx23)')
+    if 'Shows extra buttons on the accessory screen.' not in text('assets/www/templates/settings/device_4th_button.html'):
+        errors.append('device_4th_button.html has no hint that is always visible (patch-12, nx23)')
+    if not re.search(r'"SETTINGS_DEVICE_4TH_BUTTON_PAGE_TITLE"\s*:\s*"Extra buttons"', text('assets/www/i18n/locale-en.json')):
+        errors.append('locale-en.json: the page of the extra buttons is not called "Extra buttons" (skin/copy/command.json, patch-21)')
+    for m in ('$rootScope.nxRun = ', '$rootScope.nxLine = ', '$rootScope.nxLineKind = ', '$rootScope.nxLineAct = ', '$rootScope.nxLineDo = ', '$rootScope.nxLineLive = ', '$rootScope.nxTrust = ', '$rootScope.nxUnsure = ',
+              'window.__nxTrust = ', 'function reconnectQuiet', 'var STOP_BYPASS', "'Too soon after the last command. '"):
+        if m not in js:
+            errors.append('nx-patch.js is missing ' + m + ' (nx23, command feedback and trust)')
+    if 'nxSent' in js:
+        errors.append('nx-patch.js still offers nxSent: the message that was shown at the tap whether or not anything was sent (nx23)')
+    for m in ('.nx-line-act', '.nx-line[data-nx-kind="warn"]', '.nx-line[data-nx-kind="bad"]', '[data-nx-trust="checking"]', '[data-nx-trust="stale"]', '[data-nx-unsure="1"]', '.nx-snack[data-nx-at="top"]'):
+        if m not in css:
+            errors.append('nx-expressive.css does not style ' + m + ' (nx23, command feedback and trust)')
+    if not re.search(r'\.nx-snack \{[^}]*pointer-events: none', css):
+        errors.append('nx-expressive.css: a toast must never take a tap (nx23)')
+
+    # nx23 (status chip and sheet): add the checks of this workstream here, as errors.append(...)
+    # the chip is a real button in the header (ensureChips), the sheet opens only from the person's own action (showText does not open it, runs are
+    # numbered), the verdict comes from one table (COPY.v), and the buttons say Done, Check requests, Debug log, Copy details
+    for m in ('ensureChips', 'nx-chip', 'diagRun', 'var COPY = {', 'Check requests', 'Debug log', 'Copy details', 'nx-done', 'nx-reconnect', 'popup-open', '__nxTrust'):
+        if m not in js:
+            errors.append('nx-patch.js is missing ' + m + ' (nx23 status)')
+    if re.search(r"function showText\([^)]*\)\s*\{[^}]*openSheet\(", js):
+        errors.append('nx-patch.js: showText() opens the sheet again (nx23 status: the sheet must open only from the person\'s own action)')
+    for m in ('.nx-chip', '.nx-three', '.nx-todo', '.nx-fact-sum', '.nx-k-accessory', 'button.nx-done'):
+        if m not in css:
+            errors.append('nx-expressive.css does not style ' + m + ' (nx23 status)')
+
+    # nx23 (dialogs, LOG, accessibility): add the checks of this workstream here, as errors.append(...)
+    # the Debug log is a sheet (debuglog.js), its button is hidden but for the setup wizard, the popup does not open over the accessory screen, and the accessibility layer and the dialog manager are in nx-patch.js
+    dl23 = text('assets/www/js/debuglog.js')
+    for m in ('nx-log-button', 'nx-log-panel', '__nxLogShow', '__nxLogHide', '__nxLogIsOpen', 'Debug log', 'data-tap-disabled', 'data-nx-chip'):
+        if m not in dl23:
+            errors.append('debuglog.js is missing %s (nx23 dialogs)' % m)
+    for m in ('NxA11y', 'isIonicTap', 'data-nx-act', 'registerBackButtonAction', 'data-nx-inert', 'aria-current', '$rootScope.nxLogOpen = function', 'nxSnooze', 'data-nx-chip', 'data-nx-pending', 'closeActivity', 'nx23 dialogs: begin'):
+        if m not in js:
+            errors.append('nx-patch.js is missing %s (nx23 dialogs)' % m)
+    for m in ('--nx-hit', '.nx-popup', '.nx-log-pre', '#nx-log-panel', 'data-nx-chip="0"', 'data-nx-pending', '.nx-snack button', '#nx-live'):
+        if m not in css:
+            errors.append('nx-expressive.css does not have %s (nx23 dialogs)' % m)
+    if "setAttribute('lang', 'en')" not in text('assets/www/js/nx-theme.js'):
+        errors.append('nx-theme.js does not give the page a language (nx23 dialogs)')
+
+    # nx23 (lists, settings, Favorites): the card and the line of the accessory in Favorites, the groups of Other commands, the rows of Settings, the legacy buttons, the page Design reference (patch-19, patch-17)
+    fav23 = text('assets/www/templates/favorites/favorites.html')
+    for m in ('nxFavState', 'nxFavGate', 'nxRowTap', 'nx-fav-card', 'nx-fav-status', 'nx-fav-legacy', 'Not reachable', 'Online'):
+        if m not in fav23:
+            errors.append('templates/favorites/favorites.html does not have %s (patch-19, nx23)' % m)
+    if 'translate="FAVORITES_LABEL_FAVORITES"' in fav23:
+        errors.append('favorites.html still has the divider that repeats the title of the page (patch-19, nx23)')
+    cmd23 = text('assets/www/templates/system/device_commands.html')
+    if 'nxCmdGap' not in cmd23 or 'Tap a command to run it at once.' not in cmd23 or 'runCommand(item.code)' not in cmd23:
+        errors.append('device_commands.html has not the groups and the line "Tap a command to run it at once." (patch-19, nx23)')
+    set23 = text('assets/www/templates/settings/settings.html')
+    if not ('SETTINGS_PAGE_LABEL_MORE' in set23 and 'nx-design-row' in set23 and 'Design reference' in set23 and 'nxLogOpen()' in set23 and 'Debug log' in set23 and
+            set23.index('SETTINGS_PAGE_LABEL_MORE') < set23.index('nx-design-row') < set23.index('nxLogOpen()') < set23.index('SETTINGS_PAGE_APP_VERSION')):
+        errors.append('settings.html has not the rows Design reference and Debug log at the end of OTHER, in front of the version (patch-17, patch-19, nx23)')
+    for m in ('$rootScope.nxFavState = function', '$rootScope.nxFavGate = function', '$rootScope.nxRowTap = function', '$rootScope.nxCmdGap = function', '$rootScope.nxLogOpen = function'):
+        if m not in js:
+            errors.append('nx-patch.js does not offer ' + m.split()[0] + ' (nx23 lists)')
+    for m in ('.nx-fav-card', '.nx-fav-status', '.btn-text-red', '.item-button-right', '.nx-gal-demo', 'text-transform: uppercase !important', '.icon-play:before'):
+        if m not in css:
+            errors.append('nx-expressive.css does not have %s (nx23 lists)' % m)
+    if 'Demo only. Nothing on this page controls your gate.' not in text('assets/www/js/nx-gallery.js') or 'Developer notes' not in text('assets/www/js/nx-gallery.js'):
+        errors.append('nx-gallery.js has not the banner "Demo only" and the switch "Developer notes" (nx23 lists)')
+
+    # nx23 (setup wizard): the pages that say what will happen, the pages of a full accessory (their files did not exist), the wizard section of nx-patch.js and the spots of the app that it relies on
+    fsd = 'assets/www/templates/first_setup/'
+    for n in ('user_pairing_max_user_reached.html', 'user_pairing_request_max_user_reached.html'):
+        if 'Accessory is full' not in text(fsd + n) or 'USER_PAIRING_MAX_USER_REACHED_MESSAGE' not in text(fsd + n):
+            errors.append('templates/first_setup/%s is missing or has no message: a full accessory would end on a missing template (patch-20, nx23)' % n)
+    for n, m in (('benvenuto.html', 'Android will ask to connect'), ('rete_wifi.html', '2.4 GHz'), ('accendi_dispositivo.html', 'After the search'), ('bridge_rilevati.html', 'Tap your accessory'),
+                 ('configura_bridge.html', 'Home Wi-Fi password'), ('start_email.html', 'administrator sees both')):
+        if m not in text(fsd + n) or 'nx-wz-' not in text(fsd + n):
+            errors.append('templates/first_setup/%s does not have its note (%s) (patch-20, nx23)' % (n, m))
+    for m in ('// ---- nx23 wizard: begin', '$stateNotFound', 'tabsController.settings-settings-user-pairing-max-user-reached', 'showLoadingAction', 'decoratePopup', 'Android will ask to connect'):
+        if m not in js:
+            errors.append('nx-patch.js: the wizard section is missing %s (nx23)' % m)
+    for m in ('.nx-wz-lead', '.nx-wz-note', '.nx-wz-why', '.photo_button { display: none !important; }', '.loading-container .popUp p { color: var(--md-sys-color-on-surface-variant) !important; }'):
+        if m not in css:
+            errors.append('nx-expressive.css does not have %s (nx23 wizard)' % m)
+    # what the wizard section relies on in the app: the loading overlay of showLoadingAction, the state that the app names for a full accessory (and the one that exists), the popup of "not found"
+    app23 = text('assets/www/js/app.min.js')
+    if 'area info popUp' not in app23 or '$rootScope.showLoadingAction=function' not in app23:
+        errors.append('app.min.js: showLoadingAction or its overlay (area info popUp) is not as the wizard section of nx-patch.js expects (nx23)')
+    if '$state.go("tabsController.settings-user-pairing-max-user-reached"' not in app23 or '.state("tabsController.settings-settings-user-pairing-max-user-reached"' not in app23:
+        errors.append('app.min.js: the states of a full accessory are not as nx-patch.js expects: it redirects the one that the app names but that does not exist (nx23)')
+    if 'BRIDGE_NOT_FOUND_TITLE' not in app23 or 'BRIDGE_NOT_FOUND_TEXT' not in app23:
+        errors.append('app.min.js no longer shows the popup "Accessory not found" with these texts (nx23 wizard)')
+    en23 = text('assets/www/i18n/locale-en.json')
+    if 'powered on and within a few metres' not in en23 or 'wrong password. Check the password' not in en23:
+        errors.append('locale-en.json does not have the wording of skin/copy/wizard.json (patch-21, nx23)')
+
+    # nx23 (Activity sheet): the periods of the numbers, the charts (no data is not zero), the pinned footer, the states
+    for m in ('statWindow', 'windowStats', 'dayCells', 'peakHours', 'attention', 'errorParts', 'Open connection status', 'About this data', 'At the gate', 'nx-act-less', 'data-scope'):
+        if m not in act:
+            errors.append('nx-activity.js is missing ' + m + ' (nx23 Activity)')
+    for m in ('.nx-scope', '.nx-nodata', '.nx-act-alert', '.nx-free-icon', '--nx-i-lock-open', '--nx-act-quiet', '.nx-b-close', '.nx-act-tech'):
+        if m not in css:
+            errors.append('nx-expressive.css does not have ' + m + ' (nx23 Activity)')
+    if "panel.style.display = 'flex'" not in act or 'class="nx-text nx-act-close">Done</button>' not in act or 'nx-act-close">Close<' in act:
+        errors.append('nx-activity.js: the sheet is not a column (pinned footer) or its button is not "Done" (nx23 Activity)')
+    if 'outline-variant' in css[css.find('.nx-hours i {'):css.find('.nx-hours i {') + 260]:
+        errors.append('nx-expressive.css: the quiet bars of the busy hours use outline-variant again (1.46:1; nx23 Activity)')
+
+    # nx23 (copy): the English wording of the original app and the titles of its pages (patch-21-copy.py): every text of skin/copy/*.json is in locale-en.json, every edit of
+    #   skin/copy/templates*.json is in its template, no page has a raw id as its title, the section that completes the texts of failures is in nx-patch.js, and, with the original APK as a
+    #   second argument, the other 16 languages (and the old archive of them) are byte for byte the original's: only the English file is changed, and it only gets the keys that were written +KEY
+    import json
+    copy_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'skin', 'copy')
+    en_name = 'assets/www/i18n/locale-en.json'
+    new_keys = set()
+    try:
+        en23 = json.loads(text(en_name))
+    except ValueError:
+        en23 = None
+        errors.append('i18n/locale-en.json is not valid JSON (patch-21, nx23 copy)')
+    for fn in (sorted(f for f in os.listdir(copy_dir) if f.endswith('.json')) if os.path.isdir(copy_dir) else []):
+        data = json.load(open(os.path.join(copy_dir, fn), encoding='utf-8'))
+        if fn.startswith('templates'):
+            for e in data:
+                t23 = text('assets/www/' + e['file'])
+                if not t23 or e['new'] not in t23 or e['old'] in t23:
+                    errors.append('skin/copy/%s: the edit of %s is not in the APK (patch-21, nx23 copy)' % (fn, e['file']))
+        else:
+            for k, v in data.items():
+                if k.startswith('_'):
+                    continue
+                if k.startswith('+'):
+                    new_keys.add(k[1:])
+                if en23 is not None and en23.get(k.lstrip('+')) != v:
+                    errors.append('locale-en.json: the text of %s is not the one of skin/copy/%s (patch-21, nx23 copy)' % (k.lstrip('+'), fn))
+    raw23 = []
+    for n in sorted(names):
+        if n.startswith('assets/www/templates/') and n.endswith('.html'):
+            for m in re.finditer(r'<ion-view[^>]*\stitle="([A-Za-z0-9_]+)"', re.sub(r'<!--.*?-->', '', text(n), flags=re.S)):
+                if re.search(r'[a-z0-9]_[a-z0-9]', m.group(1)) or m.group(1) == os.path.basename(n)[:-5]:
+                    raw23.append('%s: %s' % (n[len('assets/www/templates/'):], m.group(1)))
+    if raw23:
+        errors.append('a page has a raw id as its title: %s (patch-21, nx23 copy)' % ', '.join(raw23))
+    if 'nx23 copy: begin' not in js or 'The accessory reported error ' not in js or '$delegate' not in js:
+        errors.append('nx-patch.js does not have the section that completes the texts of failures (nx23 copy)')
+    if len(sys.argv) > 2:
+        with zipfile.ZipFile(sys.argv[2]) as zo:
+            for n in sorted(zo.namelist()):
+                if n.startswith('assets/www/i18n/') and n != en_name and (n not in names or z.read(n) != zo.read(n)):
+                    errors.append('%s is not the one of the original app: patch-21 changes locale-en.json only (nx23 copy)' % n)
+            if en23 is not None and en_name in zo.namelist():
+                orig_en23 = json.loads(zo.read(en_name).decode('utf-8'))
+                if set(orig_en23) - set(en23) or set(en23) - set(orig_en23) - new_keys:
+                    errors.append('locale-en.json has other keys than the original plus the keys written +KEY (%s) (nx23 copy)' % ', '.join(sorted(set(orig_en23) ^ set(en23))[:6]))
+
     print('skin        : css %d bytes, font %s, hooks in index.html/nx-patch.js/debuglog.js %s' % (
         len(css.encode('utf-8')), 'yes' if 'assets/www/fonts-nx/roboto-flex-latin.woff2' in names else 'NO',
         'yes' if not any(f.startswith(('index.html', 'nx-patch.js', 'debuglog.js')) for f in errors) else 'NO'))

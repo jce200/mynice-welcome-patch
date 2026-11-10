@@ -5,7 +5,7 @@ module.exports = async (page, { goto, wait, shot }) => {
   const M = '00:0B:6C:AA:BB:CC', DETAIL = '#/tabs/favorites-device-detail/1/' + M;
   const say = async (what) => {
     const r = await page.evaluate(() => {
-      const vis = Array.from(document.querySelectorAll('.device-info .device-row:first-child strong')).filter((e) => !e.classList.contains('ng-hide'));
+      const vis = Array.from(document.querySelectorAll('.nx-state strong')).filter((e) => !e.classList.contains('ng-hide'));
       const root = document.documentElement;
       return { state: vis.map((e) => e.textContent.replace(/\s+/g, ' ').trim()).join(' / '), cls: vis.map((e) => e.className.replace(/\s*ng-[a-z-]+/g, '').trim()).join(' / '),
         chip: root.style.getPropertyValue('--nx-sub').replace(/^"|"$/g, ''), level: root.getAttribute('data-nx-status') };

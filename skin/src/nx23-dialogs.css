@@ -1,0 +1,37 @@
+/* nx23: popups, the LOG panel and button, focus rings and hit areas (workstream: Dialogs, LOG and accessibility).
+   Rules go through {{P}} like everything else; a new animation needs its prefers-reduced-motion twin; a new button element is added to its own
+   BUTTONS += [...] line in build-css.py and declares --_h. */
+
+/* ============================================================ the pairing popup (nx-patch.js promptUser: class nx-popup on the .popup-container)
+   Only this popup is changed; the popups of the app (Exit, alerts) keep their look. The container is raised above the sheets (2147483601) for the one case that a
+   popup opens over a sheet (the sheet's "New users"); the snack (2147483645) stays above it. */
+{{P}} .popup-container { z-index: 2147483640; }
+{{P}} .nx-popup .popup-body { text-align: left; }
+{{P}} .nx-popup .popup-buttons { gap: 16px; padding: 8px 24px 24px !important; }
+{{P}} .nx-popup .popup-buttons .button { --_h: 48px; --_pad: 24px; }
+{{P}} .nx-popup .popup-buttons .button.button-positive { --_bg: var(--md-sys-color-secondary-container); --_fg: var(--md-sys-color-on-secondary-container); background: var(--_bg) !important; color: var(--_fg) !important; }
+
+/* ============================================================ focus: a ring on everything that can be focused (m3e.css only had the buttons)
+   the elements that are controls through a role (nx-patch.js gives them a tab stop), the rows, the log. The tab bar and the swatches are shaped differently. */
+{{P}} :where([role="button"], [role="radio"], [role="checkbox"], [role="switch"], [role="option"], [role="tab"], [data-nx-act], .item[tabindex], .nx-log-pre):focus-visible {
+  outline: 3px solid var(--md-sys-color-secondary); outline-offset: 2px;
+}
+{{P}} .tab-item:focus-visible { border-radius: 16px; }
+/* the chip is an invisible element for the keyboard and for screen readers (#nx-status); when it has the focus the visible chip shows the ring */
+html:root:has(#nx-status:focus-visible) body[data-ng-app] .bar .title::after { outline: 3px solid var(--md-sys-color-secondary); outline-offset: -3px; }
+/* the swatch draws its own ring (a thick rim in ::before, skin.css): no square outline around the box */
+{{P}} .nx-swatch:focus-visible { outline: 0; }
+/* a dialog that receives the focus from the script is not a control: no ring around the whole sheet */
+{{P}} :is(.nx-sheet, .nx-gal, .popup)[tabindex="-1"]:focus, {{P}} :is(.nx-sheet, .nx-gal, .popup)[tabindex="-1"]:focus-visible { outline: 0; }
+
+/* ============================================================ hit areas (--nx-hit, 48 dp): the control keeps its look (40 dp), the touch target is 48 dp.
+   The extra 4 dp above and below are a transparent border and the background stops at the padding box; the round ends stay half the height of the whole box.
+   In a connected group only the top and the bottom get it, so the 2 dp between the buttons stay. A hit area never reaches over the command pad: where two
+   overlap, the pad wins (the pad is last in the page and bottom-anchored). */
+{{P}} .nx-seg-btn, {{P}} .device-commands .nx-extra-edit, {{P}} .nx-sheet .nx-more button, {{P}} .nx-sheet button.nx-act-all, {{P}} .nx-sheet button.nx-act-retry {
+  --_h: var(--nx-hit); border-top: 4px solid transparent !important; border-bottom: 4px solid transparent !important; background-clip: padding-box !important;
+}
+{{P}} .nx-sheet button.nx-act-refresh { --_h: var(--nx-hit); width: var(--nx-hit); min-width: var(--nx-hit); }
+/* (the hit area of the line of the last movement is in nx23-gate.css: .nx-last:after) */
+/* a button that is also a list row (.item.button: "New accessory", "Demo" on the Add accessory page) had only the height of its text (24 dp): .item sets height:auto after .button set its size */
+{{P}} .item.button { min-height: var(--nx-hit); }

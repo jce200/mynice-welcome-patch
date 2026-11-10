@@ -14,6 +14,18 @@
 (function () {
   'use strict';
 
+  // ---- nx23 gate: begin
+  // The words of the accessory screen that more than one place says (the pill under the state, the note, the card of the sheet): one set, English like
+  // every text of the patches. The sheet takes them from here too, and keeps its own words only when this block is not there.
+  var NX_WORDS = {
+    blocked: 'Blocked',                  // the last Block command has not been followed by a Release (from the log: not a measurement)
+    maybeBlocked: 'Maybe blocked',       // ... but the accessory restarted after it and forgot its log, so a Release since then would not show
+    since: 'since',                      // "Blocked · since 06:27"
+    unknown: 'Gate state unknown',       // nothing says what the gate does: "Not usable", or a state that nobody knows
+    settled: 'Accessory says {state}; the log shows it finished.'    // the state was settled from the log (the accessory still reports a movement)
+  };
+  // ---- nx23 gate: end
+
   // ======================================================================== 1. the data, without a DOM
   var MIN_TIME = Date.UTC(2015, 0, 1);     // a module whose clock was never set reports 1970 or 2000: that is no time
   var DAY = 86400000;
@@ -239,11 +251,11 @@
   }
 
   // the line on the accessory screen: the last command, when and by whom (now: the moment of showing it, so that "just now" does not stay
-  // on the screen for an hour; the moment of the reading when it is not given)
+  // on the screen for an hour; the moment of the reading when it is not given). Who is named as the sheet names it (At the gate, Another phone): the sheet opens from this line
   function lastLine(a, label, now) {
     var e = a && a.last && a.last.command;
     if (!e) return '';
-    return (label ? label(e.type) : e.type) + ' · ' + when(e.t, now == null ? a.now : now) + (e.who ? ' · ' + e.who : '');
+    return (label ? label(e.type) : e.type) + ' · ' + when(e.t, now == null ? a.now : now) + (e.who ? ' · ' + actorOf(e.who).name : '');
   }
 
   function esc(s) {
@@ -251,129 +263,291 @@
   }
   function plural(n, one, many) { return n + ' ' + (n === 1 ? one : many || one + 's'); }
 
-  // the body of the sheet as HTML (label: type -> the app's text for it). opts.all: the whole history, not only the newest entries.
-  var TIMELINE_SHORT = 25, TIMELINE_LONG = 300;
+  // ---- nx23 activity: begin (the periods that the numbers count, the charts, and the wording of the sheet)
+  // What the sheet shows in amber or red happened in the last 24 hours, or it still holds (a block). Older events are shown too, in a calm tone.
+  var RECENT_MS = DAY;
+  var PEAK_MIN = 10;                       // fewer commands than this in the period: no "busiest hour" (three commands are no habit)
+  var LATEST = 6;                          // the events at the top of the sheet; the rest is behind "Show all"
+  var WEEKDAYS2 = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+
+  // the words of a Block: the constants of the gate screen (NX_WORDS, when this file has them) so that the pill and the sheet agree, else the literal
+  function word(keys, fallback) {
+    try {
+      var w = typeof NX_WORDS === 'object' && NX_WORDS ? NX_WORDS : null;
+      for (var i = 0; w && i < keys.length; i++) if (typeof w[keys[i]] === 'string' && w[keys[i]]) return w[keys[i]];
+    } catch (e) {}
+    return fallback;
+  }
+  // "yesterday 15:30" in two parts: the day ("today", "yesterday", "Tue", "28 Oct", "just now") and the time
+  function whenParts(t, now) {
+    var diff = dayNumber(now) - dayNumber(t), d = new Date(t);
+    if (diff <= 0) return { day: now - t < 60000 ? 'just now' : 'today', time: hhmm(t) };
+    if (diff === 1) return { day: 'yesterday', time: hhmm(t) };
+    if (diff < 7) return { day: WEEKDAYS[d.getDay()], time: hhmm(t) };
+    return { day: d.getDate() + ' ' + MONTHS[d.getMonth()], time: hhmm(t) };
+  }
+  // how long, in the unit that fits: "40 minutes", "5 hours", "11 days"
+  function spanText(ms) {
+    var min = Math.round(ms / 60000), hours = Math.round(ms / 3600000);
+    if (min < 60) return plural(Math.max(1, min), 'minute');
+    if (hours < 48) return plural(hours, 'hour');
+    return plural(Math.round(ms / DAY), 'day');
+  }
+  // who or what, in the words of the sheet. The statistics keep the names of whoOf() ("Gate controller" is busT4, "Other (...)" a phone that is not in the
+  // list of the users); a test checks that they still match
+  function actorOf(who) {
+    var s = String(who == null ? '' : who);
+    if (s === 'Gate controller') return { name: 'At the gate', note: 'remote or switch' };
+    if (/^Other \(/.test(s)) return { name: 'Another phone', note: '' };
+    return { name: s, note: '' };
+  }
+
+  // The period that the numbers count: the last 7 calendar days (today and the six before) or the whole log. A log that is not older than that has only the
+  // whole log (the mode '7' gives it too). "Since the log starts": the accessory forgets its log when it restarts, so the whole log can be short.
+  function statWindow(a, mode) {
+    var today = dayNumber(a.now), first = a.span ? dayNumber(a.span.oldest) : today;
+    var longLog = first < today - 6, seven = longLog && mode !== 'all';
+    var age = a.span ? a.now - a.span.oldest : 0;
+    return { mode: seven ? '7' : 'all', canSwitch: longLog, today: today, firstDay: first, fromDay: seven ? today - 6 : first,
+      label: seven ? 'last 7 days' : 'whole log', full: seven ? 'last 7 days' : 'whole log, ' + spanText(age), phrase: seven ? 'in the last 7 days' : 'in the whole log' };
+  }
+  // what is counted in a period: the commands (by hour of the day and by who) and the obstructions
+  function windowStats(a, win) {
+    var cmds = a.commands.filter(function (e) { return dayNumber(e.t) >= win.fromDay; });
+    var obst = a.obstructions.filter(function (e) { return dayNumber(e.t) >= win.fromDay; });
+    var hours = [], who = {}, i;
+    for (i = 0; i < 24; i++) hours.push(0);
+    cmds.forEach(function (e) { hours[new Date(e.t).getHours()]++; who[e.who] = (who[e.who] || 0) + 1; });
+    var byWho = Object.keys(who).map(function (k) { return { who: k, count: who[k] }; })
+      .sort(function (x, y) { return y.count - x.count || (x.who < y.who ? -1 : x.who > y.who ? 1 : 0); });
+    return { commands: cmds.length, obstructions: obst, hours: hours, byWho: byWho };
+  }
+  // the bars of the chart per day (oldest first): the last 14 days, or the last 7. A day from before the log began has no data: it is not a quiet day. The day
+  // on which the log begins counts from the first entry on (a minimum).
+  function dayCells(a, win) {
+    var days = win.mode === '7' ? a.days.slice(-7) : a.days;
+    return days.map(function (d) {
+      return { n: d.n, open: d.open, close: d.close, rest: d.rest, total: d.total, today: d.n === win.today, nodata: d.n < win.firstDay, partial: d.n === win.firstDay };
+    });
+  }
+  // The busiest hours of the day: every hour that has the most commands (ties are all shown, neighbours merged into one range), but only when there are
+  // enough commands for it to mean something. { enough, spread, hours: [..], ranges: [[from, to]..], count }
+  function peakHours(hours, total) {
+    var max = 0, i;
+    hours.forEach(function (c) { if (c > max) max = c; });
+    if (total < PEAK_MIN || max < 2) return { enough: false, spread: false, hours: [], ranges: [], count: max };
+    var tied = [], ranges = [];
+    for (i = 0; i < 24; i++) if (hours[i] === max) {
+      tied.push(i);
+      if (ranges.length && ranges[ranges.length - 1][1] === i) ranges[ranges.length - 1][1] = i + 1; else ranges.push([i, i + 1]);
+    }
+    if (ranges.length > 2) return { enough: true, spread: true, hours: [], ranges: [], count: max };       // all over the day: there is no peak
+    return { enough: true, spread: false, hours: tied, ranges: ranges, count: max };
+  }
+  function hourRange(r) { return pad(r[0]) + ':00–' + pad(r[1] % 24) + ':00'; }
+  // how a row of the health of the accessory looks: nothing, something older (a calm tone), something in the last 24 hours (amber; red for errors)
+  function healthTone(a, k) {
+    var c = a.health[k];
+    if (!c || !c.count) return 'none';
+    if (c.last != null && a.now - c.last <= RECENT_MS) return k === 'error' ? 'fail' : 'warn';
+    return 'note';
+  }
+  // what is wrong with the accessory right now: the events of its health in the last 24 hours, the worst first
+  function attention(a) {
+    var out = [], names = { error: 'Error reported', bus: 'Gate controller lost', wifi: 'Wi-Fi lost', restart: 'Accessory restarted' };
+    ['error', 'bus', 'wifi', 'restart'].forEach(function (k) {
+      var tone = healthTone(a, k);
+      if (tone === 'warn' || tone === 'fail') out.push({ kind: k, level: tone, text: names[k], t: a.health[k].last });
+    });
+    return out;
+  }
+
+  // The state of the gate as far as Block and Release commands tell (bl: what blockInfo() says, or the analysis). A blocked gate gets the card (amber); the
+  // rest is a quiet line under the title.
+  function blockHtml(bl, label, now) {
+    if (!bl) return '';
+    var did = esc(label(bl.type)) + (bl.who ? ' · ' + esc(actorOf(bl.who).name) : '');
+    if (bl.blocked) {
+      return '<div class="nx-card nx-act-block nx-blocked"><i class="nx-block-icon" aria-hidden="true"></i><div><b>' +
+        esc(bl.uncertain ? word(['maybeBlocked', 'maybe'], 'Maybe blocked') : word(['blocked'], 'Blocked')) + '</b><span>since ' + esc(when(bl.t, now)) + ' · ' + did +
+        '</span><em>The last Block command, not a measurement: a block that was lifted at the gate controller itself is not seen here.' +
+        (bl.uncertain ? ' The accessory restarted after it and forgot its log, so a Release since then would not show here. If the gate moves, it is not blocked: then this goes away.' : '') +
+        '</em></div></div>';
+    }
+    if (bl.inferred) {
+      return '<div class="nx-act-block nx-act-free"><i class="nx-free-icon" aria-hidden="true"></i><div><b>Not blocked, as far as the log shows</b><span>the gate moved ' +
+        esc(when(bl.t, now)) + ' · ' + did + ', after the Block of ' + esc(when(bl.since, now)) +
+        '</span><em>A blocked automation does not move, so the Block was lifted since. The Release itself is not in the log (for instance because the accessory restarted ' +
+        'and forgot it, or it was given by an app that the log does not show).</em></div></div>';
+    }
+    return '<div class="nx-act-block nx-act-free"><i class="nx-free-icon" aria-hidden="true"></i><div><b>Not blocked, as far as the log shows</b><span>last Release: ' +
+      esc(when(bl.t, now)) + ' · ' + did + '</span></div></div>';
+  }
+  function longDate(n) { var t = new Date(n * DAY); return WEEKDAYS[t.getUTCDay()] + ' ' + t.getUTCDate() + ' ' + MONTHS[t.getUTCMonth()]; }
+
+  // the body of the sheet as HTML (label: type -> the app's text for it). From the top: what is blocked, what is wrong with the accessory now, four tiles, the
+  // latest events; then the charts of one period (opts.scope: '7' or 'all'), the health of the accessory and, folded, where the data comes from.
+  // opts.all: the whole history, not only the latest events; opts.block: the state of blocking that blockInfo() worked out.
+  var TIMELINE_LONG = 300;
   function renderHtml(a, label, opts) {
     opts = opts || {};
     label = label || function (t) { return NAMES[t] || t; };
     var h = [], now = a.now;
     if (!a.span) {
-      return '<div class="nx-card nx-act-empty"><b>Nothing in the log yet</b><span>The accessory has no events with a usable time. ' +
-        'Give it a command and look again.</span></div>';
+      return '<div class="nx-card nx-act-empty"><b>No events yet</b><span>The accessory’s log is empty, or its entries have no usable time. ' +
+        'Send a command from the gate screen, then tap refresh.</span></div>';
     }
 
-    // ---- blocked? Only what the last Block or Release command says: the accessory itself has no state for it
-    var bl = opts.block !== undefined ? opts.block : a.block;
-    if (bl && bl.blocked) {
-      h.push('<div class="nx-card nx-act-block nx-blocked"><i class="nx-block-icon" aria-hidden="true"></i><div><b>Blocked' + (bl.uncertain ? '?' : '') + '</b><span>since ' +
-        esc(when(bl.t, now)) + ' \u00b7 ' + esc(label(bl.type)) + (bl.who ? ' \u00b7 ' + esc(bl.who) : '') + '</span><em>The last Block command, not a measurement: a block that was lifted at ' +
-        'the gate controller itself is not seen here.' + (bl.uncertain ? ' The accessory restarted after it and forgot its log, so a Release since then would not show here. ' +
-        'If the gate moves, it is not blocked: then this goes away.' : '') + '</em></div></div>');
-    } else if (bl && bl.inferred) {
-      h.push('<div class="nx-card nx-act-block"><i class="nx-block-icon" aria-hidden="true"></i><div><b>Not blocked, as far as the log shows</b><span>the gate moved ' +
-        esc(when(bl.t, now)) + ' \u00b7 ' + esc(label(bl.type)) + (bl.who ? ' \u00b7 ' + esc(bl.who) : '') + ', after the Block of ' + esc(when(bl.since, now)) +
-        '</span><em>A blocked automation does not move, so the Block was lifted since. The Release itself is not in the log (for instance because the accessory restarted ' +
-        'and forgot it, or it was given by an app that the log does not show).</em></div></div>');
-    } else if (bl) {
-      h.push('<div class="nx-card nx-act-block"><i class="nx-block-icon" aria-hidden="true"></i><div><b>Not blocked, as far as the log shows</b><span>last Release command ' +
-        esc(when(bl.t, now)) + ' \u00b7 ' + esc(label(bl.type)) + (bl.who ? ' \u00b7 ' + esc(bl.who) : '') + '</span></div></div>');
+    // ---- 1. blocked? Only what the last Block or Release command says: the accessory itself has no state for it
+    h.push(blockHtml(opts.block !== undefined ? opts.block : a.block, label, now));
+
+    // ---- 2. what is wrong with the accessory now (nothing is shown when nothing is)
+    var warn = attention(a);
+    if (warn.length) {
+      h.push('<div class="nx-card nx-act-alert' + (warn.some(function (w) { return w.level === 'fail'; }) ? ' nx-alert-bad' : '') + '" role="status"><b>In the last 24 hours</b><ul>' +
+        warn.map(function (w) {
+          return '<li><i class="nx-ai nx-i-' + { restart: 'restart', wifi: 'wifioff', error: 'warn', bus: 'gate' }[w.kind] + '" aria-hidden="true"></i><span>' + esc(w.text) + '</span> <time>' + esc(when(w.t, now)) + '</time></li>';
+        }).join('') + '</ul></div>');
     }
 
-    // ---- tiles
+    // ---- 3. four tiles: the last opening and closing; the commands of today (and of the week); the obstructions of the week
+    var cw = statWindow(a, '7'), cs = windowStats(a, cw), since = when(a.span.oldest, now);
     function tile(cls, title, value, sub) {
       return '<div class="nx-tile ' + cls + '"><small>' + esc(title) + '</small><b>' + esc(value) + '</b><span>' + esc(sub) + '</span></div>';
     }
-    var lo = a.last.open, lc = a.last.close, ob = a.obstructions;
+    function lastTile(cls, title, e) {
+      if (!e) return tile(cls, title, '–', 'none since ' + since);
+      var p = whenParts(e.t, now);
+      return tile(cls, title, p.time, p.day + (e.who ? ' · ' + actorOf(e.who).name : ''));
+    }
+    var ob = cs.obstructions, obRecent = ob.length > 0 && now - ob[0].t <= RECENT_MS;
     h.push('<div class="nx-tiles">' +
-      tile('nx-t-open', 'Last opened', lo ? when(lo.t, now) : '–', lo ? lo.who : 'not in the log') +
-      tile('nx-t-close', 'Last closed', lc ? when(lc.t, now) : '–', lc ? lc.who : 'not in the log') +
-      tile('nx-t-count', 'Commands, 7 days', String(a.totals.d7), plural(a.totals.h24, 'command') + ' in 24 h') +
-      tile(ob.length ? 'nx-t-obst nx-t-warn' : 'nx-t-obst', 'Obstructions', String(ob.length), ob.length ? 'last ' + when(ob[0].t, now) : 'none in the log') +
+      lastTile('nx-t-open', 'Last opened', a.last.open) +
+      lastTile('nx-t-close', 'Last closed', a.last.close) +
+      tile('nx-t-count', 'Commands today', String(a.days[a.days.length - 1].total), cs.commands + ' ' + cw.phrase) +
+      tile('nx-t-obst' + (obRecent ? ' nx-t-bad' : ''), 'Obstructions, ' + (cw.mode === '7' ? '7 days' : 'whole log'), String(ob.length), ob.length ? 'latest ' + when(ob[0].t, now) : 'none reported') +
       '</div>');
 
-    // ---- per day
-    var maxDay = 0;
-    a.days.forEach(function (d) { if (d.total > maxDay) maxDay = d.total; });
-    var cols = a.days.map(function (d) {
-      var t = new Date(d.n * DAY), nm = WEEKDAYS[t.getUTCDay()] + ' ' + t.getUTCDate() + ' ' + MONTHS[t.getUTCMonth()];
-      var pct = d.total ? Math.max(6, Math.round(d.total / maxDay * 100)) : 0;
-      return '<div class="nx-col' + (d.n === dayNumber(now) ? ' nx-today' : '') + '" title="' + esc(nm + ': ' + plural(d.total, 'command')) + '">' +
-        (d.total ? '<div class="nx-stack" style="height:' + pct + '%"><i class="nx-b-rest" style="flex:' + d.rest + '"></i><i class="nx-b-close" style="flex:' + d.close +
-          '"></i><i class="nx-b-open" style="flex:' + d.open + '"></i></div>' : '<div class="nx-stack nx-zero"></div>') + '</div>';
-    });
-    var axis = a.days.map(function (d) { return '<small' + (d.n === dayNumber(now) ? ' class="nx-today"' : '') + '>' + WEEKDAYS[new Date(d.n * DAY).getUTCDay()].charAt(0) + '</small>'; });
-    var spoken = a.days.map(function (d) { var t = new Date(d.n * DAY); return WEEKDAYS[t.getUTCDay()] + ' ' + d.total; }).join(', ');
-    h.push('<h3 class="nx-act-h">Commands per day</h3><div class="nx-card">' +
-      '<div class="nx-bars" role="img" aria-label="Commands per day, the last 14 days: ' + esc(spoken) + '">' + cols.join('') + '</div>' +
-      '<div class="nx-axis">' + axis.join('') + '</div>' +
-      '<div class="nx-legend"><span class="nx-lg nx-lg-open">Open</span><span class="nx-lg nx-lg-close">Close</span><span class="nx-lg nx-lg-rest">Other</span></div></div>');
-
-    // ---- who
-    if (a.byWho.length) {
-      var top = a.byWho.slice(0, 5), rest = 0;
-      a.byWho.slice(5).forEach(function (w) { rest += w.count; });
-      if (rest) top.push({ who: 'Others', count: rest });
-      var maxWho = top[0].count;
-      h.push('<h3 class="nx-act-h">Who</h3><ul class="nx-card nx-whos">' + top.map(function (w) {
-        return '<li><span class="nx-w-name">' + esc(w.who) + '</span><span class="nx-w-bar"><i style="width:' + Math.max(4, Math.round(w.count / maxWho * 100)) +
-          '%"></i></span><b>' + w.count + '</b></li>';
-      }).join('') + '</ul>');
-    }
-
-    // ---- hours
-    if (a.peak) {
-      var bars = a.hours.map(function (c, hr) {
-        return '<i class="' + (hr === a.peak.hour ? 'nx-peak' : '') + '" style="height:' + (c ? Math.max(6, Math.round(c / a.peak.count * 100)) : 0) + '%" title="' +
-          pad(hr) + ':00 – ' + plural(c, 'command') + '"></i>';
-      });
-      h.push('<h3 class="nx-act-h">Busy hours</h3><div class="nx-card"><div class="nx-hours" role="img" aria-label="Commands by hour of the day; the busiest hour is ' + pad(a.peak.hour) +
-        ':00">' + bars.join('') + '</div><div class="nx-axis nx-axis-h"><small>0</small><small>6</small><small>12</small><small>18</small><small>24</small></div>' +
-        '<p class="nx-act-note">Busiest around ' + pad(a.peak.hour) + ':00 (' + plural(a.peak.count, 'command') + ' in the log).</p></div>');
-    }
-
-    // ---- the Wi-Fi module
-    var hl = a.health;
-    function hrow(k, icon, title, bad, none) {   // bad: how a count above zero looks (warn or fail); none: what to say at zero
-      var c = hl[k];
-      return '<li class="nx-fact ' + (c.count ? 'nx-s-' + bad : 'nx-s-ok') + '"><span class="nx-fi nx-i-' + icon + '"></span><div><b>' + esc(title) + '</b><span>' +
-        esc(c.count ? 'last ' + when(c.last, now) : none || 'none in the log') + '</span></div><em>' + c.count + '</em></li>';
-    }
-    h.push('<h3 class="nx-act-h">Wi-Fi module</h3>');
-    if (a.hasModuleEvents) {
-      h.push('<ul class="nx-facts">' +
-        hrow('restart', 'restart', 'Restarts', 'warn') +
-        hrow('wifi', 'wifioff', 'Wi-Fi lost', 'warn') +
-        hrow('error', 'warn', 'Errors', 'fail') +
-        hrow('bus', 'gate', 'Gate controller lost', 'warn', hl.bus.atStart ? 'only while the accessory was starting' : 'none in the log') + '</ul>');
-    } else {
-      h.push('<div class="nx-card nx-act-empty"><span>The log has no events of the module itself.</span></div>');
-    }
-
-    // ---- history
-    var list = a.events, shown = opts.all ? list.slice(0, TIMELINE_LONG) : list.slice(0, TIMELINE_SHORT);
-    h.push('<h3 class="nx-act-h">History</h3>');
+    // ---- 4. the latest events (the whole history on request)
+    var list = a.events, nShow = Math.min(list.length, opts.all ? TIMELINE_LONG : LATEST), shown = list.slice(0, nShow);
+    h.push('<h3 class="nx-act-h"><span>' + (opts.all ? (list.length > TIMELINE_LONG ? 'Latest ' + TIMELINE_LONG + ' events' : 'All events') : 'Latest events') + '</span></h3>');
     if (shown.length) {
       var rows = [], prev = null;
       shown.forEach(function (e) {
         var dn = dayNumber(e.t);
         if (dn !== prev) { rows.push('<li class="nx-tl-day">' + esc(dayName(e.t, now)) + '</li>'); prev = dn; }
         rows.push('<li class="nx-tl-row nx-k-' + e.kind + '"><time>' + hhmm(e.t) + '</time><span class="nx-tl-what">' + esc(label(e.type)) + '</span><span class="nx-tl-who">' +
-          esc(e.who) + '</span></li>');
+          esc(actorOf(e.who).name) + '</span></li>');
       });
       h.push('<ul class="nx-card nx-tl">' + rows.join('') + '</ul>');
-      if (!opts.all && list.length > shown.length) h.push('<button type="button" class="nx-act-all">Show ' + Math.min(list.length, TIMELINE_LONG) + ' events</button>');
+      if (list.length > LATEST) {
+        h.push(opts.all ? '<button type="button" class="nx-act-less">Show less</button>' :
+          '<button type="button" class="nx-act-all">' + (list.length > TIMELINE_LONG ? 'Show the latest ' + TIMELINE_LONG + ' of ' + list.length : 'Show all ' + plural(list.length, 'event')) + '</button>');
+      }
     } else {
       h.push('<div class="nx-card nx-act-empty"><span>No commands in the log.</span></div>');
     }
 
-    // ---- where this comes from
-    h.push('<p class="nx-act-note">From the accessory’s own event log, as in the app’s Historian, with the accessory’s clock. ' +
-      'It keeps a limited number of events: ' + plural(a.span.count, 'event') + ', from ' + esc(when(a.span.oldest, now)) + ' (about ' + plural(a.span.days, 'day') + ').' +
-      (a.logStart ? ' The log begins when the accessory started (' + esc(when(a.logStart, now)) + '): it seems to forget older events at a restart.' : '') +
-      (a.echoes ? ' ' + plural(a.echoes, 'movement') + ' that the gate controller reported right after a command ' + (a.echoes === 1 ? 'is' : 'are') + ' shown once, with the command.' : '') +
-      (a.skipped ? ' ' + plural(a.skipped, 'entry', 'entries') + ' without a usable time left out.' : '') + '</p>');
+    // ---- 5. the charts. They count one period, and every heading says which; with a log of more than a week the period can be changed
+    var win = statWindow(a, opts.scope), ws = windowStats(a, win);
+    if (win.canSwitch) {
+      h.push('<div class="nx-scope" role="group" aria-label="Period of the charts"><button type="button" data-scope="7" aria-pressed="' + (win.mode === '7') + '">Last 7 days</button>' +
+        '<button type="button" data-scope="all" aria-pressed="' + (win.mode === 'all') + '">Whole log · ' + esc(spanText(now - a.span.oldest)) + '</button></div>');
+    }
+    function heading(title, period) { return '<h3 class="nx-act-h"><span>' + esc(title) + '</span><small>' + esc(period) + '</small></h3>'; }
+
+    // per day: a day from before the log began is dashed (no data is not zero), the day it begins counts a minimum (5+)
+    var cells = dayCells(a, win), dayPeriod = 'last ' + cells.length + ' days';
+    if (win.firstDay >= win.today) {
+      h.push(heading('Commands per day', dayPeriod) + '<div class="nx-card nx-act-empty"><span>The log begins today at ' + esc(hhmm(a.span.oldest)) + ': there is no other day to compare yet.</span></div>');
+    } else {
+      var maxDay = 0, spoken = [], hasVoid = false, hasPartial = false;
+      cells.forEach(function (d) { if (d.total > maxDay) maxDay = d.total; });
+      var cols = cells.map(function (d) {
+        var nm = longDate(d.n), head = '<div class="nx-col' + (d.today ? ' nx-today' : '') + (d.nodata ? ' nx-nodata' : '') + '"' + (d.partial ? ' data-partial="1"' : '') + '>';
+        if (d.nodata) { hasVoid = true; spoken.push(nm + ' no data'); return head + '<div class="nx-stack"></div></div>'; }
+        if (d.partial) hasPartial = true;
+        spoken.push(nm + ' ' + (d.partial ? 'at least ' : '') + d.total);
+        var px = d.total ? Math.max(6, Math.round(d.total / maxDay * 92)) : 0, seg = '';
+        if (d.rest) seg += '<i class="nx-b-rest" style="flex:' + d.rest + '"></i>';
+        if (d.close) seg += '<i class="nx-b-close" style="flex:' + d.close + '"></i>';
+        if (d.open) seg += '<i class="nx-b-open" style="flex:' + d.open + '"></i>';
+        return head + '<em>' + d.total + (d.partial ? '+' : '') + '</em>' +
+          (d.total ? '<div class="nx-stack" style="height:' + px + 'px">' + seg + '</div>' : '<div class="nx-stack nx-zero"></div>') + '</div>';
+      });
+      var axis = cells.map(function (d) {
+        var wd = new Date(d.n * DAY).getUTCDay(), date = (wd === 1 || d.today) ? new Date(d.n * DAY).getUTCDate() : '';
+        return '<small' + (d.today ? ' class="nx-today"' : '') + '>' + WEEKDAYS2[wd] + '<span>' + date + '</span></small>';
+      });
+      var note = '';
+      if (hasVoid || hasPartial) {
+        note = '<p class="nx-act-note">The log begins ' + esc(since) + (a.logStart ? ' (the accessory started then and forgets older events)' : '') + '. ' +
+          (hasVoid ? 'Dashed days are before that: no data, which is not the same as a quiet day. ' : '') + (hasPartial ? 'The first day counts from then on, so its number (with a +) is a minimum.' : '') + '</p>';
+      }
+      h.push(heading('Commands per day', dayPeriod) + '<div class="nx-card">' +
+        '<div class="nx-bars" role="img" aria-label="Commands per day, ' + esc(dayPeriod) + ': ' + esc(spoken.join(', ')) + '">' + cols.join('') + '</div>' +
+        '<div class="nx-axis" aria-hidden="true">' + axis.join('') + '</div>' +
+        '<div class="nx-legend" aria-hidden="true"><span class="nx-lg nx-lg-open">Open</span><span class="nx-lg nx-lg-close">Close</span><span class="nx-lg nx-lg-rest">Other</span>' +
+        (hasVoid ? '<span class="nx-lg nx-lg-none">No data</span>' : '') + '</div>' + note + '</div>');
+    }
+
+    if (ws.commands) {
+      // who gave the commands
+      var top = ws.byWho.slice(0, 5), rest = 0;
+      ws.byWho.slice(5).forEach(function (w) { rest += w.count; });
+      if (rest) top.push({ who: 'Others', count: rest });
+      var maxWho = top[0].count;
+      h.push(heading('Who', win.full) + '<ul class="nx-card nx-whos">' + top.map(function (w) {
+        var who = actorOf(w.who);
+        return '<li><span class="nx-w-name">' + esc(who.name) + (who.note ? ' <small>' + esc(who.note) + '</small>' : '') + '</span><span class="nx-w-bar"><i style="width:' +
+          Math.max(4, Math.round(w.count / maxWho * 100)) + '%"></i></span><b>' + w.count + '</b></li>';
+      }).join('') + '</ul>');
+
+      // the hours of the day: every tied hour is shown, and nothing is called busiest on a few commands
+      var pk = peakHours(ws.hours, ws.commands), maxH = pk.count, isPeak = {}, spokenH = [];
+      pk.hours.forEach(function (x) { isPeak[x] = true; });
+      var bars = ws.hours.map(function (c, hr) {
+        if (c) spokenH.push(pad(hr) + ':00 ' + c);
+        return '<i class="' + (isPeak[hr] ? 'nx-peak' : '') + '" style="height:' + (c ? Math.max(4, Math.round(c / maxH * 48)) : 0) + 'px">' + (isPeak[hr] ? '<b>' + c + '</b>' : '') + '</i>';
+      });
+      var peakNote = !pk.enough ? 'Too few commands (' + ws.commands + ') to say which hours are busiest.' :
+        pk.spread ? 'No clear peak: the commands are spread over the day.' :
+        'Busiest: ' + pk.ranges.map(hourRange).join(' and ') + ' (' + plural(pk.count, 'command') + (pk.hours.length > 1 ? ' in each hour' : '') + ').';
+      h.push(heading('Busy hours', win.full) + '<div class="nx-card"><div class="nx-hours" role="img" aria-label="Commands by hour of the day, ' + esc(win.full) + '. ' + esc(peakNote) + ' ' +
+        esc(spokenH.join(', ')) + '">' + bars.join('') + '</div><div class="nx-axis nx-axis-h" aria-hidden="true"><small>0</small><small>6</small><small>12</small><small>18</small></div>' +
+        '<p class="nx-act-note">' + esc(peakNote) + '</p></div>');
+    }
+
+    // ---- 6. the accessory itself
+    var hl = a.health, aw = statWindow(a, 'all');
+    function hrow(k, icon, title, none) {
+      var c = hl[k], tone = healthTone(a, k);
+      return '<li class="nx-fact nx-s-' + tone + '"><span class="nx-fi nx-i-' + (tone === 'none' ? 'done' : icon) + '"></span><div><b>' + esc(title) + '</b><span>' +
+        esc(c.count ? 'Latest: ' + when(c.last, now) : none || 'None in the log') + '</span></div><em>' + c.count + '</em></li>';
+    }
+    h.push(heading('Accessory health', aw.full));
+    if (a.hasModuleEvents) {
+      h.push('<ul class="nx-facts">' +
+        hrow('restart', 'restart', 'Restarts') +
+        hrow('wifi', 'wifioff', 'Wi-Fi lost') +
+        hrow('error', 'warn', 'Errors') +
+        hrow('bus', 'gate', 'Gate controller lost', hl.bus.atStart ? 'Only while the accessory was starting' : '') + '</ul>');
+    } else {
+      h.push('<div class="nx-card nx-act-empty"><span>The log has no events of the accessory itself.</span></div>');
+    }
+
+    // ---- 7. where this comes from (folded)
+    h.push('<details class="nx-details nx-act-about"><summary>About this data</summary><div class="nx-act-abouttext">' +
+      '<p>Source: the accessory’s own event log (the one the app shows as its history), with the accessory’s clock. It keeps only the latest events: ' +
+      plural(a.span.count, 'event') + ', from ' + esc(since) + ' (' + esc(spanText(now - a.span.oldest)) + ').</p>' +
+      (a.logStart ? '<p>The log begins when the accessory started (' + esc(when(a.logStart, now)) + '): it seems to forget older events at a restart.</p>' : '') +
+      (a.echoes ? '<p>' + plural(a.echoes, 'movement') + ' that the gate controller reported right after a command ' + (a.echoes === 1 ? 'is' : 'are') + ' shown once, with the command.</p>' : '') +
+      (a.skipped ? '<p>' + plural(a.skipped, 'entry', 'entries') + ' without a usable time left out.</p>' : '') +
+      '<p>“At the gate” is the gate controller moving the gate without a command from the app or the schedule: a remote control, a wall switch, or the gate closing by itself.</p>' +
+      '</div></details>');
     return h.join('');
   }
+  // ---- nx23 activity: end
 
   // what kinds of events there are, for the LOG: "device [close x2, open x3] sources [busT4 x1, phone x4] module [boot x1]" (no names, no IDs)
   function summary(res) {
@@ -405,8 +579,15 @@
 
   if (typeof module !== 'undefined' && module.exports) {
     module.exports = { toMs: toMs, kindOf: kindOf, isCommand: isCommand, healthKindOf: healthKindOf, whoOf: whoOf, when: when, dayName: dayName, hhmm: hhmm,
-      analyze: analyze, lastLine: lastLine, renderHtml: renderHtml, rawText: rawText, summary: summary };
+      analyze: analyze, lastLine: lastLine, renderHtml: renderHtml, rawText: rawText, summary: summary, NX_WORDS: NX_WORDS };
   }
+  // ---- nx23 activity: begin (what the tests of the sheet call)
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports.statWindow = statWindow; module.exports.windowStats = windowStats; module.exports.dayCells = dayCells; module.exports.peakHours = peakHours;
+    module.exports.attention = attention; module.exports.healthTone = healthTone; module.exports.whenParts = whenParts; module.exports.spanText = spanText;
+    module.exports.actorOf = actorOf;
+  }
+  // ---- nx23 activity: end
   if (typeof window === 'undefined' || !window.document) return;      // (no browser: only the functions above)
 
   // ======================================================================== 2. the sheet (nx-patch.js calls this once the app is up)
@@ -433,6 +614,9 @@
     var failedAt = {}, failures = {}, retried = {};       // mac -> when the last reading failed, how many in a row, whether the one more attempt was made
     var panel = null, scrim = null, body = null, sub = null, btnRefresh = null, copyRow = null;
     var isOpen = false, current = null, showAll = false;
+    // nx23 activity: the period of the charts ('7' or 'all'), and the hint that the accessory is slow (after SLOW_MS without an answer, while nothing is on screen)
+    var SLOW_MS = window.__nxActivitySlowMs != null ? window.__nxActivitySlowMs : 3500;
+    var scope = '7', slow = false, slowTimer = null;
 
     function digest() { try { if ($rootScope.$evalAsync) $rootScope.$evalAsync(function () {}); } catch (e) {} }
     function label(type) {
@@ -444,15 +628,21 @@
       } catch (e) {}
       return NAMES[type] || type || 'Unknown';
     }
-    function errorText(err) {
+    // nx23 activity: what to say when the log could not be read: the cause in one sentence (the app's own words for the code when it has them), and the details
+    // (the code and the message of the accessory or the system) for "Technical details": a message of the system is not for the person
+    function errorParts(err) {
+      var code = null, msg = '', cause = '';
       try {
-        if (err == null) return '';
-        if (typeof err === 'string') return err;
-        var key = 'NHK_ERROR-' + err.code;
-        var t = (err.code != null && inj.has('$translate')) ? inj.get('$translate').instant(key) : '';
-        var why = (t && t !== key) ? t : (err.message ? String(err.message) : '');
-        return why + (err.code != null ? ' (' + err.code + ')' : '');
-      } catch (e) { return ''; }
+        if (typeof err === 'string') msg = err;
+        else if (err && typeof err === 'object') { code = err.code != null ? err.code : null; msg = err.message != null ? String(err.message) : ''; }
+        if (code != null && code !== 'timeout' && inj.has('$translate')) {
+          var key = 'NHK_ERROR-' + code, t = inj.get('$translate').instant(key);
+          if (t && t !== key) cause = String(t);
+        }
+      } catch (e) {}
+      // the texts of failures end with a sentence about "a command that was just sent": not for a log that could not be read (nx23 QA)
+      cause = window.__nxCopy && window.__nxCopy.cause ? window.__nxCopy.cause(cause) : cause.replace(/\s*If you just sent a command[\s\S]*$/, '');
+      return { cause: cause || 'The accessory did not answer.', detail: [(code != null && code !== 'timeout') ? 'code ' + code : '', msg].filter(Boolean).join(' · ') };
     }
 
     // the log and the users, both optional apart from the log itself; one answer or one failure. A reading in the background (quiet) does not
@@ -596,11 +786,12 @@
       } catch (e) { log('activity', String(e)); }
     }
     function sinceText(t) { var w = when(t, Date.now()); return w.indexOf('today ') === 0 ? w.slice(6) : w; }
-    // the pill on the accessory screen ('' when there is nothing to say)
+    // the pill on the accessory screen ('' when there is nothing to say); "Maybe blocked" when the accessory restarted after the Block (nxBlockMaybe: the pill is dashed then)
     $rootScope.nxBlock = function (device) {
       var b = blockInfo(device);
-      return (b && b.blocked) ? 'Blocked' + (b.uncertain ? '?' : '') + ' · since ' + sinceText(b.t) : '';
+      return (b && b.blocked) ? (b.uncertain ? NX_WORDS.maybeBlocked : NX_WORDS.blocked) + ' · ' + NX_WORDS.since + ' ' + sinceText(b.t) : '';
     };
+    $rootScope.nxBlockMaybe = function (device) { var b = blockInfo(device); return !!(b && b.blocked && b.uncertain); };
 
     // The state that the accessory reports can be out of date. A gate does not take minutes to open: a report of "opening" (or "closing") that
     // began longer ago than that, with nothing in the accessory's log that stopped, blocked or reversed it since, is stale. The gate has finished:
@@ -626,21 +817,36 @@
       }
       return c.settle;
     }
-    $rootScope.nxState = function (device) { var st = settledOf(device); return st ? st.to : rawValue(device); };
+    // A value that the app has no word for ("partial", nothing at all) used to be printed as its raw key at 44 px, and the hero kept the calm look of a closed
+    // gate. It is 'unknown' now, which the app has a word for ("Unknown") and the hero a look for.
+    var KNOWN_STATES = { open: 1, closed: 1, opening: 1, closing: 1, stopped: 1, unknown: 1 };
+    function knownState(v) { return v != null && KNOWN_STATES.hasOwnProperty(String(v)) ? String(v) : 'unknown'; }
+    $rootScope.nxState = function (device) { var st = settledOf(device); return st ? st.to : (device ? knownState(rawValue(device)) : rawValue(device)); };
     $rootScope.nxSettled = function (device) {
       var st = settledOf(device);
       if (!st) return '';
       var key = 'DEVICE_STATE_' + st.raw, name = '';
       try { name = inj.has('$translate') ? inj.get('$translate').instant(key) : ''; } catch (e) {}
-      return 'reported: ' + ((name && name !== key) ? name : st.raw);
+      return NX_WORDS.settled.replace('{state}', (name && name !== key) ? name : st.raw);
     };
     var ICON_TYPES = { sectional: 'i_gat006', 'up-and-over': 'i_gat002', swing: 'i_gat003', sliding: 'i_gat005', barrier: 'i_gat001' };
-    // the class of the icon in the app's own form ("icon-i_gat005 open status-0"), only when the state is settled: otherwise the app's own function decides
+    // the class of the icon in the app's own form ("icon-i_gat005 open status-0"), when the state is settled, or when the report is none that the app knows (the
+    // app's function would put the raw value in the class, and no rule of the hero matches it): otherwise the app's own function decides
     $rootScope.nxIcon = function (device) {
-      var st = settledOf(device);
-      if (!st) return '';
+      var st = settledOf(device), unknown = !st && !!device && !KNOWN_STATES.hasOwnProperty(String(rawValue(device)));
+      if (!st && !unknown) return '';
       var a0 = device.automations && device.automations[0], p = device.properties;
-      return 'icon-' + (ICON_TYPES[a0 && a0.type] || 'i_undefined') + ' ' + st.to + ' status-' + (p && p[1] ? p[1].value : 'undefined');
+      return 'icon-' + (ICON_TYPES[a0 && a0.type] || 'i_undefined') + ' ' + (st ? st.to : 'unknown') + ' status-' + (p && p[1] ? p[1].value : 'undefined');
+    };
+    // "Gate state unknown" under the state word: nothing says what the gate is doing. That is the case when the accessory cannot be reached ("Not usable"; while the
+    // app checks or connects, the state line says so itself) and when it reports a state that nobody knows. '' otherwise.
+    $rootScope.nxUnknown = function (device) {
+      try {
+        if (!device) return '';
+        var live = (ctx.liveDevice && ctx.liveDevice(device.homeId, device.mac)) || device;
+        if (live.reachable === false) return $rootScope.nxCheck && $rootScope.nxCheck(live) ? '' : NX_WORDS.unknown;
+        return $rootScope.nxState(device) === 'unknown' ? NX_WORDS.unknown : '';
+      } catch (e) { return ''; }
     };
 
     // a reading that is planned (the key says why; a new plan with the same key replaces the old one)
@@ -724,6 +930,21 @@
     $rootScope.nxActivity = function (device) { openSheet(device); };
     // the last command, from the log (the time is worked out now, not when the log was read)
     $rootScope.nxLast = function (device) { var c = device && cache[device.mac]; return c ? lastLine(c.a, label, Date.now()) : ''; };
+    // ---- nx23 gate: begin
+    // the entry on the accessory screen: what a screen reader says for it (the visible text starts with "Last command:"), when the log was read if that was a while
+    // ago (a reading that fails leaves the line as it was), and whether the app has more than one home (the name of the home is shown only then)
+    var LOG_STALE_MS = window.__nxActivityStaleMs != null ? window.__nxActivityStaleMs : 60000;
+    $rootScope.nxLastStale = function (device) { var c = device && cache[device.mac]; return (c && Date.now() - c.at > LOG_STALE_MS) ? hhmm(c.at) : ''; };
+    $rootScope.nxLastSpoken = function (device) {
+      var c = device && cache[device.mac], e = c && c.a && c.a.last && c.a.last.command;
+      if (!e) return 'Activity. Opens the history.';
+      var stale = $rootScope.nxLastStale(device);
+      return 'Activity. Last command: ' + label(e.type) + (e.who ? ' by ' + e.who : '') + ', ' + when(e.t, Date.now()) + (stale ? ' (log read at ' + stale + ')' : '') + '. Opens the history.';
+    };
+    $rootScope.nxManyHomes = function () {
+      try { var hs = inj.has('HomeService') ? inj.get('HomeService').homes : null; return Array.isArray(hs) && hs.length > 1; } catch (e) { return false; }
+    };
+    // ---- nx23 gate: end
 
     // The accessory screen that is open ({ homeId, mac }; null on other screens), and what is read while it is: the log, now and then, so that the
     // line and the pill follow what other apps and phones do with the gate.
@@ -807,7 +1028,7 @@
         '<button type="button" class="nx-act-refresh" aria-label="Refresh"></button></div>' +
         '<div id="nx-act-body"></div>' +
         '<div class="nx-more"><button type="button" class="nx-act-copy">Copy the log</button></div>' +
-        '<div class="nx-footer nx-act-footer"><button type="button" class="nx-text nx-act-close">Close</button></div>';
+        '<div class="nx-footer nx-act-footer"><button type="button" class="nx-text nx-act-close">Done</button></div>';
       body = panel.querySelector('#nx-act-body');
       sub = panel.querySelector('#nx-act-sub');
       btnRefresh = panel.querySelector('.nx-act-refresh');
@@ -820,9 +1041,23 @@
         if (ctx.copy) ctx.copy(rawText(c.raw, c.at));
       });
       body.addEventListener('click', function (e) {
-        var t = e.target;
-        if (t && t.classList && t.classList.contains('nx-act-all')) { showAll = true; render(); }
-        else if (t && t.classList && t.classList.contains('nx-act-retry')) load(true);
+        var t = e.target, b = t && t.closest ? t.closest('button') : t, cl = b && b.classList;
+        if (!cl) return;
+        if (cl.contains('nx-act-all')) { showAll = true; render(); }
+        else if (cl.contains('nx-act-less')) {                       // nx23 activity: back to the latest events, and the view with them
+          showAll = false; render();
+          try { var hd = body.querySelector('.nx-act-h'); panel.scrollTop = hd ? Math.max(0, hd.offsetTop - 40) : 0; } catch (x) {}
+        } else if (cl.contains('nx-act-retry')) load(true);
+        else if (cl.contains('nx-act-status')) {                     // nx23 activity: the way out of an error card: the connection status, with its diagnosis
+          closeSheet();
+          try { if (window.NX && window.NX.open) { window.NX.open(); if (window.NX.diagnose) window.NX.diagnose(); } } catch (x) { log('activity', String(x)); }
+        } else if (b.getAttribute && b.getAttribute('data-scope')) {  // nx23 activity: the period of the charts
+          scope = b.getAttribute('data-scope') === 'all' ? 'all' : '7';
+          render();
+          if (e.detail === 0) {                                      // a key, or an assistive technology: the focus stays on the button (a touch needs no ring)
+            try { var again = body.querySelector('[data-scope="' + scope + '"]'); if (again && again.focus) again.focus(); } catch (x) {}
+          }
+        }
       });
       // dragging down closes the sheet (only from the top of the content)
       var drag = null;
@@ -855,34 +1090,48 @@
       document.body.appendChild(panel);
     }
 
+    // nx23 activity: the card for a reading that failed (or a sheet that could not be drawn): the cause in one sentence, what to do, the details folded
+    function errorCard(title, cause, detail, withStatus) {
+      return '<div class="nx-card nx-act-error" role="alert"><b>' + esc(title) + '</b><span>' + esc(cause) + '</span><div class="nx-act-actions">' +
+        '<button type="button" class="nx-act-retry">Try again</button>' +
+        (withStatus && window.NX && window.NX.open ? '<button type="button" class="nx-act-status">Open connection status</button>' : '') + '</div>' +
+        (detail ? '<details class="nx-details nx-act-tech"><summary>Technical details</summary><pre>' + esc(detail) + '</pre></details>' : '') + '</div>';
+    }
+    function hasEntries(raw) { return !!raw && (asList(raw.deviceLogs).length + asList(raw.interfaceLogs).length) > 0; }
     function render(error) {
       try { draw(error); } catch (e) {
         log('activity: could not show it', String(e));
-        try { body.innerHTML = '<div class="nx-card nx-act-error"><b>Could not show the history</b><span>' + esc(String(e)) + '</span></div>'; } catch (x) {}
+        try { body.innerHTML = errorCard('Could not show the history', 'Something went wrong while drawing it.', String(e), false); } catch (x) {}
       }
     }
     function draw(error) {
       var c = current && cache[current.mac];
       var name = (current && (current.description || current.name)) || '';
-      copyRow.style.display = c ? '' : 'none';                 // nothing to copy before the log has been read
+      copyRow.style.display = (c && hasEntries(c.raw)) ? '' : 'none';      // nothing to copy before the log has been read, or when it has no entries at all
       if (c) {
         var a = c.a;
-        sub.textContent = name + (a.span ? (name ? ' · ' : '') + plural(a.span.count, 'event') + ', ' + plural(a.span.days, 'day') : '');
-        body.innerHTML = renderHtml(a, label, { all: showAll, block: blockInfo(current) });
+        sub.textContent = name + (a.span ? (name ? ' · ' : '') + plural(a.span.count, 'event') + ' over ' + spanText(a.now - a.span.oldest) : '');
+        body.innerHTML = renderHtml(a, label, { all: showAll, block: blockInfo(current), scope: scope });
       } else if (error) {
         sub.textContent = name;
-        body.innerHTML = '<div class="nx-card nx-act-error"><b>Could not read the history</b><span>' + esc(errorText(error) || 'The accessory did not answer.') +
-          '</span><button type="button" class="nx-act-retry">Try again</button></div>';
+        var why = errorParts(error);
+        body.innerHTML = errorCard('Could not read the history', why.cause, why.detail, true);
       } else {
         sub.textContent = name;
-        body.innerHTML = '<div class="nx-card nx-act-empty"><span>Reading the accessory’s log…</span></div>';
+        body.innerHTML = '<div class="nx-card nx-act-empty" role="status"><span>Reading the accessory’s log…</span>' +
+          (slow ? '<span>Still waiting: the accessory is slow to answer.' + (TIMEOUT >= 2000 ? ' It gives up after ' + Math.round(TIMEOUT / 1000) + ' seconds.' : '') + '</span>' : '') + '</div>';
       }
     }
     function load(force) {
       if (!current) return;
       var device = current;
       panel.classList.add('nx-busy');
+      clearTimeout(slowTimer); slow = false;
+      slowTimer = setTimeout(function () {                        // nx23 activity: nothing on screen yet and it takes a while: say so
+        if (current === device && !cache[device.mac] && panel.classList.contains('nx-busy')) { slow = true; render(); }
+      }, SLOW_MS);
       refresh(device, function (err) {
+        clearTimeout(slowTimer); slow = false;
         if (current !== device) return;
         panel.classList.remove('nx-busy');
         if (err) {
@@ -899,11 +1148,12 @@
         try { if (window.NX && window.NX.close) window.NX.close(); } catch (e) {}     // one sheet at a time
         current = device;
         showAll = false;
+        scope = '7';
         render();
         if (!isOpen) {
           isOpen = true;
           scrim.style.display = 'block';
-          panel.style.display = 'block';
+          panel.style.display = 'flex';                           // nx23 activity: a column, so that the footer stays at the bottom of a short sheet
           panel.scrollTop = 0;
           var raf = window.requestAnimationFrame || function (f) { return setTimeout(f, 16); };
           raf(function () { raf(function () {

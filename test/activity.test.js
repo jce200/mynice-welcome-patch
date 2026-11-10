@@ -113,7 +113,7 @@ const LOG = {
   ok('lastLine: nothing to say without commands', A.lastLine(none, label) === '' && A.lastLine(undefined, label) === '');
   ok('lastLine: the time is worked out for the moment it is shown ("just now" does not stay)', A.lastLine(a, label, D(7, 14, 12, 40)) === 'Close · just now · Anna' && A.lastLine(a, label, D(7, 16, 0)) === 'Close · today 14:12 · Anna' &&
     A.lastLine(a, label, D(8, 16, 0)) === 'Close · yesterday 14:12 · Anna');
-  ok('lastLine: another day', A.lastLine(A.analyze({ deviceLogs: [{ source: 'busT4', type: 'MDBk', time: D(5, 17, 40) }] }, [], NOW), label) === 'Open and Block · ' + WD[new Date(D(5, 17, 40)).getDay()] + ' 17:40 · Gate controller');
+  ok('lastLine: another day', A.lastLine(A.analyze({ deviceLogs: [{ source: 'busT4', type: 'MDBk', time: D(5, 17, 40) }] }, [], NOW), label) === 'Open and Block · ' + WD[new Date(D(5, 17, 40)).getDay()] + ' 17:40 · At the gate');
 }
 
 // ------------------------------------------------------------------------------------------------ a log as a real accessory sends it
@@ -149,7 +149,7 @@ const REAL = {
   const html = A.renderHtml(a, label);
   ok('real log: the sheet says blocked, with the command and who', /nx-act-block nx-blocked/.test(html) && /<b>Blocked<\/b>/.test(html) && /Open and Block · Anna/.test(html) && /not a measurement/.test(html), html.slice(0, 400));
   ok('real log: the module row says that it only happened while starting, and the note says where the log begins and what was folded',
-    /only while the accessory was starting/.test(html) && /The log begins when the accessory started \(today 04:47\)/.test(html) && /2 movements that the gate controller reported right after a command are shown once/.test(html), html.slice(-700));
+    /Only while the accessory was starting/.test(html) && /The log begins when the accessory started \(today 04:47\)/.test(html) && /2 movements that the gate controller reported right after a command are shown once/.test(html), html.slice(-700));
   ok('real log: the history lists three entries and none of the repeats', (html.match(/class="nx-tl-row/g) || []).length === 3);
   const raw = A.rawText(REAL, NOW2);
   ok('real log: the raw text has "-" where idx is missing, never "undefined"', raw.indexOf('undefined') === -1 && /\| 4\/-/.test(raw));
@@ -158,7 +158,7 @@ const REAL = {
   const later = JSON.parse(JSON.stringify(REAL));
   later.interfaceLogs.push({ source: 'boot', type: 'Power ON', time: D(8, 11, 0, 0), id: '9' });
   const al = A.analyze(later, USERS, NOW2);
-  ok('a restart after the Block command makes it uncertain', al.block.blocked === true && al.block.uncertain === true && /<b>Blocked\?<\/b>/.test(A.renderHtml(al, label)) && /forgot its log, so a Release since then would not show here/.test(A.renderHtml(al, label)));
+  ok('a restart after the Block command makes it uncertain', al.block.blocked === true && al.block.uncertain === true && /<b>Maybe blocked<\/b>/.test(A.renderHtml(al, label)) && /forgot its log, so a Release since then would not show here/.test(A.renderHtml(al, label)));
   // a movement that the gate controller reported: the newest busT4 open, close or step; not what it says in the two minutes after a start
   const mv = (devs, mods) => A.analyze({ deviceLogs: devs, interfaceLogs: mods || [] }, USERS, NOW2);
   const m0 = D(8, 10, 0), BT = (type, t) => ({ source: 'busT4', type: type, time: t });
@@ -174,7 +174,7 @@ const REAL = {
     mv([BT('open', m0 - 3600000 + 30000), BT('close', m0)], started).drive.t === m0 && mv([BT('open', m0 - 3600000 + 130000)], started).drive.t === m0 - 3600000 + 130000);
   const lifted = A.renderHtml(d1, label, { block: { blocked: false, t: m0 + 60000, type: 'close', who: 'Gate controller', inferred: true, since: m0 - 7200000, uncertain: false } });
   ok('html: a Block that the movement of the gate lifted says so, with the time of both', /Not blocked, as far as the log shows/.test(lifted) &&
-    /the gate moved today 10:01 \u00b7 Close \u00b7 Gate controller, after the Block of today 08:00/.test(lifted) && /A blocked automation does not move/.test(lifted) && lifted.indexOf('nx-blocked') === -1, lifted.slice(0, 400));
+    /the gate moved today 10:01 \u00b7 Close \u00b7 At the gate, after the Block of today 08:00/.test(lifted) && /A blocked automation does not move/.test(lifted) && lifted.indexOf('nx-blocked') === -1, lifted.slice(0, 400));
   // released afterwards
   const rel = JSON.parse(JSON.stringify(REAL));
   rel.deviceLogs.push({ source: 'CTRL-BEN-00002', type: 'MDEw', time: D(8, 10, 55, 0), id: '6' });
@@ -205,32 +205,41 @@ const REAL = {
 {
   const a = A.analyze(LOG, USERS, NOW);
   const html = A.renderHtml(a, label);
-  ok('html: the four tiles', ['Last opened', 'Last closed', 'Commands, 7 days', 'Obstructions'].every((t) => html.indexOf(t) > -1) && html.indexOf('today 14:10') > -1 && html.indexOf('today 14:12') > -1, '');
-  ok('html: obstructions show as a warning when there are some', /nx-t-obst nx-t-warn/.test(html) && !/nx-t-warn/.test(A.renderHtml(A.analyze({ deviceLogs: [{ source: 'busT4', type: 'open', time: D(7, 7, 0) }] }, [], NOW), label)));
-  ok('html: fourteen bars, today marked', (html.match(/class="nx-col/g) || []).length === 14 && /nx-col nx-today/.test(html) && /<small class="nx-today">/.test(html));
-  ok('html: who and the busy hours', html.indexOf('>Who<') > -1 && html.indexOf('Anna') > -1 && html.indexOf('>Busy hours<') > -1 && html.indexOf('Busiest around 14:00') > -1 && (html.match(/<i class="(nx-peak)?"/g) || []).length === 24);
-  ok('html: the Wi-Fi module with its counts', html.indexOf('Wi-Fi module') > -1 && /Restarts<\/b><span>last/.test(html) && /<em>2<\/em>/.test(html) && html.indexOf('Gate controller lost') > -1);
+  ok('html: the four tiles', ['Last opened', 'Last closed', 'Commands today', 'Obstructions, whole log'].every((t) => html.indexOf(t) > -1) && /<b>14:10<\/b><span>today \u00b7 Anna<\/span>/.test(html) && /<b>14:12<\/b><span>today \u00b7 Anna<\/span>/.test(html), html.slice(0, 600));
+  // red only for what happened in the last 24 hours (the obstruction of the log is three days old)
+  ok('html: the obstructions are counted (the log is not older than a week: the whole log), in a calm tile when they are older than a day', /nx-t-obst"><small>Obstructions, whole log<\/small><b>1<\/b><span>latest/.test(html) && !/nx-t-bad/.test(html));
+  const freshOb = A.renderHtml(A.analyze({ deviceLogs: [{ source: 'busT4', type: 'obstruction', time: NOW - 3600000 }] }, [], NOW), label);
+  ok('html: an obstruction in the last 24 hours is red', /nx-t-obst nx-t-bad/.test(freshOb) && /latest today 13:30/.test(freshOb));
+  ok('html: fourteen bars (the log is younger than that), today marked', (html.match(/class="nx-col/g) || []).length === 14 && /nx-col nx-today/.test(html) && /<small class="nx-today">/.test(html));
+  ok('html: who and the busy hours', html.indexOf('>Who<') > -1 && html.indexOf('Anna') > -1 && html.indexOf('>Busy hours<') > -1 && (html.match(/<i class="(nx-peak)?"/g) || []).length === 24);
+  ok('html: six commands are too few to call an hour the busiest', /Too few commands \(6\) to say which hours are busiest/.test(html) && !/nx-peak/.test(html));
+  ok('html: the accessory with its counts', html.indexOf('Accessory health') > -1 && html.indexOf('Wi-Fi module') === -1 && /Restarts<\/b><span>Latest:/.test(html) && /<em>2<\/em>/.test(html) && html.indexOf('Gate controller lost') > -1);
   ok('html: history with day headers, newest first', html.indexOf('>Today<') > -1 && html.indexOf('>Yesterday<') > -1 && html.indexOf('Open and Block') > -1 && html.indexOf('nx-k-obstruction') > -1);
-  ok('html: where the data comes from', /From the accessory/.test(html) && /1 entry without a usable time/.test(html), html.slice(-300));
-  ok('html: no "show all" button when everything is shown', html.indexOf('nx-act-all') === -1);
+  ok('html: where the data comes from (folded)', /<details class="nx-details nx-act-about"><summary>About this data<\/summary>/.test(html) && /Source: the accessory/.test(html) && /1 entry without a usable time/.test(html), html.slice(-300));
+  ok('html: seven events: the latest six and a button for all', (html.match(/class="nx-tl-row/g) || []).length === 6 && />Show all 7 events</.test(html));
+  const few = A.renderHtml(A.analyze({ deviceLogs: LOG.deviceLogs.slice(0, 4) }, USERS, NOW), label);
+  ok('html: no "show all" button when everything is shown', few.indexOf('nx-act-all') === -1 && (few.match(/class="nx-tl-row/g) || []).length === 4);
 
   const long = { deviceLogs: [] };
   for (let i = 0; i < 80; i++) long.deviceLogs.push({ source: 'CTRL-ANNA-0001', type: i % 2 ? 'close' : 'open', time: NOW - i * 3600000 });
   const al = A.analyze(long, USERS, NOW);
   const short = A.renderHtml(al, label), full = A.renderHtml(al, label, { all: true });
-  ok('html: a long history shows the newest 25 and offers the rest', (short.match(/class="nx-tl-row/g) || []).length === 25 && /Show 80 events/.test(short) && (full.match(/class="nx-tl-row/g) || []).length === 80 && full.indexOf('nx-act-all') === -1);
+  ok('html: a long history shows the latest 6 and offers the rest, which can be put away again', (short.match(/class="nx-tl-row/g) || []).length === 6 && />Show all 80 events</.test(short) && /Latest events/.test(short) &&
+    (full.match(/class="nx-tl-row/g) || []).length === 80 && full.indexOf('nx-act-all') === -1 && />Show less</.test(full) && /All events/.test(full));
 
   const evil = A.analyze({ deviceLogs: [{ source: 'X-1', type: '<img src=x onerror=alert(1)>', time: D(7, 9, 0) }] }, [{ controllerID: 'X-1', username: '<b>"Mallory"</b>' }], NOW);
   const eh = A.renderHtml(evil, (t) => t);
   ok('html: names and types are escaped', eh.indexOf('<img') === -1 && eh.indexOf('<b>"Mallory"') === -1 && eh.indexOf('&lt;b&gt;&quot;Mallory&quot;&lt;/b&gt;') > -1 && eh.indexOf('&lt;img src=x') > -1);
 
   const nolog = A.renderHtml(A.analyze({ deviceLogs: [], interfaceLogs: [] }, [], NOW), label);
-  ok('html: an empty log says so', /Nothing in the log yet/.test(nolog));
+  ok('html: an empty log says so, and what to do', /No events yet/.test(nolog) && /Send a command from the gate screen, then tap refresh/.test(nolog) && nolog.indexOf('nx-tile') === -1);
   const nomod = A.renderHtml(A.analyze({ deviceLogs: [{ source: 'busT4', type: 'open', time: D(7, 7, 0) }], interfaceLogs: [] }, [], NOW), label);
-  ok('html: a log without module events says so', /The log has no events of the module itself/.test(nomod) && nomod.indexOf('Restarts') === -1);
+  ok('html: a log without module events says so', /The log has no events of the accessory itself/.test(nomod) && nomod.indexOf('Restarts') === -1);
   const onlyMod = A.renderHtml(A.analyze({ deviceLogs: [], interfaceLogs: [{ type: 'boot', time: D(7, 7, 0) }] }, [], NOW), label);
   ok('html: only module events: the history is empty but the module is there', /No commands in the log/.test(onlyMod) && onlyMod.indexOf('Restarts') > -1 && /<b>–<\/b>/.test(onlyMod));
-  ok('html: the module with nothing wrong is green', /nx-fact nx-s-ok/.test(nomod.replace('The log has no events', '')) || /nx-fact nx-s-ok/.test(A.renderHtml(A.analyze({ deviceLogs: [{ source: 'busT4', type: 'open', time: D(7, 7, 0) }], interfaceLogs: [{ type: 'connect', time: D(7, 7, 0) }] }, [], NOW), label)));
+  // nothing is calm, not green or amber: a tick, and "None in the log"
+  const calm = A.renderHtml(A.analyze({ deviceLogs: [{ source: 'busT4', type: 'open', time: D(7, 7, 0) }], interfaceLogs: [{ type: 'connect', time: D(7, 7, 0) }] }, [], NOW), label);
+  ok('html: the accessory with nothing wrong has a tick and no color', (calm.match(/nx-fact nx-s-none/g) || []).length === 4 && /nx-i-done/.test(calm) && !/nx-s-(ok|warn|fail)/.test(calm) && /None in the log/.test(calm));
 
   const sm = A.summary(LOG);
   ok('summary: the kinds of events, without names or IDs', sm === 'device [MDBk x1, MDFh x1, Scena_Out x1, close x2, obstruction x1, open x3] sources [busT4 x2, phone x6, scheduler x1] module [Power ON x1, boot x2, connect x1, device not found x1, error x1, wifi loss x2]', sm);
@@ -344,12 +353,12 @@ const REAL = {
     const env = await environment();
     env.act.open(env.dev);
     const first = env.body().textContent;
-    ok('the sheet opens at once with a message that it is reading', /Reading the accessory/.test(first) && env.sheet().style.display === 'block' && env.sheet().getAttribute('role') === 'dialog', first);
+    ok('the sheet opens at once with a message that it is reading', /Reading the accessory/.test(first) && env.sheet().style.display === 'flex' && env.sheet().getAttribute('role') === 'dialog', first);
     ok('...and it is busy while reading', env.sheet().classList.contains('nx-busy'));
     ok('...and there is nothing to copy yet', env.sheet().querySelector('.nx-more').style.display === 'none');
     await sleep(60);
     ok('the sheet shows the result', /Last opened/.test(env.body().textContent) && /Anna/.test(env.body().textContent) && !env.sheet().classList.contains('nx-busy'));
-    ok('...with the name and size of the log under the title', /^AABBCC · 15 events, 7 days$/.test(env.document.getElementById('nx-act-sub').textContent), env.document.getElementById('nx-act-sub').textContent);
+    ok('...with the name and size of the log under the title', /^AABBCC · 15 events over 7 days$/.test(env.document.getElementById('nx-act-sub').textContent), env.document.getElementById('nx-act-sub').textContent);
     ok('...and copying is possible now', env.sheet().querySelector('.nx-more').style.display === '');
     for (let i = 0; i < 40 && !env.sheet().classList.contains('nx-open'); i++) await sleep(25);       // two animation frames: how long that takes depends on the machine
     ok('...and the sheet is open (after its animation frames)', env.act.isOpen() && env.sheet().classList.contains('nx-open') && env.document.querySelector('.nx-scrim').classList.contains('nx-open'));
@@ -378,11 +387,14 @@ const REAL = {
     for (let i = 0; i < 60; i++) long.deviceLogs.push({ source: 'busT4', type: i % 2 ? 'close' : 'open', time: NOW - i * 1800000 });
     const env = await environment({ logs: long });
     env.act.open(env.dev); await sleep(60);
-    ok('a long history: 25 rows and a button', env.body().querySelectorAll('.nx-tl-row').length === 25 && !!env.body().querySelector('.nx-act-all'));
+    ok('a long history: 6 rows and a button', env.body().querySelectorAll('.nx-tl-row').length === 6 && !!env.body().querySelector('.nx-act-all'));
     env.body().querySelector('.nx-act-all').click();
-    ok('the button shows them all', env.body().querySelectorAll('.nx-tl-row').length === 60 && !env.body().querySelector('.nx-act-all'));
+    ok('the button shows them all, and offers to put them away', env.body().querySelectorAll('.nx-tl-row').length === 60 && !env.body().querySelector('.nx-act-all') && !!env.body().querySelector('.nx-act-less'));
+    env.body().querySelector('.nx-act-less').click();
+    ok('...which brings back the latest six', env.body().querySelectorAll('.nx-tl-row').length === 6 && !!env.body().querySelector('.nx-act-all'));
+    env.body().querySelector('.nx-act-all').click();
     env.act.close(); await sleep(450); env.act.open(env.dev); await sleep(60);
-    ok('opening again starts with the short list again', env.body().querySelectorAll('.nx-tl-row').length === 25);
+    ok('opening again starts with the short list again', env.body().querySelectorAll('.nx-tl-row').length === 6);
   }
   {
     // two requests at the same time are one request
@@ -398,7 +410,8 @@ const REAL = {
     // errors
     const env = await environment({ logsErr: { code: 3 }, names: { 'NHK_ERROR-3': 'The connection with the Accessory is not valid' } });
     env.act.open(env.dev); await sleep(60);
-    ok('a failure is shown with the app\'s own words', /Could not read the history/.test(env.body().textContent) && /The connection with the Accessory is not valid \(3\)/.test(env.body().textContent), env.body().textContent);
+    ok('a failure is shown with the app\'s own words', /Could not read the history/.test(env.body().textContent) && /The connection with the Accessory is not valid/.test(env.body().querySelector('.nx-act-error > span').textContent) && !/\(3\)/.test(env.body().querySelector('.nx-act-error > span').textContent) &&
+      /code 3/.test(env.body().querySelector('.nx-act-tech pre').textContent), env.body().textContent);
     ok('...with a way to try again, and nothing to copy', !!env.body().querySelector('.nx-act-retry') && env.sheet().querySelector('.nx-more').style.display === 'none');
     ok('...and a line in the LOG', env.logs.some((l) => /^activity: could not read the log \{"code":3\}/.test(l)), env.logs.join('|'));
     ok('...and no line for the screen', env.$rootScope.nxLast(env.dev) === '');
@@ -418,7 +431,7 @@ const REAL = {
     // users that cannot be read: the log is still shown
     const env = await environment({ pairingsErr: { code: 5 } });
     env.act.open(env.dev); await sleep(60);
-    ok('without the users the log is still shown, with their phones as "Other"', /Last opened/.test(env.body().textContent) && /Other \(CTRL-ANN\)/.test(env.body().textContent), env.body().textContent.slice(0, 200));
+    ok('without the users the log is still shown, with their phones as "Another phone"', /Last opened/.test(env.body().textContent) && /Another phone/.test(env.body().textContent) && !/CTRL-ANN/.test(env.body().textContent), env.body().textContent.slice(0, 200));
     ok('...and the LOG says why', env.logs.some((l) => /^activity: users not read \{"code":5\}/.test(l)));
   }
   {
@@ -483,7 +496,7 @@ const REAL = {
     const e7 = await environment({ storage: { nxBlock: JSON.stringify({ '00:0B:6C:AA:BB:CC': { blocked: true, at: D(7, 9, 0), code: 'MDBk', who: 'Anna' } }) },
       logs: { deviceLogs: [], interfaceLogs: [{ source: 'boot', type: 'Power ON', time: D(7, 10, 0) }] } });
     await new Promise((r) => e7.act.refresh(e7.dev, r));
-    ok('block: a restart of the accessory after it makes it a question mark', e7.$rootScope.nxBlock(e7.dev) === 'Blocked? · since 09:00', e7.$rootScope.nxBlock(e7.dev));
+    ok('block: a restart of the accessory after it makes it "Maybe blocked" (nx23: in words, not a question mark), and nxBlockMaybe says so', e7.$rootScope.nxBlock(e7.dev) === 'Maybe blocked · since 09:00' && e7.$rootScope.nxBlockMaybe(e7.dev) === true && e7.$rootScope.nxBlockMaybe(e7.dev) !== e5.$rootScope.nxBlockMaybe(e5.dev), e7.$rootScope.nxBlock(e7.dev));
     // and the sheet says it
     e6.act.open(e6.dev); await sleep(60);
     ok('block: the sheet has the card for it', /nx-act-block nx-blocked/.test(e6.body().innerHTML) && /Block · Ben/.test(e6.body().textContent), e6.body().textContent.slice(0, 160));
@@ -498,7 +511,7 @@ const REAL = {
     await read(env);
     ok('state: "opening" while the log says the gate was opened twenty minutes ago is shown as open', env.$rootScope.nxState(env.dev) === 'open', String(env.$rootScope.nxState(env.dev)));
     ok('state: ...with the icon of the app in the same form', env.$rootScope.nxIcon(env.dev) === 'icon-i_gat005 open status-0', env.$rootScope.nxIcon(env.dev));
-    ok('state: ...and a note with what the accessory reported, in the app\'s own word', env.$rootScope.nxSettled(env.dev) === 'reported: Opening', env.$rootScope.nxSettled(env.dev));
+    ok('state: ...and a note with what the accessory reported, in the app\'s own word (nx23: it says that the accessory says it, and that the log shows the end)', env.$rootScope.nxSettled(env.dev) === 'Accessory says Opening; the log shows it finished.', env.$rootScope.nxSettled(env.dev));
     ok('state: ...and the LOG says why', env.logs.some((l) => /^state: "opening" is out of date \(the last movement in the log is MDBk, today 14:10\); shown as open$/.test(l)), env.logs.join(' | '));
     const logged = env.logs.length;
     env.$rootScope.nxState(env.dev); env.$rootScope.nxIcon(env.dev); env.$rootScope.nxSettled(env.dev);
@@ -541,12 +554,12 @@ const REAL = {
     ok('state: a Block after the opening (it can stop the gate half way): not settled', blockedMid.$rootScope.nxState(blockedMid.dev) === 'opening');
     const closing = await environment({ properties: [{ value: 'closing' }, { value: '1' }], logs: { deviceLogs: [{ source: 'scheduler', type: 'close', time: NOW - 30 * 60000 }] } });
     await read(closing);
-    ok('state: "closing" after a closing long ago is shown as closed, with the obstruction flag as it was', closing.$rootScope.nxState(closing.dev) === 'closed' && closing.$rootScope.nxIcon(closing.dev) === 'icon-i_gat005 closed status-1' && closing.$rootScope.nxSettled(closing.dev) === 'reported: closing', closing.$rootScope.nxIcon(closing.dev));
+    ok('state: "closing" after a closing long ago is shown as closed, with the obstruction flag as it was', closing.$rootScope.nxState(closing.dev) === 'closed' && closing.$rootScope.nxIcon(closing.dev) === 'icon-i_gat005 closed status-1' && closing.$rootScope.nxSettled(closing.dev) === 'Accessory says closing; the log shows it finished.', closing.$rootScope.nxIcon(closing.dev));
     const open = await environment({ properties: [{ value: 'open' }, { value: '0' }], logs: mov(20 * 60000) });
     await read(open);
     ok('state: a state that is not moving is left alone', open.$rootScope.nxState(open.dev) === 'open' && open.$rootScope.nxIcon(open.dev) === '' && open.$rootScope.nxSettled(open.dev) === '');
     const none = await environment({ properties: [] });
-    ok('state: no state at all, no error', none.$rootScope.nxState(none.dev) === undefined && none.$rootScope.nxIcon(none.dev) === '' && none.$rootScope.nxState(null) === undefined);
+    ok('state: no state at all, no error (nx23: a device that reports none is "unknown", with the icon of that; no device is no answer)', none.$rootScope.nxState(none.dev) === 'unknown' && none.$rootScope.nxIcon(none.dev) === 'icon-i_gat005 unknown status-undefined' && none.$rootScope.nxState(null) === undefined && none.$rootScope.nxIcon(null) === '');
     const old = await environment({ properties: [{ value: 'opening' }, { value: '0' }], logs: mov(20 * 60000) });
     await read(old);
     old.w.Date.now = () => NOW + 10 * 60000;
@@ -888,7 +901,7 @@ const REAL = {
     const bi = env.act.blockInfo(env.dev);
     ok('lifted: the gate moved after the Block (opened, then closed by itself): not blocked', env.$rootScope.nxBlock(env.dev) === '' && bi.blocked === false && bi.inferred === true, JSON.stringify(bi));
     ok('lifted: ...with the time of the movement, the time of the Block, and who reported it', bi.t === D(7, 13, 54) && bi.since === t0 && bi.who === 'Gate controller' && bi.type === 'close', JSON.stringify(bi));
-    ok('lifted: ...and the line says what happened last', env.$rootScope.nxLast(env.dev) === 'Close · just now · Gate controller', env.$rootScope.nxLast(env.dev));
+    ok('lifted: ...and the line says what happened last', env.$rootScope.nxLast(env.dev) === 'Close · just now · At the gate', env.$rootScope.nxLast(env.dev));
     const kept = JSON.parse(env.w.localStorage.getItem('nxBlock'))[MAC];
     ok('lifted: ...and it is kept (the record of this phone no longer says blocked)', kept.blocked === false && kept.inferred === true && kept.at === D(7, 13, 54) && kept.since === t0, JSON.stringify(kept));
     ok('lifted: ...and the LOG says so', env.logs.indexOf('block: kept not blocked (the gate moved after the Block)') > -1, env.logs.join(' | '));
@@ -897,7 +910,7 @@ const REAL = {
     await read(env);
     ok('lifted: a later restart that forgets the log does not bring the old Block back', env.$rootScope.nxBlock(env.dev) === '' && env.act.blockInfo(env.dev).blocked === false);
     env.act.open(env.dev); await sleep(60);
-    ok('lifted: ...and the sheet still tells why it is not blocked (the kept record knows the movement and the Block)', /the gate moved today 13:54 · Close · Gate controller, after the Block of today 12:00/.test(env.body().textContent), env.body().textContent.slice(0, 160));
+    ok('lifted: ...and the sheet still tells why it is not blocked (the kept record knows the movement and the Block)', /the gate moved today 13:54 · Close · At the gate, after the Block of today 12:00/.test(env.body().textContent), env.body().textContent.slice(0, 160));
     env.act.close(); await sleep(450);
     scen.logs = { deviceLogs: [{ source: 'CTRL-BEN-00002', type: 'MDBm', time: D(7, 14, 30) }] };
     env.w.Date.now = () => D(7, 14, 40);
@@ -910,7 +923,7 @@ const REAL = {
     sheet.w.Date.now = () => D(7, 14, 20);
     sheet.act.open(sheet.dev); await sleep(60);
     const text = sheet.body().textContent;
-    ok('lifted: the sheet says it too, and why', /Not blocked, as far as the log shows/.test(text) && /the gate moved today 13:54 · Close · Gate controller, after the Block of today 12:00/.test(text) && /A blocked automation does not move/.test(text), text.slice(0, 200));
+    ok('lifted: the sheet says it too, and why', /Not blocked, as far as the log shows/.test(text) && /the gate moved today 13:54 · Close · At the gate, after the Block of today 12:00/.test(text) && /A blocked automation does not move/.test(text), text.slice(0, 200));
   }
   {
     // the movement that the Block itself starts does not lift it; a later one does
@@ -928,7 +941,7 @@ const REAL = {
     const start = await environment({ storage: { nxBlock: JSON.stringify(rec) }, logs: { interfaceLogs: [{ source: 'boot', type: 'Power ON', time: D(7, 13, 0) }], deviceLogs: [{ source: 'busT4', type: 'open', time: D(7, 13, 0, 40) }] } });
     start.w.Date.now = () => D(7, 13, 30);
     await read(start);
-    ok('lifted: a report of the controller right after the accessory started is no movement: "Blocked?" stays', start.$rootScope.nxBlock(start.dev) === 'Blocked? · since 12:00', start.$rootScope.nxBlock(start.dev));
+    ok('lifted: a report of the controller right after the accessory started is no movement: "Maybe blocked" stays', start.$rootScope.nxBlock(start.dev) === 'Maybe blocked · since 12:00', start.$rootScope.nxBlock(start.dev));
     // a Block that another phone gave, and a movement after it
     const other = await environment({ logs: { deviceLogs: [{ source: 'CTRL-BEN-00002', type: 'MDBm', time: D(7, 10, 0) }, { source: 'busT4', type: 'close', time: D(7, 11, 0) }] } });
     other.w.Date.now = () => D(7, 11, 5);
@@ -959,7 +972,7 @@ const REAL = {
     ok('kept: a Block of another phone is kept too', JSON.parse(eb.w.localStorage.getItem('nxBlock'))[MAC].blocked === true && eb.$rootScope.nxBlock(eb.dev) === 'Blocked · since 10:00');
     b.logs = { interfaceLogs: [{ source: 'boot', type: 'Power ON', time: D(7, 11, 0) }], deviceLogs: [] };
     await read(eb);
-    ok('kept: ...and after the accessory has restarted it is still shown, with the question mark', eb.$rootScope.nxBlock(eb.dev) === 'Blocked? · since 10:00', eb.$rootScope.nxBlock(eb.dev));
+    ok('kept: ...and after the accessory has restarted it is still shown, as "Maybe blocked"', eb.$rootScope.nxBlock(eb.dev) === 'Maybe blocked · since 10:00', eb.$rootScope.nxBlock(eb.dev));
     const none = await environment({ logs: { deviceLogs: [{ source: 'CTRL-ANNA-0001', type: 'open', time: D(7, 10, 0) }] } });
     await read(none);
     ok('kept: a log without Block or Release keeps nothing', none.w.localStorage.getItem('nxBlock') === null && none.logs.every((l) => !/^block: kept/.test(l)));

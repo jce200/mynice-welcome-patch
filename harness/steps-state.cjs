@@ -4,7 +4,7 @@
 module.exports = async (page, { goto, wait, shot }) => {
   await goto('#/tabs/favorites-device-detail/1/00:0B:6C:AA:BB:CC', 5500);
   const text = (sel) => page.evaluate((s) => { const e = document.querySelector(s); return e ? e.textContent.replace(/\s+/g, ' ').trim() : null; }, sel);
-  console.log('state    :', JSON.stringify(await page.evaluate(() => { const e = document.querySelector('.device-info .device-row:first-child strong[data-ng-show="isDeviceReachable(data.device)"] span'); return e ? e.textContent.trim() : null; })));
+  console.log('state    :', JSON.stringify(await page.evaluate(() => { const e = document.querySelector('.nx-state strong.nx-reach span'); return e ? e.textContent.trim() : null; })));
   console.log('note     :', JSON.stringify(await text('.nx-settled')));
   console.log('pill     :', JSON.stringify(await text('.nx-block')));
   console.log('line     :', JSON.stringify(await text('.nx-last-text')));

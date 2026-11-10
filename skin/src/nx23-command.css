@@ -1,0 +1,54 @@
+/* nx23: feedback of commands and trust in the state: the status line kinds, the unsure look (workstream: Command feedback and trust).
+   Rules go through {{P}} like everything else; a new animation needs its prefers-reduced-motion twin; a new button element is added to its own
+   BUTTONS += [...] line in build-css.py and declares --_h. */
+
+/* ============================================================ the status line of the accessory screen: what became of a tap, and how far the state on the screen can be trusted.
+   The element (.nx-line), its box and its resting content are the layout's (nx23-gate.css); what is written here is what JS (nx-patch.js, section 9) says through its attributes:
+   data-nx-kind    busy (working on it) | ok (sent) | warn (no report, too soon, a state that is not confirmed) | bad (not sent, no answer, the accessory does not answer):
+                   a colour pair, a glyph and the words each carry it
+   data-nx-trust   live | checking | aging | stale: how far the state on the screen can be trusted (the hero and the state word, below)
+   data-nx-unsure  1: the accessory does not answer. Open, Close and the extra buttons lose colour (they still work); Stop is never touched */
+{{P}} .nx-line[data-nx-kind="busy"], {{P}} .nx-line[data-nx-kind="ok"] { --nx-line-bg: var(--md-sys-color-tertiary-container); --nx-line-fg: var(--md-sys-color-on-tertiary-container); }
+{{P}} .nx-line[data-nx-kind="warn"] { --nx-line-bg: var(--nx-warn-container); --nx-line-fg: var(--nx-on-warn-container); }
+{{P}} .nx-line[data-nx-kind="bad"] { --nx-line-bg: var(--md-sys-color-error-container); --nx-line-fg: var(--md-sys-color-on-error-container); }
+{{P}} .nx-line[data-nx-kind="busy"], {{P}} .nx-line[data-nx-kind="ok"], {{P}} .nx-line[data-nx-kind="warn"], {{P}} .nx-line[data-nx-kind="bad"] { background: var(--nx-line-bg); color: var(--nx-line-fg); }
+{{P}} .nx-line .nx-line-text { min-width: 0; overflow-wrap: anywhere; }
+/* the glyph before the words: a check (sent), a triangle (warning), a circle with a mark (failure); busy is the loading indicator of M3E at 20 dp, which morphs and turns (and stands still with reduced motion) */
+{{P}} .nx-line[data-nx-kind="busy"] .nx-line-text:before, {{P}} .nx-line[data-nx-kind="ok"] .nx-line-text:before,
+{{P}} .nx-line[data-nx-kind="warn"] .nx-line-text:before, {{P}} .nx-line[data-nx-kind="bad"] .nx-line-text:before {
+  content: ''; display: inline-block; width: 20px; height: 20px; margin: -4px 8px -4px 0; vertical-align: baseline; background: currentColor;   /* (the negative margins keep the glyph out of the height of the line: two lines of 20 dp fit the 40 dp box) */
+  -webkit-mask: var(--nx-i-done) center / contain no-repeat; mask: var(--nx-i-done) center / contain no-repeat;
+}
+{{P}} .nx-line[data-nx-kind="warn"] .nx-line-text:before { -webkit-mask-image: var(--nx-i-warning); mask-image: var(--nx-i-warning); }
+{{P}} .nx-line[data-nx-kind="bad"] .nx-line-text:before { -webkit-mask-image: var(--nx-i-error); mask-image: var(--nx-i-error); }
+{{P}} .nx-line[data-nx-kind="busy"] .nx-line-text:before {
+  -webkit-mask: none; mask: none; clip-path: var(--nx-v-softburst); animation: m3e-morph 18200ms var(--nx-loader-spring) infinite, m3e-turn 4666ms linear infinite;
+}
+@media (prefers-reduced-motion: reduce) { {{P}} .nx-line[data-nx-kind="busy"] .nx-line-text:before { animation: none !important; } }
+/* the action in the line (Reconnect, Refresh): a button of size S (40 dp) in the colours of the line turned around, with a hit area of 48 dp */
+{{P}} .nx-line .nx-line-act {
+  --_h: 40px; --_pad: 16px; --_gap: 8px; --_pr: 8px; --_fs: 14px; --_lh: 20px; --_fw: 500; --_ls: .1px;
+  --_bg: var(--nx-line-fg, var(--md-sys-color-primary)); --_fg: var(--nx-line-bg, var(--md-sys-color-on-primary));
+  flex: 0 0 auto; margin: 0 0 0 12px; background: var(--_bg) !important; color: var(--_fg) !important; border: 0 !important; padding: 0 var(--_pad) !important; cursor: pointer;
+}
+{{P}} .nx-line .nx-line-act:after { content: ''; position: absolute; inset: -4px 0; }
+
+/* ============================================================ trust: the state on the screen is not confirmed.
+   checking: the shape is the loading indicator (as while the gate moves), the picture and the word lose weight. stale: the shape stands still and fades (a moving shape must not
+   go on for ever when the last report is old). The word keeps the role colour of "second line" text (4.5:1 and more) instead of a fading opacity; an obstruction stays red and clear. */
+{{P}} .full-container:has(.nx-line[data-nx-trust="checking"]) .device-icon:before {
+  background: var(--md-sys-color-primary-container); clip-path: var(--nx-v-softburst); animation: m3e-morph 18200ms var(--nx-loader-spring) infinite, m3e-turn 4666ms linear infinite;
+}
+{{P}} .full-container:has(.nx-line[data-nx-trust="checking"]) .device-icon:not(:has(i.status-1)) i { opacity: .5; color: var(--md-sys-color-on-primary-container) !important; }
+{{P}} .full-container:has(.nx-line[data-nx-trust="checking"]) .device-info .device-row:first-child strong span,
+{{P}} .full-container:has(.nx-line[data-nx-trust="stale"]) .device-info .device-row:first-child strong span { color: var(--md-sys-color-on-surface-variant); }
+{{P}} .full-container:has(.nx-line[data-nx-trust="stale"]) .device-icon:before { animation-play-state: paused; }
+{{P}} .full-container:has(.nx-line[data-nx-trust="stale"]) .device-icon:not(:has(i.status-1)) { opacity: .6; }
+@media (prefers-reduced-motion: reduce) { {{P}} .full-container:has(.nx-line[data-nx-trust="checking"]) .device-icon:before { animation: none !important; } }
+
+/* ============================================================ unsure: the accessory does not answer. Open, Close and the extra buttons keep their shape and place (muscle memory) and lose colour:
+   saturate(.3) keeps the label at 7.3:1 or more in all seven palettes, light and dark (opacity .6 gave 2.8:1). They still work, and are not marked disabled; the line says why. Stop is never touched. */
+{{P}} .full-container:has(.nx-line[data-nx-unsure="1"]) .device-commands .command:not(:has([translate$="_stop"])) { filter: saturate(.3); }
+
+/* the link to the page of the extra buttons: a text button, 48 dp high (it was 40) */
+{{P}} .device-commands .nx-extra-edit { --_h: 48px; }

@@ -166,12 +166,12 @@ function sheet(env) { return env.document.getElementById('nx-sheet'); }
   {
     const env = await environment({ homes: [home([device({ reachable: false })])], net: { wifi: true, ssid: 'HomeWifi' }, probe: { ok: false, error: 'SocketTimeoutException' }, reachableDefault: false });
     env.w.NX.refresh(); await sleep(50);
-    ok('chip: not reachable', chip(env).textContent === 'Accessory not reachable', chip(env).textContent);
+    ok('chip: not reachable', chip(env).textContent === 'Not reachable', chip(env).textContent);
     chip(env).click(); await sleep(300);
     const t = details(env).textContent;
     ok('diagnosis: shows network', /Network: Wi-Fi HomeWifi/.test(t), t);
     ok('diagnosis: measurement failed', /no answer \(SocketTimeoutException\)/.test(t), t);
-    ok('diagnosis: conclusion says to cut the power', /not responding.*power/.test(t), t);
+    ok('diagnosis: conclusion says to check the power', /does not answer on your Wi-Fi\. Check that it has power/.test(t), t);
     ok('diagnosis: hints sent', env.native.some((c) => c.action === 'setHints' && c.args[0][0] && c.args[0][0].address === '192.168.1.72'));
   }
   {
@@ -193,7 +193,7 @@ function sheet(env) { return env.document.getElementById('nx-sheet'); }
     // all good
     const env = await environment({ homes: [home([device({ reachable: false })])], net: { wifi: true, ssid: 'HomeWifi' }, probe: { ok: true, tcpMs: 30, tlsMs: 300 }, reachableDefault: true });
     chip(env).click(); await sleep(300);
-    ok('diagnosis: everything fine', /Everything is fine/.test(details(env).textContent), details(env).textContent);
+    ok('diagnosis: everything fine', /Connected to the accessory over your Wi-Fi/.test(details(env).textContent), details(env).textContent);
     ok('diagnosis: reads fresh result back (reachable true)', /App connection to the accessory: ok/.test(details(env).textContent), details(env).textContent);
   }
 
@@ -254,7 +254,7 @@ function sheet(env) { return env.document.getElementById('nx-sheet'); }
     await sleep(180); env.w.NX.refresh(); await sleep(30);
     ok('nx11 chip: between the attempts still checking', chip(env).textContent === 'Accessory: checking…', chip(env).textContent);
     await sleep(400);
-    ok('nx11 chip: after three failed attempts "not reachable"', chip(env).textContent === 'Accessory not reachable', chip(env).textContent);
+    ok('nx11 chip: after three failed attempts "not reachable"', chip(env).textContent === 'Not reachable', chip(env).textContent);
     ok('nx11 list: after three failed attempts the app\'s "Not usable" stands', env.$rootScope.nxCheck(live) === '' && live.reachable === false);
   }
   {
@@ -282,11 +282,11 @@ function sheet(env) { return env.document.getElementById('nx-sheet'); }
     await sleep(450);
     ok('nx11 list: three failures -> the app\'s flag stands', env.$rootScope.nxCheck(live) === '' && live.reachable === false);
     env.w.NX.refresh(); await sleep(30);
-    ok('nx18 chip: three failures -> "not reachable"', chip(env).textContent === 'Accessory not reachable', chip(env).textContent);
+    ok('nx18 chip: three failures -> "not reachable"', chip(env).textContent === 'Not reachable', chip(env).textContent);
     env.$rootScope.verifyDeviceRecheability(live);
     await sleep(30);
     ok('nx18 list: a new attempt after "Not usable" is "retry" (the lists show "Connecting…")', env.$rootScope.nxCheck(live) === 'retry', env.$rootScope.nxCheck(live));
-    ok('nx18 chip: ...and the chip says that it is connecting, in its own level', chip(env).textContent === 'Connecting to the accessory…' && chip(env).getAttribute('data-level') === 'connecting' &&
+    ok('nx18 chip: ...and the chip says that it is connecting, in its own level', chip(env).textContent === 'Connecting…' && chip(env).getAttribute('data-level') === 'connecting' &&
       env.document.documentElement.getAttribute('data-nx-status') === 'connecting', chip(env).textContent);
     ok('nx18 chip: ...with the dot in the primary color (not the red of "not reachable")', /primary/.test(env.document.documentElement.style.getPropertyValue('--nx-dot')), env.document.documentElement.style.getPropertyValue('--nx-dot'));
     ok('nx18 chip: ...and the views are told (a digest)', env.digests.n > 0);
@@ -306,7 +306,7 @@ function sheet(env) { return env.document.getElementById('nx-sheet'); }
     ok('nx18: the second round of attempts is "retry"', env.$rootScope.nxCheck(live) === 'retry', env.$rootScope.nxCheck(live));
     await sleep(400);
     env.w.NX.refresh(); await sleep(30);
-    ok('nx18: ...and when it fails again it is over: "Not usable" and "not reachable" again', env.$rootScope.nxCheck(live) === '' && chip(env).textContent === 'Accessory not reachable', env.$rootScope.nxCheck(live) + ' ' + chip(env).textContent);
+    ok('nx18: ...and when it fails again it is over: "Not usable" and "not reachable" again', env.$rootScope.nxCheck(live) === '' && chip(env).textContent === 'Not reachable', env.$rootScope.nxCheck(live) + ' ' + chip(env).textContent);
   }
   {
     // the first check of this session is still "Checking…" (no result yet), not "Connecting…"
@@ -325,7 +325,7 @@ function sheet(env) { return env.document.getElementById('nx-sheet'); }
     await sleep(700);
     env.w.NX.refresh(); await sleep(60);
     ok('nx18 recovery: it is running (probe, reconnect): the accessory is "retry" and the chip says connecting', env.native.some((c) => c.action === 'probe') &&
-      env.$rootScope.nxCheck(live) === 'retry' && chip(env).textContent === 'Connecting to the accessory…', env.native.map((c) => c.action).join(',') + ' | ' + env.$rootScope.nxCheck(live) + ' | ' + chip(env).textContent);
+      env.$rootScope.nxCheck(live) === 'retry' && chip(env).textContent === 'Connecting…', env.native.map((c) => c.action).join(',') + ' | ' + env.$rootScope.nxCheck(live) + ' | ' + chip(env).textContent);
     await sleep(3500);
     env.w.NX.refresh(); await sleep(60);
     ok('nx18 recovery: when it is over the chip says what came of it', chip(env).textContent === 'Accessory online' && env.$rootScope.nxCheck(live) === '', chip(env).textContent);
@@ -338,12 +338,12 @@ function sheet(env) { return env.document.getElementById('nx-sheet'); }
     env.$rootScope.verifyDeviceRecheability(live);
     await sleep(500);
     env.w.NX.refresh(); await sleep(50);
-    ok('nx18 diagnosis: before it, "not reachable" and no attempt', chip(env).textContent === 'Accessory not reachable' && env.$rootScope.nxCheck(live) === '');
+    ok('nx18 diagnosis: before it, "not reachable" and no attempt', chip(env).textContent === 'Not reachable' && env.$rootScope.nxCheck(live) === '');
     chip(env).click(); await sleep(20);
     ok('nx18 diagnosis: while it measures the accessory is "retry"', env.$rootScope.nxCheck(live) === 'retry', env.$rootScope.nxCheck(live));
     ok('nx18 diagnosis: ...and the views are told', env.digests.n > 0);
     await sleep(500);
-    ok('nx18 diagnosis: when it is over the attempt is over', env.$rootScope.nxCheck(live) === '' && chip(env).textContent === 'Accessory not reachable', env.$rootScope.nxCheck(live) + ' ' + chip(env).textContent);
+    ok('nx18 diagnosis: when it is over the attempt is over', env.$rootScope.nxCheck(live) === '' && chip(env).textContent === 'Not reachable', env.$rootScope.nxCheck(live) + ' ' + chip(env).textContent);
   }
   {
     // a recovery that finds nothing to repair is over at once: no "Connecting…" left behind
@@ -352,7 +352,7 @@ function sheet(env) { return env.document.getElementById('nx-sheet'); }
     const live = env.HS.homes[0].devices[0];
     env.w.NX.refresh(); await sleep(500);
     env.w.NX.refresh(); await sleep(60);
-    ok('nx18 recovery: nothing to repair -> no "Connecting…" left behind', env.$rootScope.nxCheck(live) !== 'retry' && chip(env).textContent !== 'Connecting to the accessory…', env.$rootScope.nxCheck(live) + ' | ' + chip(env).textContent);
+    ok('nx18 recovery: nothing to repair -> no "Connecting…" left behind', env.$rootScope.nxCheck(live) !== 'retry' && chip(env).textContent !== 'Connecting…', env.$rootScope.nxCheck(live) + ' | ' + chip(env).textContent);
   }
   {
     // right after startup an accessory that has not been checked yet counts as "being checked", whatever storage says
@@ -413,7 +413,7 @@ function sheet(env) { return env.document.getElementById('nx-sheet'); }
     const dev = device({ automations: auto({ fourthButton: { code: 'MDBk' } }) });
     const env = await environment({ homes: [home([dev])], net: { wifi: true, ssid: 'HomeWifi' } });
     const live = env.HS.homes[0].devices[0], r = env.$rootScope;
-    ok('nx12 hook: the lists get their functions', ['nxExtra', 'nxQuickHas', 'nxQuickToggle', 'nxCanQuick', 'nxEditQuick', 'nxSent'].every((k) => typeof r[k] === 'function'));
+    ok('nx12 hook: the lists get their functions', ['nxExtra', 'nxQuickHas', 'nxQuickToggle', 'nxCanQuick', 'nxEditQuick', 'nxRun'].every((k) => typeof r[k] === 'function'));   // nx23: nxRun (the taps of the pad) instead of nxSent (a message at the tap, whether or not anything was sent)
     ok('nx12: the old optional command is the first choice', JSON.stringify(r.nxExtra(live)) === '["MDBk"]', JSON.stringify(r.nxExtra(live)));
     ok('nx12: nxQuickHas follows it', r.nxQuickHas(live, 'MDBk') === true && r.nxQuickHas(live, 'MDFh') === false);
     r.nxQuickToggle(live, { code: 'MDFh' });
@@ -469,11 +469,11 @@ function sheet(env) { return env.document.getElementById('nx-sheet'); }
     const dev = device({ automations: auto({ fourthButtonEnabled: false }) });
     const env = await environment({ homes: [home([dev])], net: { wifi: true, ssid: 'HomeWifi' }, names: { DEVICE_COMMAND_MDBk: 'Open and Block' }, withGo: true });
     const live = env.HS.homes[0].devices[0], r = env.$rootScope;
-    r.nxSent('MDBk');
+    // nx23: the message "<command>: sent" at the tap was shown whether or not anything had been sent; it is gone. What is said about a tap (sending, sent, not sent) is in test/nx23-command.test.js.
     const snack = () => Array.from(env.document.querySelectorAll('.nx-snack')).map((e) => e.textContent);
-    ok('nx12: a tap is confirmed with the name of the command', snack().indexOf('Open and Block: sent') >= 0, snack().join('|'));
-    r.nxSent('MDXX');
-    ok('nx12: an unknown command is confirmed with its code', snack().indexOf('MDXX: sent') >= 0, snack().join('|'));
+    let ran = 0;
+    r.nxRun(live, 'MDBk', false, function () { ran++; });
+    ok('nx12 (nx23): a tap goes to the app\'s own runCommand, and nothing is claimed at the tap (no "sent" message, nxSent is gone)', ran === 1 && r.nxSent === undefined && snack().length === 0, snack().join('|'));
     r.nxEditQuick(live);
     ok('nx12: the shortcut opens the page "4th-button" of this accessory', env.goCalls.length === 1 && env.goCalls[0].name === '4th-button' && env.goCalls[0].params.mac === live.mac && env.goCalls[0].params.homeId === live.homeId, JSON.stringify(env.goCalls));
     ok('nx12: ... and switches the optional command on, so that the list is there', live.automations[0].fourthButtonEnabled === true && JSON.parse(env.w.localStorage.getItem('keyHomes'))[0].devices[0].automations[0].fourthButtonEnabled === true);
@@ -482,8 +482,9 @@ function sheet(env) { return env.document.getElementById('nx-sheet'); }
     // without the app's $translate and $state the helpers still work
     const dev = device({ automations: auto() });
     const env = await environment({ homes: [home([dev])], net: { wifi: true, ssid: 'HomeWifi' } });
-    env.$rootScope.nxSent('MDBk');
-    ok('nx12: no $translate -> the code is shown', Array.from(env.document.querySelectorAll('.nx-snack')).some((e) => e.textContent === 'MDBk: sent'));
+    let ran2 = 0;
+    env.$rootScope.nxRun(env.HS.homes[0].devices[0], 'MDBk', false, function () { ran2++; });
+    ok('nx12 (nx23): without $translate and without wrappers a tap still reaches the app\'s own function, and nothing is shown', ran2 === 1 && env.document.querySelectorAll('.nx-snack').length === 0);
     let threw = false;
     try { env.$rootScope.nxEditQuick(env.HS.homes[0].devices[0]); } catch (e) { threw = true; }
     ok('nx12: no $state -> the shortcut does nothing and throws nothing', !threw);
@@ -641,11 +642,12 @@ function sheet(env) { return env.document.getElementById('nx-sheet'); }
 
   // ---------------------------------------------------------------- new user
   {
-    const env = await environment({ homes: [home([device()])], net: { wifi: true, ssid: 'HomeWifi' }, waiting: [{ id: 2, username: 'Home assistant', controllerID: 'c1' }] });
+    const env = await environment({ homes: [home([device({ description: 'AABBCC' })])], net: { wifi: true, ssid: 'HomeWifi' }, waiting: [{ id: 2, username: 'Home assistant', controllerID: 'c1' }] });
     env.w.dispatchEvent(Object.assign(new env.w.Event('newUser'), { username: 'Home assistant' }));
     await sleep(1500);
     ok('popup: shown with user name', env.popups.length === 1 && /Home assistant/.test(env.popups[0].template), JSON.stringify(env.popups.map((p) => p.template)));
-    ok('popup: contains the name of the accessory', /NiceIT4WIFIAABBCC/.test(env.popups[0].template));
+    // nx23 (I-20): the accessory is called what every other screen calls it (its description), not by the name of its Wi-Fi (NiceIT4WIFIAABBCC)
+    ok('popup: contains the name of the accessory as the app shows it (AABBCC), not NiceIT4WIFI', /AABBCC/.test(env.popups[0].template) && !/NiceIT4WIFI/.test(env.popups[0].template), env.popups[0].template);
     ok('popup: allow calls userApproved with id and name', env.approvals.length === 1 && env.approvals[0].id === 2 && env.approvals[0].name === 'Home assistant', JSON.stringify(env.approvals));
     // do not offer the same user again once that user has been allowed and the popup is free again
     env.w.dispatchEvent(Object.assign(new env.w.Event('newUser'), { username: 'Home assistant' }));
@@ -659,14 +661,25 @@ function sheet(env) { return env.document.getElementById('nx-sheet'); }
     ok('popup: "Later" does not approve', env.popups.length === 1 && env.approvals.length === 0);
     env.w.dispatchEvent(new env.w.Event('newUser'));
     await sleep(1500);
-    ok('popup: after "Later" the user is offered again at the next check', env.popups.length === 2, String(env.popups.length));
+    // nx23 (I-05): "Not now" snoozes the request for 24 hours; a check that the person asks for ignores that, and so does the end of the 24 hours
+    ok('popup: after "Later" the user is NOT offered again at the next check (snoozed for 24 hours)', env.popups.length === 1, String(env.popups.length));
+    const snoozed = JSON.parse(env.w.localStorage.getItem('nxSnooze') || '{}');
+    ok('popup: the snooze is kept in storage for about 24 hours', Object.keys(snoozed).length === 1 && Math.abs(snoozed[Object.keys(snoozed)[0]] - Date.now() - 86400000) < 5000, JSON.stringify(snoozed));
+    env.w.NX.checkWaitingUsers(true);
+    await sleep(1200);
+    ok('popup: a check that the person asks for ignores the snooze', env.popups.length === 2, String(env.popups.length));
+    const k = Object.keys(JSON.parse(env.w.localStorage.getItem('nxSnooze') || '{}'))[0];
+    env.w.localStorage.setItem('nxSnooze', JSON.stringify({ [k]: Date.now() - 1000 }));
+    env.w.dispatchEvent(new env.w.Event('newUser'));
+    await sleep(1500);
+    ok('popup: when the 24 hours are over the user is offered again', env.popups.length === 3, String(env.popups.length));
   }
   {
     const env = await environment({ homes: [home([device()])], net: { wifi: true, ssid: 'HomeWifi' }, waiting: [{ id: 4, username: 'X' }], approveOk: false });
     env.w.dispatchEvent(new env.w.Event('newUser'));
     await sleep(1500);
     const toasts = Array.from(env.document.body.children).map((e) => e.textContent).join('|');
-    ok('popup: error 11 (maximum users) is explained', /Maximum number of users/.test(toasts), toasts);
+    ok('popup: error 11 (maximum users) is explained, with the name', /“X” was not allowed: the accessory has reached its maximum number of users\./.test(toasts), toasts);
   }
   {
     const env = await environment({ homes: [home([device()])], net: { wifi: true, ssid: 'HomeWifi' }, waiting: [] });
@@ -680,7 +693,7 @@ function sheet(env) { return env.document.getElementById('nx-sheet'); }
     const env = await environment({ homes: [home([device()])], net: { wifi: true, ssid: 'HomeWifi' }, waiting: [{ id: 2, username: 'Home assistant' }] });
     env.w.dispatchEvent(Object.assign(new env.w.Event('newUser'), { username: 'Home assistant' }));
     await sleep(1500);
-    ok('nx13 approve: only the result is left on screen (one message at a time)', snacks(env).length === 1 && /"Home assistant" has been allowed/.test(snacks(env)[0]), JSON.stringify(snacks(env)));
+    ok('nx13 approve: only the result is left on screen (one message at a time)', snacks(env).length === 1 && snacks(env)[0] === '“Home assistant” can now open and close the gate.', JSON.stringify(snacks(env)));
     ok('nx13 approve: the LOG has what happened', ['asking whether to allow', 'allowing', 'allowed'].every((m) => env.logs.some((l) => l.indexOf('[NX] new user: ' + m + ' Home assistant') === 0)) &&
       env.logs.some((l) => /^\[NX\] waiting users 00:0B:6C:AA:BB:CC 1$/.test(l)), env.logs.filter((l) => /new user|waiting users/.test(l)).join('|'));
   }
@@ -689,7 +702,7 @@ function sheet(env) { return env.document.getElementById('nx-sheet'); }
       approveErr: { code: 6 }, names: { 'NHK_ERROR-6': 'Value not valid' } });
     env.w.dispatchEvent(new env.w.Event('newUser'));
     await sleep(1500);
-    ok('nx13 approve fails with a code the app explains', snacks(env).join('|') === 'Could not allow the user: Value not valid (6).', JSON.stringify(snacks(env)));
+    ok('nx13 approve fails with a code the app explains', snacks(env).join('|') === '“X” was not allowed: Value not valid (6).', JSON.stringify(snacks(env)));
     ok('nx13 approve fails: the LOG has the error', env.logs.some((l) => l.indexOf('[NX] new user: could not allow X {"code":6}') === 0), env.logs.filter((l) => /new user/.test(l)).join('|'));
     env.w.dispatchEvent(new env.w.Event('newUser'));
     await sleep(1500);
@@ -699,19 +712,19 @@ function sheet(env) { return env.document.getElementById('nx-sheet'); }
     const env = await environment({ homes: [home([device()])], net: { wifi: true, ssid: 'HomeWifi' }, waiting: [{ id: 2, username: 'X' }], approveErr: { code: 7 } });
     env.w.dispatchEvent(new env.w.Event('newUser'));
     await sleep(1500);
-    ok('nx13 approve fails with a code the app does not explain', snacks(env).join('|') === 'Could not allow the user (7).', JSON.stringify(snacks(env)));
+    ok('nx13 approve fails with a code the app does not explain', snacks(env).join('|') === '“X” was not allowed (7).', JSON.stringify(snacks(env)));
   }
   {
     const env = await environment({ homes: [home([device()])], net: { wifi: true, ssid: 'HomeWifi' }, waiting: [{ id: 2, username: 'X' }], approveErr: 'timeout' });
     env.w.dispatchEvent(new env.w.Event('newUser'));
     await sleep(1500);
-    ok('nx13 approve fails with plain text', snacks(env).join('|') === 'Could not allow the user: timeout.', JSON.stringify(snacks(env)));
+    ok('nx13 approve fails with plain text', snacks(env).join('|') === '“X” was not allowed: timeout.', JSON.stringify(snacks(env)));
   }
   {
     const env = await environment({ homes: [home([device()])], net: { wifi: true, ssid: 'HomeWifi' }, waiting: [{ id: 2, username: 'X' }], approveErr: undefined });
     env.w.dispatchEvent(new env.w.Event('newUser'));
     await sleep(1500);
-    ok('nx13 approve works when nothing is configured to fail', /has been allowed/.test(snacks(env).join('|')), JSON.stringify(snacks(env)));
+    ok('nx13 approve works when nothing is configured to fail', /can now open and close the gate/.test(snacks(env).join('|')), JSON.stringify(snacks(env)));
   }
   {
     const env = await environment({ homes: [home([device()])], net: { wifi: true, ssid: 'HomeWifi' }, pairingsErr: { code: 4 }, names: { 'NHK_ERROR-4': 'Sign not valid' } });
@@ -832,7 +845,7 @@ function sheet(env) { return env.document.getElementById('nx-sheet'); }
   {
     const env = await environment({ homes: [home([device({ reachable: false })])], net: { wifi: true, ssid: 'HomeWifi', vpn: true, cellular: true }, reachableDefault: false });
     env.w.NX.refresh(); await sleep(50);
-    ok('nx4 chip: also mentions VPN and mobile', chip(env).textContent === 'Accessory not reachable · VPN, mobile', chip(env).textContent);
+    ok('nx4 chip: also mentions the VPN (one tag: the VPN comes before mobile data)', chip(env).textContent === 'Not reachable · VPN', chip(env).textContent);
     const ns = env.native.find((c) => c.action === 'netState');
     ok('nx4: netState gets the address of the accessory', ns && ns.args[0] === '192.168.1.72', JSON.stringify(ns));
   }
@@ -844,7 +857,7 @@ function sheet(env) { return env.document.getElementById('nx-sheet'); }
     const t = details(env).textContent;
     ok('nx4 vpn: route to the accessory visible', /VPN route to the accessory: 192\.168\.1\.0\/24 via tun0/.test(t), t);
     ok('nx4 vpn: active network according to Android visible', /Android's active network: vpn \(not the Wi-Fi\)/.test(t), t);
-    ok('nx4 vpn: conclusion mentions the tunnel and subnet routes', /into the tunnel, via the route 192\.168\.1\.0\/24 via tun0.*Use Tailscale subnets/.test(t), t);
+    ok('nx4 vpn: the verdict mentions the tunnel; subnet routes and exit node are still under Technical details', /Your VPN is sending the traffic for the accessory into its tunnel\. In your VPN app, exclude MyNice Welcome/.test(t) && /Use Tailscale subnets/.test(t) && /exit node/.test(t), t);
     ok('nx4 vpn: default route measured and shown', /via Android's default route: no answer \(SocketTimeoutException\)/.test(t), t);
     ok('nx4 vpn: version and Android level at the bottom', /Android API 34 · native layer nx-4/.test(t), t);
     ok('nx4: the diagnosis is also in the LOG', env.logs.some((l) => /^\[NX\] diagnosis\nNetwork: Wi-Fi HomeWifi/.test(l)), env.logs.slice(-2).join('|'));
@@ -857,7 +870,7 @@ function sheet(env) { return env.document.getElementById('nx-sheet'); }
     chip(env).click(); await sleep(300);
     const t = details(env).textContent;
     ok('nx4 vpn without route: reported', /VPN route to the accessory: none \(the VPN does not affect the accessory's address\)/.test(t), t);
-    ok('nx4 vpn without route: conclusion does not point at the VPN', /not responding/.test(t) && /Your VPN is on, but does not affect the accessory's address/.test(t) && !/into the tunnel/.test(t), t);
+    ok('nx4 vpn without route: conclusion does not point at the VPN', /does not answer on your Wi-Fi/.test(t) && /the VPN does not affect the accessory's address/.test(t) && !/into its tunnel/.test(t) && !/exclude MyNice Welcome/.test(t), t);
   }
   {
     // no answer over Wi-Fi, but there is via the default route
@@ -866,7 +879,7 @@ function sheet(env) { return env.document.getElementById('nx-sheet'); }
       probe: { ok: false, error: 'SocketTimeoutException', std: { ok: true, tcpMs: 30 } }, reachableDefault: false });
     chip(env).click(); await sleep(300);
     const t = details(env).textContent;
-    ok('nx4: Wi-Fi fails but default route works -> guest network/isolation mentioned', /Directly over Wi-Fi the phone does not reach the accessory, but via Android's default route it does/.test(t), t);
+    ok('nx4: Wi-Fi fails but default route works -> guest network/isolation mentioned', /This Wi-Fi does not let your phone reach the accessory \(guest network or device isolation\)\. Join "HomeWifi", then tap Reconnect/.test(t), t);
   }
   {
     // Wi-Fi without internet + mobile as the default: this is the situation in which the app reported "Wi-Fi gone"
@@ -885,18 +898,18 @@ function sheet(env) { return env.document.getElementById('nx-sheet'); }
       probe: { ok: true, tcpMs: 40, tlsMs: 400 }, reachableDefault: true });
     chip(env).click(); await sleep(300);
     const t = details(env).textContent;
-    ok('nx5 other Wi-Fi: conclusion says it does not matter', /Everything is fine\. You are on "HomeWifi-5G" instead of "HomeWifi"; that does not matter/.test(t), t);
+    ok('nx5 other Wi-Fi: conclusion says it does not matter', /Connected\. You are on "HomeWifi-5G" instead of "HomeWifi", which is fine on the same router/.test(t), t);
   }
   {
     // other Wi-Fi and the accessory does not answer: only then the hint about guest network / device isolation
     const env = await environment({ homes: [home([device({ reachable: false })])], net: { wifi: true, ssid: 'HomeWifi-5G', ip: '192.168.1.60' },
       probe: { ok: false, error: 'SocketTimeoutException' }, reachableDefault: false });
     env.w.NX.refresh(); await sleep(50);
-    ok('nx5 other Wi-Fi + unreachable: chip mentions it', chip(env).textContent === 'Accessory not reachable · other Wi-Fi', chip(env).textContent);
+    ok('nx5 other Wi-Fi + unreachable: chip mentions it', chip(env).textContent === 'Not reachable · other Wi-Fi', chip(env).textContent);
     chip(env).click(); await sleep(300);
     const t = details(env).textContent;
-    ok('nx5 other Wi-Fi + unreachable: guest network/isolation mentioned', /guest network, device isolation.*connect to "HomeWifi"/.test(t), t);
-    ok('nx5 other Wi-Fi + unreachable: the accessory conclusion remains', /not responding.*power/.test(t), t);
+    ok('nx5 other Wi-Fi + unreachable: the other network is named and the home network is the action', /Your phone is on "HomeWifi-5G", not "HomeWifi", and the accessory does not answer here\. Switch to "HomeWifi", then tap Reconnect/.test(t), t);
+    ok('nx5 other Wi-Fi + unreachable: the accessory conclusion remains (power and Wi-Fi light, then the restart)', /Check the accessory's power and Wi-Fi light/.test(t) && /disconnect its power for 30 seconds/.test(t), t);
   }
   {
     // away from home: no Wi-Fi, but a VPN that passes on the home network, and the app has a connection
@@ -908,7 +921,7 @@ function sheet(env) { return env.document.getElementById('nx-sheet'); }
     chip(env).click(); await sleep(300);
     const t = details(env).textContent;
     ok('nx5 away from home: measurement only via the default route (no "over Wi-Fi" line)', /via Android's default route: TCP 45 ms/.test(t) && !/over Wi-Fi:/.test(t), t);
-    ok('nx5 away from home: conclusion mentions the VPN', /Everything works: the connection to the accessory runs via your VPN/.test(t), t);
+    ok('nx5 away from home: conclusion mentions the VPN', /Connected to the accessory through your VPN/.test(t), t);
     ok('nx5 away from home: the probe was called (VPN without Wi-Fi)', env.native.some((c) => c.action === 'probe'));
   }
   {
@@ -917,10 +930,10 @@ function sheet(env) { return env.document.getElementById('nx-sheet'); }
       net: { wifi: false, cellular: true, vpn: true, defaultType: 'vpn', vpnRoute: null },
       probe: { ok: false, error: 'NO_WIFI', std: { ok: false, error: 'SocketTimeoutException' } }, reachableDefault: false });
     env.w.NX.refresh(); await sleep(50);
-    ok('nx5 away from home without route: chip mentions no Wi-Fi and VPN', chip(env).textContent === 'Accessory not reachable · no Wi-Fi, VPN, mobile', chip(env).textContent);
+    ok('nx5 away from home without route: chip mentions no Wi-Fi (one tag, the most important)', chip(env).textContent === 'Not reachable · no Wi-Fi', chip(env).textContent);
     chip(env).click(); await sleep(300);
     const t = details(env).textContent;
-    ok('nx5 away from home without route: explanation about subnet route', /does not route the accessory's address.*subnet route/.test(t), t);
+    ok('nx5 away from home without route: explanation about the route to the home network', /Your VPN does not include your home network\. Join your home Wi-Fi, or add your home network to the VPN/.test(t) && /offer your home network as a route/.test(t), t);
   }
   {
     // away from home with a VPN route, but the accessory does not answer (switched off at home?)
@@ -929,18 +942,18 @@ function sheet(env) { return env.document.getElementById('nx-sheet'); }
       probe: { ok: false, error: 'NO_WIFI', std: { ok: false, error: 'SocketTimeoutException' } }, reachableDefault: false });
     chip(env).click(); await sleep(300);
     const t = details(env).textContent;
-    ok('nx5 away from home with route but no answer: explanation', /Your VPN does route the accessory's address \(route 192\.168\.1\.0\/24 via tun0\), but the accessory does not answer/.test(t), t);
+    ok('nx5 away from home with route but no answer: explanation', /Your VPN routes the accessory's address, but the accessory does not answer/.test(t) && /VPN route to the accessory: 192\.168\.1\.0\/24 via tun0/.test(t), t);
   }
   {
     // no Wi-Fi, no VPN, the app is not connected: away from home everything goes through the Nice cloud, and it does not answer
     const env = await environment({ homes: [home([device({ reachable: false })])], net: { wifi: false, cellular: true, vpn: false },
       probe: { ok: false, error: 'NO_WIFI', cloud: { ok: false, dnsError: 'UnknownHostException' } }, reachableDefault: false });
     env.w.NX.refresh(); await sleep(50);
-    ok('nx6 no Wi-Fi, app not connected: chip mentions no Wi-Fi and mobile', chip(env).textContent === 'Accessory not reachable · no Wi-Fi, mobile', chip(env).textContent);
+    ok('nx6 no Wi-Fi, app not connected: chip mentions no Wi-Fi', chip(env).textContent === 'Not reachable · no Wi-Fi', chip(env).textContent);
     chip(env).click(); await sleep(300);
     const t = details(env).textContent;
     ok('nx6 no Wi-Fi: the cloud line is in the diagnosis', /Nice cloud: name not found \(UnknownHostException\); no connection/.test(t), t);
-    ok('nx6 no Wi-Fi: explanation mentions the cloud and the Wi-Fi at home', /Away from home, the connection runs via the Nice cloud, and it cannot be reached right now \(the name cannot be found: UnknownHostException\).*"HomeWifi" or another Wi-Fi network on your home network/.test(t), t);
+    ok('nx6 no Wi-Fi: explanation mentions the cloud and the Wi-Fi at home (the reason is under Technical details)', /You are not on Wi-Fi, and the Nice cloud cannot be reached from here\. Join your home Wi-Fi or get mobile signal, then tap Reconnect/.test(t) && /UnknownHostException/.test(t), t);
     ok('nx6 no Wi-Fi: the probe was called with the cloud flag and without a Wi-Fi line', env.native.some((c) => c.action === 'probe' && c.args[4] === true) && !/over Wi-Fi:/.test(t));
   }
   {
@@ -952,7 +965,7 @@ function sheet(env) { return env.document.getElementById('nx-sheet'); }
     ok('nx6 away from home via the cloud: chip says online · cloud', chip(env).textContent === 'Accessory online · cloud', chip(env).textContent);
     chip(env).click(); await sleep(300);
     const t = details(env).textContent;
-    ok('nx6 away from home via the cloud: conclusion is right (no "turn on Wi-Fi")', /Everything works: away from home, the connection to the accessory runs via the Nice cloud/.test(t) && !/turn on Wi-Fi/i.test(t), t);
+    ok('nx6 away from home via the cloud: conclusion is right (no "turn on Wi-Fi")', /You are not on Wi-Fi, so the app reaches the accessory through the Nice cloud/.test(t) && !/turn on Wi-Fi/i.test(t), t);
     ok('nx6 away from home via the cloud: cloud line with address and times', /Nice cloud: name → 34\.1\.2\.3 \(20 ms\); TCP 7890 90 ms/.test(t), t);
     ok('nx6 away from home via the cloud: chosen route is included (once)', /The app connect(s|ed) to the accessory via the Nice cloud/.test(t) && (t.match(/The app connect(s|ed) to the accessory via/g) || []).length === 1, t);
   }
@@ -971,7 +984,7 @@ function sheet(env) { return env.document.getElementById('nx-sheet'); }
     ok('nx6 VPN + cloud: chip online · cloud', chip(env).textContent === 'Accessory online · cloud', chip(env).textContent);
     chip(env).click(); await sleep(300);
     const t = details(env).textContent;
-    ok('nx6 VPN + cloud: conclusion explains why the cloud and mentions App split tunneling', /via the Nice cloud instead of directly.*Your VPN is on.*App split tunneling.*Excluded apps/.test(t), t);
+    ok('nx6 VPN + cloud: conclusion explains why the cloud and mentions App split tunneling', /Connected through the Nice cloud; your VPN may be blocking the direct route to the accessory\. In your VPN app, exclude MyNice Welcome/.test(t) && /App split tunneling > Excluded apps/.test(t), t);
   }
   {
     // Tailscale on and the cloud cannot be reached either: the VPN takes over the traffic or the name resolution
@@ -980,7 +993,7 @@ function sheet(env) { return env.document.getElementById('nx-sheet'); }
       probe: { ok: false, error: 'SocketTimeoutException', cloud: { ok: false, dnsError: 'UnknownHostException' } }, reachableDefault: false });
     chip(env).click(); await sleep(300);
     const t = details(env).textContent;
-    ok('nx6 VPN, accessory and cloud unreachable: points to the VPN and App split tunneling', /neither the accessory nor the Nice cloud can be reached \(the name cannot be found: UnknownHostException\)\. Try switching the VPN off briefly.*App split tunneling/.test(t), t);
+    ok('nx6 VPN, accessory and cloud unreachable: points to the VPN and App split tunneling', /Neither the accessory nor the Nice cloud can be reached while your VPN is on\. Turn the VPN off briefly, then tap Reconnect\.[\s\S]*App split tunneling/.test(t) && /name not found \(UnknownHostException\)/.test(t), t);
   }
   {
     // the VPN intercepts the accessory's address, cloud reachable, app not connected yet: tip to reconnect
@@ -989,7 +1002,7 @@ function sheet(env) { return env.document.getElementById('nx-sheet'); }
       probe: { ok: false, error: 'SocketTimeoutException', cloud: { ok: true, dns: '34.1.2.3', dnsMs: 10, tcpMs: 100 } }, reachableDefault: false });
     chip(env).click(); await sleep(300);
     const t = details(env).textContent;
-    ok('nx6 VPN intercepts the accessory address, cloud reachable: "Reconnect" gets the app onto the cloud', /App split tunneling/.test(t) && /The Nice cloud is reachable, though: tap "Reconnect"/.test(t), t);
+    ok('nx6 VPN intercepts the accessory address, cloud reachable: "Reconnect" gets the app onto the cloud', /App split tunneling/.test(t) && /The Nice cloud works: tap Reconnect to use it/.test(t), t);
   }
 
   {
@@ -1042,7 +1055,7 @@ function sheet(env) { return env.document.getElementById('nx-sheet'); }
     const t = details(env).textContent;
     ok('nx7: the diagnosis says the VPN does not allow binding to the Wi-Fi (EPERM)', /The VPN does not allow the app to bind its connection to the Wi-Fi network \(EPERM\); the app then uses a normal connection\./.test(t), t);
     ok('nx7: the accessory line says normal connection instead of "over Wi-Fi"', /Accessory 192\.168\.1\.72 \(normal connection\): no answer \(ConnectException: EHOSTUNREACH/.test(t) && !/over Wi-Fi:/.test(t), t);
-    ok('nx7: the conclusion says the accessory does not answer locally and that the cloud works', /Everything works, but via the Nice cloud instead of directly: the local route to the accessory did not work \(the accessory does not answer on the local network: ConnectException: EHOSTUNREACH/.test(t), t);
+    ok('nx7: the conclusion says the accessory does not answer locally and that the cloud works (the error name is in the lines above it)', /Connected through the Nice cloud, because the accessory does not answer on your home network/.test(t) && /no answer \(ConnectException: EHOSTUNREACH/.test(t), t);
     ok('nx7: no false "the VPN takes over the traffic" claim', !/probably takes over/.test(t), t);
   }
   {
@@ -1064,7 +1077,7 @@ function sheet(env) { return env.document.getElementById('nx-sheet'); }
     chip(env).click(); await sleep(300);
     const t = details(env).textContent;
     ok('nx8 hung: the measurement shows TCP and TLS separately', /Accessory 192\.168\.1\.72 \(normal connection\): TCP 14 ms, but no answer on TLS \(SocketTimeoutException: Read timed out\)/.test(t), t);
-    ok('nx8 hung: the conclusion says the accessory has hung and not the VPN', /Everything works via the Nice cloud\. The accessory accepts the connection \(TCP 14 ms\) but does not answer the secure handshake.*it has hung\. The network and your VPN are fine\. Cut the power to the accessory for half a minute/.test(t), t);
+    ok('nx8 hung: the conclusion says the accessory has stopped answering and not the VPN', /Connected through the Nice cloud, but the accessory has stopped answering on your home network\. Restart it when it suits you: disconnect its power for 30 seconds/.test(t) && !/VPN/.test(t.split('\n').filter((l) => /stopped answering/.test(l)).join(' ')), t);
     ok('nx8 hung: no more advice to switch off the VPN or exclude the app', !/switching (it|the VPN) off/.test(t) && !/App split tunneling/.test(t), t);
     ok('nx8: the chosen route appears only once', (t.match(/The app connect(s|ed) to the accessory via/g) || []).length === 1, t);
   }
@@ -1074,7 +1087,7 @@ function sheet(env) { return env.document.getElementById('nx-sheet'); }
       probe: { ok: false, error: 'SocketTimeoutException: Read timed out', tcpMs: 9, cloud: { ok: true, dns: '63.182.6.157', dnsMs: 5, tcpMs: 30 } }, reachableDefault: false });
     chip(env).click(); await sleep(300);
     const t = details(env).textContent;
-    ok('nx8 hung without VPN: conclusion mentions the hang and the reachable cloud', /it has hung\. The network is fine\./.test(t) && !/your VPN/i.test(t) && /The Nice cloud is reachable, though: tap "Reconnect"/.test(t), t);
+    ok('nx8 hung without VPN: conclusion mentions the hang and the reachable cloud', /The accessory is on your network but has stopped answering\./.test(t) && !/your VPN/i.test(t) && /The Nice cloud works: tap Reconnect to use it/.test(t), t);
   }
   {
     // without a TCP connection (accessory really unreachable) it is not "hung"
@@ -1082,7 +1095,7 @@ function sheet(env) { return env.document.getElementById('nx-sheet'); }
       probe: { ok: false, error: 'ConnectException: EHOSTUNREACH' }, reachableDefault: false });
     chip(env).click(); await sleep(300);
     const t = details(env).textContent;
-    ok('nx8: without a TCP answer no "hung" conclusion', !/it has hung/.test(t) && /The accessory is not responding/.test(t), t);
+    ok('nx8: without a TCP answer no "hung" conclusion', !/has stopped answering/.test(t) && /The accessory does not answer on your Wi-Fi/.test(t), t);
   }
   {
     // the wrapper reports every outcome to the native layer, so that it switches route when a check fails
@@ -1186,10 +1199,10 @@ function sheet(env) { return env.document.getElementById('nx-sheet'); }
       probe: { ok: true, tcpMs: 40, tlsMs: 400 }, reachableDefault: true,
       preXhr(w) { Object.defineProperty(w.navigator, 'clipboard', { configurable: true, value: { writeText: (t) => { copied = t; return Promise.resolve(); } } }); } });
     chip(env).click(); await sleep(300);
-    const button = Array.from(sheet(env).querySelectorAll('button')).find((b) => b.textContent === 'Copy');
+    const button = Array.from(sheet(env).querySelectorAll('button')).find((b) => b.textContent === 'Copy details');
     ok('copy: button exists', !!button);
     if (button) { button.click(); await sleep(50); }
-    ok('copy: the text of the details is on the clipboard', copied && /Network: Wi-Fi HomeWifi/.test(copied) && /Everything is fine/.test(copied), String(copied));
+    ok('copy: the text of the details is on the clipboard', copied && /Network: Wi-Fi HomeWifi/.test(copied) && /Connected to the accessory over your Wi-Fi/.test(copied), String(copied));
   }
 
   // ---------------------------------------------------------------- nx9: status line under the title and bottom sheet
@@ -1206,22 +1219,26 @@ function sheet(env) { return env.document.getElementById('nx-sheet'); }
     chip(env).click(); await sleep(500);
     ok('nx9 sheet: opens after a click on the status', sheet(env).style.display === 'block' && sheet(env).classList.contains('nx-open'));
     ok('nx9 sheet: the heading shows the status', env.document.getElementById('nx-sheet-title').textContent === 'Accessory online', env.document.getElementById('nx-sheet-title').textContent);
-    ok('nx9 sheet: the explanation is the outcome of the diagnosis', /Everything is fine/.test(env.document.getElementById('nx-sheet-explanation').textContent), env.document.getElementById('nx-sheet-explanation').textContent);
+    ok('nx9 sheet: the explanation is the outcome of the diagnosis', /Connected to the accessory over your Wi-Fi/.test(env.document.getElementById('nx-sheet-explanation').textContent), env.document.getElementById('nx-sheet-explanation').textContent);
     ok('nx9 sheet: shape and color follow the state', sheet(env).classList.contains('nx-l-ok') && sheet(env).classList.contains('nx-via-local') && !sheet(env).classList.contains('nx-busy'));
     const nodes = env.document.querySelectorAll('#nx-sheet-route .nx-node'), links = env.document.querySelectorAll('#nx-sheet-route .nx-link');
     ok('nx9 route: local is phone - accessory with a successful link', nodes.length === 2 && links.length === 1 && links[0].classList.contains('nx-s-ok') && /40 ms/.test(links[0].textContent), links[0] && links[0].textContent);
     const facts = env.document.getElementById('nx-sheet-facts').textContent;
-    ok('nx9 facts: Wi-Fi, route, accessory, cloud and app connection', /Wi-Fi HomeWifi/.test(facts) && /Local connection/.test(facts) && /TCP 40 ms · TLS 400 ms/.test(facts) && /Nice cloud/.test(facts) && /App connection/.test(facts), facts);
+    ok('nx9 facts: a healthy sheet folds the routine rows into one line (five checks); the numbers are under Technical details', /Everything else is fine/.test(facts) && /5 checks/.test(facts) && env.document.querySelectorAll('#nx-sheet-facts .nx-fact').length === 1 && /Wi-Fi HomeWifi/.test(details(env).textContent) && /TCP 40 ms, TLS 400 ms/.test(details(env).textContent) && /via a local connection/.test(details(env).textContent), facts);
     const buttons = Array.from(sheet(env).querySelectorAll('button')).map((b) => b.textContent);
-    ok('nx9 actions: five buttons', ['New users', 'Copy', 'Log', 'Close', 'Reconnect'].every((t) => buttons.indexOf(t) >= 0), buttons.join('|'));
+    ok('nx9 actions: five buttons (Check requests, Debug log, Copy details, Done, Reconnect)', ['Check requests', 'Copy details', 'Debug log', 'Done', 'Reconnect'].every((t) => buttons.indexOf(t) >= 0) && buttons.indexOf('Close') < 0 && buttons.indexOf('Log') < 0, buttons.join('|'));
     ok('nx9 details: the text for sharing is under "Technical details"', /Network: Wi-Fi HomeWifi/.test(details(env).textContent) && details(env).closest('details'));
-    Array.from(sheet(env).querySelectorAll('button')).find((b) => b.textContent === 'Close').click(); await sleep(600);
-    ok('nx9 sheet: closes with the Close button', !sheet(env).classList.contains('nx-open') && sheet(env).style.display === 'none');
-    // a tap on the title also opens the sheet
+    Array.from(sheet(env).querySelectorAll('button')).find((b) => b.textContent === 'Done').click(); await sleep(600);
+    ok('nx9 sheet: closes with the Done button', !sheet(env).classList.contains('nx-open') && sheet(env).style.display === 'none');
+    // nx23: only the chip (a real button in the header) opens the sheet; a tap on the title text does not
     const header = env.document.createElement('div'); header.className = 'bar bar-header'; header.innerHTML = '<h1 class="title">Favorites</h1>';
     env.document.body.appendChild(header);
+    await sleep(120);
     header.querySelector('.title').click(); await sleep(500);
-    ok('nx9 header: a tap on the title opens the sheet', sheet(env).classList.contains('nx-open'));
+    ok('nx9 header: a tap on the title text does not open the sheet', !sheet(env).classList.contains('nx-open'));
+    ok('nx9 header: the chip is in the title, as a button', !!header.querySelector('.title > button.nx-chip'));
+    header.querySelector('.nx-chip').click(); await sleep(500);
+    ok('nx9 header: a tap on the chip opens the sheet', sheet(env).classList.contains('nx-open'));
     // Android's back button closes the sheet and leaves the app alone
     let appReceived = false;
     env.document.addEventListener('backbutton', () => { appReceived = true; }, false);
@@ -1241,7 +1258,7 @@ function sheet(env) { return env.document.getElementById('nx-sheet'); }
     ok('nx9 cloud: the sheet picks the cloud shape', sheet(env).classList.contains('nx-via-cloud') && sheet(env).classList.contains('nx-l-ok'));
     const nodes = env.document.querySelectorAll('#nx-sheet-route .nx-node'), links = env.document.querySelectorAll('#nx-sheet-route .nx-link');
     ok('nx9 cloud: route phone - cloud - accessory with two successful links', nodes.length === 3 && links.length === 2 && links[0].classList.contains('nx-s-ok') && links[1].classList.contains('nx-s-ok'), links.length + ' links');
-    ok('nx9 cloud: the link to the cloud mentions mobile and the measurement', /mobile/.test(links[0].textContent) && /30 ms/.test(links[0].textContent), links[0].textContent);
+    ok('nx9 cloud: the link to the cloud says how fast (the carrier is in the caption of the phone)', /30 ms/.test(links[0].textContent) && /Mobile data/.test(nodes[0].textContent), links[0].textContent + ' | ' + nodes[0].textContent);
   }
   {
     // fault: the accessory does not answer, the VPN is on; the link has failed and the text says what to do
@@ -1249,15 +1266,15 @@ function sheet(env) { return env.document.getElementById('nx-sheet'); }
       net: { wifi: true, ssid: 'HomeWifi', ip: '192.168.1.50', vpn: true, cellular: true, validated: true, vpnRoute: null },
       probe: { ok: false, error: 'TIMEOUT', cloud: { ok: false, error: 'ECONNREFUSED' } }, reachableDefault: false });
     env.w.NX.refresh(); await sleep(50);
-    ok('nx9 fault: the header says not reachable with the cause', env.w.document.documentElement.style.getPropertyValue('--nx-sub') === '"Accessory not reachable · VPN, mobile"', env.w.document.documentElement.style.getPropertyValue('--nx-sub'));
+    ok('nx9 fault: the header says not reachable with the cause (one tag)', env.w.document.documentElement.style.getPropertyValue('--nx-sub') === '"Not reachable · VPN"', env.w.document.documentElement.style.getPropertyValue('--nx-sub'));
     ok('nx9 fault: data-nx-status is bad', env.w.document.documentElement.getAttribute('data-nx-status') === 'bad');
     chip(env).click(); await sleep(600);
     ok('nx9 fault: the sheet picks the fault shape', sheet(env).classList.contains('nx-l-bad'));
     const links = env.document.querySelectorAll('#nx-sheet-route .nx-link');
     ok('nx9 fault: the link to the accessory has failed', links.length === 1 && links[0].classList.contains('nx-s-fail'), links.length + ' links');
     const facts = env.document.getElementById('nx-sheet-facts').textContent;
-    ok('nx9 fault: VPN and failed measurements appear as facts', /VPN on/.test(facts) && /failed/.test(facts) && /no answer \(TIMEOUT\)/.test(facts), facts);
-    ok('nx9 fault: the explanation mentions the VPN solution', /App split tunneling/.test(env.document.getElementById('nx-sheet-explanation').textContent), env.document.getElementById('nx-sheet-explanation').textContent);
+    ok('nx9 fault: VPN and failed measurements appear as facts (the error name is under Technical details)', /VPN on/.test(facts) && /failed/.test(facts) && /no answer/.test(facts) && /no answer \(TIMEOUT\)/.test(details(env).textContent), facts);
+    ok('nx9 fault: the explanation names the VPN as the thing to try, and what to try has the solution', /Turn the VPN off briefly/.test(env.document.getElementById('nx-sheet-explanation').textContent) && /App split tunneling/.test(env.document.getElementById('nx-sheet-todo').textContent), env.document.getElementById('nx-sheet-explanation').textContent);
   }
   {
     // without an accessory in the app: no status line, no sheet, a tap on the title does nothing

@@ -1,0 +1,9 @@
+{
+  "_about": "nx23 command (I-38): the page of the extra buttons. The feature became a multi-select in nx12 but kept the singular wording of the app ('Optional command'). One name for it everywhere: Extra buttons.",
+  "SETTINGS_DEVICE_DETAIL_BTN_PROG_4_BUTTON": "Extra buttons",
+  "SETTINGS_DEVICE_4TH_BUTTON_PAGE_TITLE": "Extra buttons",
+  "SETTINGS_DEVICE_4TH_BUTTON_LABEL_PROGRAM": "EXTRA BUTTONS",
+  "SETTINGS_DEVICE_4TH_BUTTON_LABEL_ENABLE": "Show extra buttons",
+  "SETTINGS_DEVICE_4TH_BUTTON_LABEL_COMMAND": "CHOOSE THE BUTTONS",
+  "SETTINGS_DEVICE_4TH_BUTTON_NO_SELECTION": "Tick at least one button, or switch extra buttons off."
+}

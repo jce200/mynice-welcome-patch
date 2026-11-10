@@ -12,6 +12,10 @@
 {{P}} .nx-gal-title { min-width: 0; display: flex; flex-direction: column; }
 {{P}} .nx-gal-title h1 { font-weight: 600; font-size: 26px; line-height: 32px; letter-spacing: -.2px; font-variation-settings: 'wdth' 105; }
 {{P}} .nx-gal-title span { color: var(--md-sys-color-on-surface-variant); }
+/* the banner under the bar: the page is a demo and nothing on it controls a gate (nx23). It does not scroll away: wherever a button that looks like a real one is, it is in view. */
+{{P}} .nx-gal-demo { flex: 0 0 auto; margin: 0 16px 8px; padding: 10px 14px; border-radius: 12px; background: var(--md-sys-color-tertiary-container); color: var(--md-sys-color-on-tertiary-container); }
+/* class names, token names and sizes: developer notes, behind the switch at the top of the page (.nx-dev on the page) */
+{{P}} .nx-gal:not(.nx-dev) .nx-gal-dev { display: none; }
 {{P}} .nx-gal-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding: 0 16px 48px; }
 
 /* the top: the hero shape, a line of explanation, the theme and the colors, the chips that jump to a part */
@@ -35,6 +39,8 @@
 {{P}} .nx-gal-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
 {{P}} .nx-gal-col > .nx-gal-row { flex-direction: column; align-items: stretch; gap: 16px; }
 {{P}} .nx-gal-tall > .nx-gal-row { min-height: 232px; align-items: flex-start; }
+{{P}} .nx-gal-note { margin: 12px 0 0; color: var(--md-sys-color-on-surface-variant); }
+{{P}} .nx-gal-card > .nx-gal-line + .nx-gal-note { margin-top: 4px; }
 {{P}} .nx-gal-spec { margin: 14px 0 0; color: var(--md-sys-color-on-surface-variant); font-family: ui-monospace, 'Roboto Mono', monospace !important; font-size: 11px; line-height: 16px; letter-spacing: 0; overflow-wrap: anywhere; opacity: .92; }
 {{P}} .nx-gal-item { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; max-width: 100%; }
 {{P}} .nx-gal-item > .m3e-slider { align-self: stretch; }
@@ -46,6 +52,7 @@
 {{P}} .nx-gal-morph { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
 {{P}} .nx-gal-bigshape { width: 128px; height: 128px; background: var(--md-sys-color-primary); transition: clip-path var(--nx-spatial-ms) var(--nx-spatial); }
 {{P}} .nx-gal-code { color: var(--md-sys-color-on-surface-variant); font: 500 13px/20px ui-monospace, 'Roboto Mono', monospace !important; }
+{{P}} .nx-gal-shapename { min-width: 96px; }
 {{P}} .nx-gal-shapes { display: grid; grid-template-columns: repeat(auto-fill, minmax(46px, 1fr)); gap: 2px; width: 100%; }
 {{P}} .nx-gal-shape { display: block; width: 100%; aspect-ratio: 1; padding: 6px; margin: 0; border: 0; border-radius: 14px; background: transparent; cursor: pointer; -webkit-tap-highlight-color: transparent;
   transition: transform var(--nx-spatial-fast-ms) var(--nx-spatial-fast); }
@@ -81,5 +88,10 @@
 {{P}} .nx-gal-role > * { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 {{P}} .nx-gal-credit { margin: 36px 8px 8px; color: var(--md-sys-color-on-surface-variant); }
 @media (prefers-reduced-motion: reduce) { {{P}} .nx-gal { transition: opacity var(--nx-effects-ms) var(--nx-effects); transform: none; } }
+/* the demo pair of large buttons: the word and, under it, "(demo)"; the label of a large button is too wide for "Open (demo)" in one line on a phone */
+{{P}} .nx-gal-demobtn { --_pad: 24px; }
+{{P}} .nx-gal-demobtn > span { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; }
+{{P}} .nx-gal-demoword { font-weight: inherit; line-height: 28px; }
+{{P}} .nx-gal-demotag { font-size: 14px; line-height: 16px; font-weight: 500; letter-spacing: .1px; opacity: .9; }
 /* the list items stand out from the card they are in */
 {{P}} .nx-gal-card .m3e-li:not([aria-selected="true"]) { background: var(--md-sys-color-surface-container-high); }

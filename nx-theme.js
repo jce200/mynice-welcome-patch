@@ -10,6 +10,9 @@
     var t = window.localStorage.getItem('nxTheme');
     if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-nx-theme', t);
   } catch (e) { /* no storage: no choice */ }
+  // nx23 (accessibility): the page has no language (the app has 17 translations and the patches add English text). "en" until nx-patch.js follows the language of
+  // the app ($translate); it is also what lets a screen reader pick the right voice and text-transform: uppercase work per language
+  try { if (!document.documentElement.getAttribute('lang')) document.documentElement.setAttribute('lang', 'en'); } catch (e) { /* no document */ }
   try {
     var p = window.localStorage.getItem('nxPalette');
     if (/^(nice|graphite|paper|violet|pine|ember)$/.test(p)) document.documentElement.setAttribute('data-nx-palette', p);

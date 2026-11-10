@@ -3,21 +3,11 @@
  * It reuses the sheet of status.css (.nx-sheet, .nx-scrim, .nx-handle, .nx-footer, .nx-facts) and the color roles of tokens.css.
  * ============================================================================================================ */
 
-/* the line on the accessory screen, under the chips: the last command, or "Activity" while the log has not been read */
-{{P}} .device-info .device-row.nx-last-row { display: flex; justify-content: center; max-width: none; margin: 0 0 8px; padding: 0; background: none; border-radius: 0; }
-{{P}} .nx-last {
-  display: inline-flex; align-items: center; gap: 8px; max-width: 94%; min-height: 40px; padding: 6px 8px 6px 14px; border-radius: 20px;
-  background: transparent; color: var(--md-sys-color-primary); font-size: 14px; line-height: 20px; font-weight: 600; text-decoration: none; cursor: pointer;
-  -webkit-tap-highlight-color: transparent; transition: background-color var(--nx-effects-ms) var(--nx-effects);
-}
-{{P}} .nx-last:active { background: var(--md-sys-color-surface-container-high); }
-{{P}} .nx-last-icon, {{P}} .nx-last-chev { flex: 0 0 auto; width: 18px; height: 18px; background: currentColor; }
-{{P}} .nx-last-icon { -webkit-mask: var(--nx-i-history) center / contain no-repeat; mask: var(--nx-i-history) center / contain no-repeat; }
-{{P}} .nx-last-chev { width: 20px; height: 20px; -webkit-mask: var(--nx-i-chevron) center / contain no-repeat; mask: var(--nx-i-chevron) center / contain no-repeat; }
-{{P}} .nx-last-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* The entry on the accessory screen (a chip with the last command, or "Activity" while the log has not been read), the pill of a blocked gate and the note under the state are in
+   nx23-gate.css. */
 
-/* A lower screen: the gate icon and the state text give way a little in three steps, so that Open, Close and Stop stay completely in view with the
-   extra lines (the activity line, and when it applies the note under the state and the pill of a blocked gate). Checked at 568 to 915 pixels high. */
+/* A lower screen: the gate icon and the text of a scene, a bridge screen or a demo page give way a little in three steps, so that the buttons stay completely in view. The accessory
+   screen does not need this since nx23: its hero takes what is left (nx23-gate.css), and its own rules are more specific than these. Checked at 568 to 915 pixels high. */
 @media (max-height: 780px) {
   {{P}} .device-icon { width: 140px; height: 140px; margin: 4px auto 0; }
   {{P}} .device-icon i { font-size: 70px !important; }
@@ -30,7 +20,6 @@
   {{P}} .device-info .device-row:first-child { margin: 2px 0 6px; }
   {{P}} .device-info .device-row:first-child strong, {{P}} .device-info .device-row:first-child strong span { font-size: 36px; line-height: 42px; }
   {{P}} .device-info .device-row:not(:first-child) { margin-bottom: 4px; }
-  {{P}} .nx-last { min-height: 36px; padding-top: 4px; padding-bottom: 4px; }
 }
 @media (max-height: 660px) {
   {{P}} .device-icon { width: 104px; height: 104px; margin: 0 auto; }
@@ -38,19 +27,21 @@
   {{P}} .device-info .device-row:first-child { margin: 0 0 4px; }
   {{P}} .device-info .device-row:first-child strong, {{P}} .device-info .device-row:first-child strong span { font-size: 32px; line-height: 38px; }
   {{P}} .device-info .device-row:not(:first-child) { margin-bottom: 2px; padding-top: 4px; padding-bottom: 4px; }
-  {{P}} .nx-last { min-height: 32px; }
 }
 
 @media (max-height: 620px) {
   {{P}} .device-info .device-row:not(:first-child) { padding-top: 2px; padding-bottom: 2px; }
-  {{P}} .nx-last { min-height: 28px; padding-top: 2px; padding-bottom: 2px; }
 }
 
 /* ---------------------------------------------------------------- the sheet */
-{{P}} .nx-sheet.nx-act { max-height: 92vh; max-height: 92dvh; min-height: 55vh; min-height: 55dvh; }
+/* A column (nx-activity.js sets display: flex when it opens the sheet): the body takes what is left, so that the footer is at the bottom of a short sheet too.
+   --nx-act-quiet: the color of what is quiet in a chart (the hours without a peak, the hatching of "Other"): the outline color, at least 3:1 on the card. */
+{{P}} .nx-sheet.nx-act { --nx-act-quiet: var(--md-sys-color-outline); max-height: 92vh; max-height: 92dvh; min-height: 55vh; min-height: 55dvh; flex-direction: column; }
+{{P}} .nx-act > * { flex: 0 0 auto; }
+{{P}} .nx-act > #nx-act-body { flex: 1 0 auto; }
 {{P}} .nx-act-head { display: flex; align-items: center; gap: 12px; padding: 0 4px 12px; }
 {{P}} .nx-act-titles { min-width: 0; flex: 1 1 auto; }
-{{P}} .nx-act-title { margin: 0; font-size: 24px; line-height: 32px; font-weight: 650; letter-spacing: -0.1px; color: var(--md-sys-color-on-surface); }
+{{P}} .nx-act-title { margin: 0; padding: 0; font-size: 24px; line-height: 32px; font-weight: 650; letter-spacing: -0.1px; color: var(--md-sys-color-on-surface); }
 {{P}} .nx-act-sub { font-size: 13px; line-height: 18px; color: var(--md-sys-color-on-surface-variant); overflow-wrap: anywhere; }
 {{P}} .nx-sheet button.nx-act-refresh { --_h: 44px; --_pad: 0px; --_pr: 14px; position: relative; flex: 0 0 auto; width: 44px; min-width: 44px; padding: 0; }
 {{P}} .nx-act-refresh:before {
@@ -59,109 +50,139 @@
 }
 {{P}} .nx-act.nx-busy .nx-act-refresh:before { animation: nx-spin 1s linear infinite; }
 @media (prefers-reduced-motion: reduce) { {{P}} .nx-act.nx-busy .nx-act-refresh:before { animation: none; } }
+/* the wavy progress indicator runs under the handle, not across it */
+{{P}} .nx-act .nx-progress.m3e-progress { top: 18px; }
+/* the footer is pinned; what scrolls under it fades out instead of being cut off */
+{{P}} .nx-act .nx-footer:before { content: ''; position: absolute; left: 0; right: 0; bottom: 100%; height: 16px; pointer-events: none; background: linear-gradient(to bottom, transparent, var(--md-sys-color-surface-container-low)); }
 
-/* four tiles: the last opening, the last closing, the number of commands, the obstructions */
+/* what is wrong with the accessory in the last 24 hours (only there when something is): amber, red when one of the events is an error */
+{{P}} .nx-card.nx-act-alert { margin: 0 0 8px; padding: 12px 16px; background: var(--nx-warn-container); color: var(--nx-on-warn-container); }
+{{P}} .nx-act-alert > b { display: block; font-size: 13px; line-height: 18px; font-weight: 650; letter-spacing: .3px; }
+{{P}} .nx-act-alert ul { display: grid; gap: 2px; margin: 4px 0 0; padding: 0; list-style: none; }
+{{P}} .nx-act-alert li { display: flex; align-items: center; gap: 10px; font-size: 14px; line-height: 22px; }
+{{P}} .nx-act-alert li span { flex: 1 1 auto; min-width: 0; font-weight: 600; }
+{{P}} .nx-act-alert li time { flex: 0 0 auto; font-variant-numeric: tabular-nums; }
+{{P}} .nx-card.nx-act-alert.nx-alert-bad { background: var(--md-sys-color-error-container); color: var(--md-sys-color-on-error-container); }
+{{P}} .nx-ai { flex: 0 0 auto; width: 18px; height: 18px; background: currentColor; -webkit-mask: var(--nx-ai-i, var(--nx-i-warning)) center / contain no-repeat; mask: var(--nx-ai-i, var(--nx-i-warning)) center / contain no-repeat; }
+{{P}} .nx-ai.nx-i-restart { --nx-ai-i: var(--nx-i-refresh); }
+{{P}} .nx-ai.nx-i-wifioff { --nx-ai-i: var(--nx-i-wifi-off); }
+{{P}} .nx-ai.nx-i-warn { --nx-ai-i: var(--nx-i-warning); }
+{{P}} .nx-ai.nx-i-gate { --nx-ai-i: var(--nx-i-gate); }
+
+/* four tiles: the last opening, the last closing (the time is the value; the day and who under it), the commands of today, the obstructions */
 {{P}} .nx-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 0 0 4px; }
-{{P}} .nx-tile { min-width: 0; display: flex; flex-direction: column; gap: 2px; padding: 14px 16px; border-radius: 24px; background: var(--md-sys-color-surface-container); }
+{{P}} .nx-tile { min-width: 0; display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: 24px; background: var(--md-sys-color-surface-container); }
 {{P}} .nx-tile small { font-size: 12px; line-height: 16px; font-weight: 650; letter-spacing: .3px; color: var(--md-sys-color-on-surface-variant); }
-{{P}} .nx-tile b { font-size: 20px; line-height: 26px; font-weight: 650; color: var(--md-sys-color-on-surface); overflow-wrap: anywhere; }
+{{P}} .nx-tile b { font-size: 24px; line-height: 30px; font-weight: 650; font-variant-numeric: tabular-nums; color: var(--md-sys-color-on-surface); overflow-wrap: anywhere; }
 {{P}} .nx-tile span { font-size: 13px; line-height: 18px; color: var(--md-sys-color-on-surface-variant); overflow-wrap: anywhere; }
 {{P}} .nx-tile.nx-t-open { background: var(--md-sys-color-primary-container); }
 {{P}} .nx-tile.nx-t-open small, {{P}} .nx-tile.nx-t-open b, {{P}} .nx-tile.nx-t-open span { color: var(--md-sys-color-on-primary-container); }
 {{P}} .nx-tile.nx-t-close { background: var(--md-sys-color-secondary-container); }
 {{P}} .nx-tile.nx-t-close small, {{P}} .nx-tile.nx-t-close b, {{P}} .nx-tile.nx-t-close span { color: var(--md-sys-color-on-secondary-container); }
-{{P}} .nx-tile.nx-t-warn { background: var(--nx-warn-container); }
-{{P}} .nx-tile.nx-t-warn small, {{P}} .nx-tile.nx-t-warn b, {{P}} .nx-tile.nx-t-warn span { color: var(--nx-on-warn-container); }
+{{P}} .nx-tile.nx-t-bad { background: var(--md-sys-color-error-container); }
+{{P}} .nx-tile.nx-t-bad small, {{P}} .nx-tile.nx-t-bad b, {{P}} .nx-tile.nx-t-bad span { color: var(--md-sys-color-on-error-container); }
 
-{{P}} .nx-act-h { margin: 20px 8px 8px; font-size: 13px; line-height: 18px; font-weight: 650; letter-spacing: .4px; color: var(--md-sys-color-primary); }
+/* a heading says what it is about, and on the right which period it counts */
+{{P}} .nx-act-h { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 20px 4px 8px; font-size: 13px; line-height: 18px; font-weight: 650; letter-spacing: .4px; color: var(--md-sys-color-primary); }
+{{P}} .nx-act-h small { flex: 0 1 auto; min-width: 0; font-size: 12px; font-weight: 500; letter-spacing: .2px; text-align: right; color: var(--md-sys-color-on-surface-variant); }
 {{P}} .nx-card { margin: 0 0 4px; padding: 16px; list-style: none; border-radius: 24px; background: var(--md-sys-color-surface-container); }
 {{P}} .nx-act-empty, {{P}} .nx-act-error { display: flex; flex-direction: column; gap: 4px; padding: 18px 20px; font-size: 14px; line-height: 20px; color: var(--md-sys-color-on-surface-variant); }
 {{P}} .nx-act-empty b { font-size: 15px; color: var(--md-sys-color-on-surface); }
 {{P}} .nx-act-error b { font-size: 15px; color: var(--md-sys-color-error); }
 {{P}} .nx-act-error span { overflow-wrap: anywhere; }
-{{P}} .nx-sheet .nx-act-error button { flex: 0 0 auto; align-self: flex-start; margin-top: 10px; }
+{{P}} .nx-act-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+{{P}} .nx-sheet .nx-act-error button { flex: 0 1 auto; align-self: flex-start; margin: 0; }
+{{P}} .nx-act-tech { margin: 12px 0 0; border-radius: 16px; background: var(--md-sys-color-surface-container-high); }
+{{P}} .nx-act-tech > summary { padding: 14px 16px; font-size: 14px; }
+{{P}} .nx-act-tech pre { padding: 0 16px 14px; }
 {{P}} .nx-act-note { margin: 10px 4px 0; font-size: 12px; line-height: 18px; color: var(--md-sys-color-on-surface-variant); overflow-wrap: anywhere; }
 {{P}} .nx-card > .nx-act-note { margin: 10px 0 0; }
 
-/* commands per day: stacked bars (opening at the bottom, closing above it, the rest on top) */
-{{P}} .nx-bars { display: flex; align-items: flex-end; gap: 4px; height: 112px; }
+/* the period of the charts: a connected pair of buttons (M3E: round outside, 8 dp inside, the selected one filled and round all over) */
+{{P}} .nx-scope { display: flex; gap: 2px; margin: 16px 0 0; }
+{{P}} .nx-sheet .nx-scope button { --_h: 40px; --_pad: 12px; --_in: 8px; --_rl: var(--_in); --_rr: var(--_in); flex: 1 1 0; min-width: 0; --_bg: var(--md-sys-color-surface-container-high); --_fg: var(--md-sys-color-on-surface-variant); }
+{{P}} .nx-sheet .nx-scope button:first-child { --_rl: var(--_round); }
+{{P}} .nx-sheet .nx-scope button:last-child { --_rr: var(--_round); }
+{{P}} .nx-sheet .nx-scope button[aria-pressed="true"] { --_bg: var(--md-sys-color-primary); --_fg: var(--md-sys-color-on-primary); --_rl: var(--_round); --_rr: var(--_round); }
+@media (max-width: 340px) { {{P}} .nx-sheet .nx-scope button { --_pad: 6px; --_fs: 13px; } }
+/* a hit area of 48 dp around the buttons of 40 dp */
+{{P}} .nx-sheet .nx-scope button:after, {{P}} .nx-sheet .nx-act-all:after, {{P}} .nx-sheet .nx-act-less:after, {{P}} .nx-sheet .nx-act-retry:after, {{P}} .nx-sheet .nx-act-status:after { content: ''; position: absolute; inset: -4px 0; }
+
+/* commands per day: stacked bars with the number above (opening at the bottom, closing above it, the rest on top). Three textures, so that they differ in greyscale:
+   Open is solid, Close is hollow (a light fill with an outline), Other is hatched. A day with no data is a dashed box. */
+{{P}} .nx-bars { display: flex; align-items: flex-end; gap: 4px; height: 116px; }
 {{P}} .nx-col { flex: 1 1 0; min-width: 0; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; }
+{{P}} .nx-col > em { display: block; margin: 0 -4px 3px; white-space: nowrap; text-align: center; font-style: normal; font-size: 11px; line-height: 14px; font-weight: 650; font-variant-numeric: tabular-nums; color: var(--md-sys-color-on-surface); }
 {{P}} .nx-stack { display: flex; flex-direction: column; gap: 1px; min-height: 4px; overflow: hidden; border-radius: 6px; }
-{{P}} .nx-stack.nx-zero { height: 3px; background: var(--md-sys-color-outline-variant); opacity: .6; }
+{{P}} .nx-stack.nx-zero { height: 3px; background: var(--nx-act-quiet); }
+{{P}} .nx-nodata > .nx-stack { box-sizing: border-box; height: 44px; min-height: 0; border: 1.5px dashed var(--md-sys-color-outline); background: transparent; }
 {{P}} .nx-stack i { display: block; min-height: 0; }
 {{P}} .nx-b-open { background: var(--md-sys-color-primary); }
-{{P}} .nx-b-close { background: var(--md-sys-color-secondary); }
-{{P}} .nx-b-rest { background: var(--md-sys-color-outline-variant); }
+{{P}} .nx-b-close { background: var(--md-sys-color-primary-container); box-shadow: inset 0 0 0 2px var(--md-sys-color-primary); }
+{{P}} .nx-b-rest { background: repeating-linear-gradient(135deg, var(--nx-act-quiet) 0 2px, transparent 2px 4px); }
 {{P}} .nx-axis { display: flex; gap: 4px; margin-top: 6px; }
-{{P}} .nx-axis small { flex: 1 1 0; text-align: center; font-size: 11px; line-height: 14px; color: var(--md-sys-color-on-surface-variant); }
+{{P}} .nx-axis small { flex: 1 1 0; min-width: 0; text-align: center; font-size: 11px; line-height: 14px; color: var(--md-sys-color-on-surface-variant); }
+{{P}} .nx-axis small span { display: block; min-height: 14px; font-variant-numeric: tabular-nums; }
 {{P}} .nx-axis small.nx-today { font-weight: 700; color: var(--md-sys-color-primary); }
-{{P}} .nx-axis-h { justify-content: space-between; gap: 0; }
-{{P}} .nx-axis-h small { flex: 0 0 auto; }
+{{P}} .nx-axis-h { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; }
+{{P}} .nx-axis-h small { text-align: left; }
 {{P}} .nx-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 10px; font-size: 12px; line-height: 16px; color: var(--md-sys-color-on-surface-variant); }
-{{P}} .nx-lg:before { content: ''; display: inline-block; width: 10px; height: 10px; margin-right: 6px; border-radius: 3px; vertical-align: -1px; background: var(--nx-lg-color); }
-{{P}} .nx-lg-open { --nx-lg-color: var(--md-sys-color-primary); }
-{{P}} .nx-lg-close { --nx-lg-color: var(--md-sys-color-secondary); }
-{{P}} .nx-lg-rest { --nx-lg-color: var(--md-sys-color-outline-variant); }
+{{P}} .nx-lg:before { content: ''; display: inline-block; box-sizing: border-box; width: 12px; height: 12px; margin-right: 6px; border-radius: 3px; vertical-align: -2px; }
+{{P}} .nx-lg-open:before { background: var(--md-sys-color-primary); }
+{{P}} .nx-lg-close:before { background: var(--md-sys-color-primary-container); box-shadow: inset 0 0 0 2px var(--md-sys-color-primary); }
+{{P}} .nx-lg-rest:before { background: repeating-linear-gradient(135deg, var(--nx-act-quiet) 0 2px, transparent 2px 4px); }
+{{P}} .nx-lg-none:before { border: 1.5px dashed var(--md-sys-color-outline); }
 
-/* who */
+/* who: the name (two lines when it is long, with a word on what it is), a bar, the number */
 {{P}} .nx-whos { display: grid; gap: 12px; margin: 0 0 4px; }
-{{P}} .nx-whos li { display: grid; grid-template-columns: minmax(72px, 30%) 1fr auto; align-items: center; gap: 12px; }
-{{P}} .nx-w-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; line-height: 20px; font-weight: 600; color: var(--md-sys-color-on-surface); }
+{{P}} .nx-whos li { display: grid; grid-template-columns: minmax(88px, 34%) 1fr auto; align-items: center; gap: 12px; }
+{{P}} .nx-w-name { min-width: 0; overflow-wrap: anywhere; font-size: 14px; line-height: 18px; font-weight: 600; color: var(--md-sys-color-on-surface); }
+{{P}} .nx-w-name small { display: block; font-size: 12px; line-height: 16px; font-weight: 400; color: var(--md-sys-color-on-surface-variant); }
 {{P}} .nx-w-bar { height: 10px; overflow: hidden; border-radius: 5px; background: var(--md-sys-color-surface-container-highest); }
 {{P}} .nx-w-bar i { display: block; height: 100%; border-radius: 5px; background: var(--md-sys-color-primary); }
 {{P}} .nx-whos b { min-width: 2ch; text-align: right; font-size: 14px; line-height: 20px; font-variant-numeric: tabular-nums; color: var(--md-sys-color-on-surface); }
 
-/* busy hours */
-{{P}} .nx-hours { display: flex; align-items: flex-end; gap: 2px; height: 64px; }
-{{P}} .nx-hours i { flex: 1 1 0; min-width: 0; min-height: 2px; border-radius: 3px 3px 0 0; background: var(--md-sys-color-outline-variant); }
+/* busy hours: every tied peak is solid and has its number; the other hours are quiet (3:1 on the card) */
+{{P}} .nx-hours { display: flex; align-items: flex-end; gap: 2px; height: 66px; padding-top: 14px; box-sizing: border-box; }
+{{P}} .nx-hours i { position: relative; flex: 1 1 0; min-width: 0; min-height: 2px; border-radius: 3px 3px 0 0; background: var(--nx-act-quiet); }
 {{P}} .nx-hours i.nx-peak { background: var(--md-sys-color-primary); }
+{{P}} .nx-hours i b { position: absolute; left: 50%; bottom: 100%; margin-bottom: 1px; transform: translateX(-50%); font-size: 10px; line-height: 12px; font-weight: 650; font-variant-numeric: tabular-nums; color: var(--md-sys-color-on-surface); }
+@media (max-width: 380px) { {{P}} .nx-hours i b { font-size: 9px; letter-spacing: -.2px; } }
 
-/* the Wi-Fi module: the rows of the status sheet (.nx-fact) with a few more icons and the amber pill */
+/* the accessory itself: the rows of the status sheet (.nx-fact), calm when there is nothing or it is older than a day, amber (red for errors) when it is recent */
 {{P}} .nx-fi.nx-i-restart:before { -webkit-mask-image: var(--nx-i-refresh); mask-image: var(--nx-i-refresh); }
 {{P}} .nx-fi.nx-i-wifioff:before { -webkit-mask-image: var(--nx-i-wifi-off); mask-image: var(--nx-i-wifi-off); }
 {{P}} .nx-fi.nx-i-warn:before { -webkit-mask-image: var(--nx-i-warning); mask-image: var(--nx-i-warning); }
+{{P}} .nx-fi.nx-i-done:before { -webkit-mask-image: var(--nx-i-done); mask-image: var(--nx-i-done); }
+{{P}} .nx-fact.nx-s-none .nx-fi { background: var(--md-sys-color-surface-container-high); }
+{{P}} .nx-fact.nx-s-none .nx-fi:before { background: var(--md-sys-color-on-surface-variant); }
 {{P}} .nx-fact.nx-s-warn em { background: var(--nx-warn-container); color: var(--nx-on-warn-container); }
 
-/* history: grouped by day */
-{{P}} .nx-tl { display: block; padding: 6px 16px 12px; }
+/* the latest events, grouped by day: the dot of an opening is solid and that of a closing a ring, as in the chart */
+{{P}} .nx-tl { display: block; padding: 4px 16px 10px; }
 {{P}} .nx-tl li { list-style: none; }
 {{P}} .nx-tl-day { padding: 12px 0 4px; font-size: 12px; line-height: 16px; font-weight: 650; letter-spacing: .3px; color: var(--md-sys-color-primary); }
 {{P}} .nx-tl-row { display: grid; grid-template-columns: 46px minmax(0, 1fr) auto; align-items: center; gap: 10px; min-height: 36px; font-size: 14px; line-height: 20px; }
 {{P}} .nx-tl-row time { font-variant-numeric: tabular-nums; color: var(--md-sys-color-on-surface-variant); }
 {{P}} .nx-tl-what { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; color: var(--md-sys-color-on-surface); }
-{{P}} .nx-tl-what:before { content: ''; display: inline-block; width: 8px; height: 8px; margin-right: 8px; border-radius: 50%; background: var(--md-sys-color-outline); }
+{{P}} .nx-tl-what:before { content: ''; display: inline-block; box-sizing: border-box; width: 10px; height: 10px; margin-right: 8px; border-radius: 50%; background: var(--md-sys-color-outline); }
 {{P}} .nx-k-open .nx-tl-what:before { background: var(--md-sys-color-primary); }
-{{P}} .nx-k-close .nx-tl-what:before { background: var(--md-sys-color-secondary); }
+{{P}} .nx-k-close .nx-tl-what:before { background: transparent; box-shadow: inset 0 0 0 2px var(--md-sys-color-primary); }
 {{P}} .nx-k-obstruction .nx-tl-what, {{P}} .nx-k-obstruction .nx-tl-what:before { color: var(--md-sys-color-error); }
 {{P}} .nx-k-obstruction .nx-tl-what:before { background: var(--md-sys-color-error); }
 {{P}} .nx-tl-who { max-width: 38vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; font-size: 13px; color: var(--md-sys-color-on-surface-variant); }
-{{P}} .nx-sheet button.nx-act-all { display: block; width: 100%; flex: none; margin: 8px 0 0; }
+{{P}} .nx-sheet button.nx-act-all, {{P}} .nx-sheet button.nx-act-less { display: block; width: 100%; flex: none; margin: 8px 0 0; }
 {{P}} .nx-act-footer { grid-template-columns: 1fr; }
 
+/* where the data comes from: folded (the .nx-details of the status sheet) */
+{{P}} .nx-act-about { margin: 16px 0 8px; }
+{{P}} .nx-act-abouttext { display: grid; gap: 8px; padding: 0 20px 16px; font-size: 13px; line-height: 19px; color: var(--md-sys-color-on-surface-variant); }
+{{P}} .nx-act-abouttext p { margin: 0; overflow-wrap: anywhere; }
+
 /* ---------------------------------------------------------------- the state settled from the log, and a gate that was blocked */
-/* a small note under the state ("reported: Opening") while the state is settled */
-{{P}} .device-info .device-row:first-child .nx-settled {
-  display: block; margin-top: 2px; font-size: 13px; line-height: 18px; font-weight: 500; letter-spacing: 0; color: var(--md-sys-color-on-surface-variant);
-  font-variation-settings: 'wdth' 100;
-}
-/* the pill under the state when the last Block command was not followed by a Release */
-{{P}} .device-info .device-row.nx-block-row { display: flex; justify-content: center; max-width: none; margin: 0 0 8px; padding: 0; background: none; border-radius: 0; }
-{{P}} .nx-block {
-  display: inline-flex; align-items: center; gap: 8px; max-width: 94%; padding: 6px 16px 6px 12px; border-radius: 18px;
-  background: var(--nx-warn-container); color: var(--nx-on-warn-container); font-size: 14px; line-height: 20px; font-weight: 650;
-}
-{{P}} .nx-block > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* the note under the state and the pill of a blocked gate are in the status line of the accessory screen (nx23-gate.css); the lock is the icon of the pill and of the card in the sheet */
 {{P}} .nx-block-icon { flex: 0 0 auto; width: 18px; height: 18px; background: currentColor; -webkit-mask: var(--nx-i-lock) center / contain no-repeat; mask: var(--nx-i-lock) center / contain no-repeat; }
-@media (max-height: 720px) {
-  {{P}} .device-info .device-row.nx-block-row { margin-bottom: 4px; }
-  {{P}} .nx-block { padding-top: 3px; padding-bottom: 3px; }
-}
-@media (max-height: 660px) {
-  {{P}} .device-info .device-row.nx-block-row { margin-bottom: 2px; }
-  {{P}} .nx-block { padding-top: 1px; padding-bottom: 1px; }
-  {{P}} .device-info .device-row:first-child .nx-settled { margin-top: 0; line-height: 16px; font-size: 12px; }
-}
-/* in the sheet: a card above the tiles (amber when blocked) */
+/* in the sheet: a card at the top when the gate is blocked (amber), a quiet line when it is not */
 {{P}} .nx-card.nx-act-block { display: flex; align-items: flex-start; gap: 14px; margin: 0 0 8px; padding: 16px; }
 {{P}} .nx-act-block .nx-block-icon { width: 24px; height: 24px; margin-top: 1px; color: var(--md-sys-color-on-surface-variant); }
 {{P}} .nx-act-block > div { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
@@ -170,3 +191,8 @@
 {{P}} .nx-act-block em { margin-top: 4px; font-style: normal; font-size: 12px; line-height: 18px; color: var(--md-sys-color-on-surface-variant); overflow-wrap: anywhere; }
 {{P}} .nx-card.nx-act-block.nx-blocked { background: var(--nx-warn-container); }
 {{P}} .nx-act-block.nx-blocked .nx-block-icon, {{P}} .nx-act-block.nx-blocked b, {{P}} .nx-act-block.nx-blocked span, {{P}} .nx-act-block.nx-blocked em { color: var(--nx-on-warn-container); }
+{{P}} .nx-act-block.nx-act-free { display: flex; align-items: flex-start; gap: 12px; margin: 0 0 8px; padding: 4px 8px; }
+{{P}} .nx-free-icon { flex: 0 0 auto; width: 22px; height: 22px; margin-top: 0; background: var(--md-sys-color-on-surface-variant); -webkit-mask: var(--nx-i-lock-open) center / contain no-repeat; mask: var(--nx-i-lock-open) center / contain no-repeat; }
+{{P}} .nx-act-free b { font-size: 14px; line-height: 22px; }
+{{P}} .nx-act-free span { font-size: 12px; line-height: 17px; }
+{{P}} .nx-act-free em { font-size: 12px; line-height: 17px; }
