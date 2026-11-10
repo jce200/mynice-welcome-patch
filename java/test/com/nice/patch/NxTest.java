@@ -77,7 +77,7 @@ public class NxTest {
         is("routeLabel without destination and interface", "?", Nx.routeLabel(null, null));
         is("vpnRouteFor: invalid address", null, Nx.vpnRouteFor(null, new java.util.ArrayList<android.net.Network>(), "no-ip"));
         is("vpnRouteFor: no VPN networks", null, Nx.vpnRouteFor(null, new java.util.ArrayList<android.net.Network>(), "192.168.1.72"));
-        is("version", "nx-27", Nx.PATCH_VERSION);
+        is("version", "nx-28", Nx.PATCH_VERSION);
 
         // nx26: events that the app does not read go to the Debug log, without names, addresses and the signature
         String diag = "<Event id=\"7\" source=\"AA:BB:CC:DD:EE:FF\" target=\"homeuser\" gw=\"gw1\" protocolType=\"NHK\" type=\"DIAGNOSTIC\">\n<Timestamp>2026-11-10T08:00:00</Timestamp>"

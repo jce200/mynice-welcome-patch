@@ -1,8 +1,15 @@
 # Details and history
 
 This is the technical background to the [README.md](../README.md): why every change exists, with the diagnoses that led to them
-(nx3 through nx27: the project's build numbers). The example values (Wi-Fi `HomeWifi`, accessory `NiceIT4WIFIAABBCC`, user
+(nx3 through nx28: the project's build numbers). The example values (Wi-Fi `HomeWifi`, accessory `NiceIT4WIFIAABBCC`, user
 `homeuser`) stand in for whatever is different in your case. The data in this document comes from one phone and one IT4WIFI module.
+
+## What is new in nx28 (the page Extra buttons: a list that is always there, and a switch in the middle of its row)
+On a phone that reached the accessory through the Nice cloud the page *Extra buttons* showed its heading and its two hints, and no commands to tick. The page of the app fills the list
+only after a VERIFY that succeeds at that moment, and it says nothing when that fails with code 4. The choice of the extra buttons is kept on the phone, so the list does not need the
+accessory: until the page has its own list it now shows what the app saved at the last INFO (`nxPickList`; for a user who is not the administrator: the commands that user may run), and
+when there is nothing to offer it says so (an accessory that has just restarted can report no commands at all: `T4_allowed` 0 and type `unknown`, seen on the phone that showed this). And the switch *Show extra buttons* stood 9 dp below the middle of its row: Ionic hangs a switch at a fixed distance from the top of a row of
+52 dp, and the rows of the skin are higher. Every switch in the app now stands in the middle of its row, 16 dp from the right edge. nx28 has version code 20201126.
 
 ## What is new in nx27 (one more password line masked in the Debug log)
 The first Debug log of nx26 showed a line that the masking missed: `_updateDeviceData verify [..] user: homeuser, password <the pairing password>`, without a colon after the word, so

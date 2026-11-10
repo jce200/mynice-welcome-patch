@@ -415,6 +415,12 @@ function sheet(env) { return env.document.getElementById('nx-sheet'); }
     const live = env.HS.homes[0].devices[0], r = env.$rootScope;
     ok('nx12 hook: the lists get their functions', ['nxExtra', 'nxQuickHas', 'nxQuickToggle', 'nxCanQuick', 'nxEditQuick', 'nxRun'].every((k) => typeof r[k] === 'function'));   // nx23: nxRun (the taps of the pad) instead of nxSent (a message at the tap, whether or not anything was sent)
     ok('nx12: the old optional command is the first choice', JSON.stringify(r.nxExtra(live)) === '["MDBk"]', JSON.stringify(r.nxExtra(live)));
+    // nx28: the list of the page "Extra buttons" does not depend on a VERIFY that succeeds at that moment
+    const own = [{ code: 'MDBk' }], saved = [{ code: 'MDBk' }, { code: 'MDFh' }], allowed = [{ code: 'MDFh' }];
+    ok('nx28 pick list: the list of the page itself when it has one', r.nxPickList({ secondaryCommands: own, device: { automations: [{ secondaryCommands: saved }] } }) === own);
+    ok('nx28 pick list: else what the app saved at the last INFO', r.nxPickList({ device: { automations: [{ secondaryCommands: saved }] } }) === saved && r.nxPickList({ secondaryCommands: [], device: { automations: [{ secondaryCommands: saved }] } }) === saved);
+    ok('nx28 pick list: for a user, the commands that user may run (a list of commands; the administrator has the flag true there)', r.nxPickList({ device: { automations: [{ secondaryCommands: saved, enabledSecondaryCommands: allowed }] } }) === allowed && r.nxPickList({ device: { automations: [{ secondaryCommands: saved, enabledSecondaryCommands: true }] } }) === saved);
+    ok('nx28 pick list: nothing known is an empty list, the same one every time (no digest loop), and junk does not throw', r.nxPickList({}) === r.nxPickList(null) && r.nxPickList({ device: {} }).length === 0 && r.nxPickList(undefined).length === 0);
     ok('nx12: nxQuickHas follows it', r.nxQuickHas(live, 'MDBk') === true && r.nxQuickHas(live, 'MDFh') === false);
     r.nxQuickToggle(live, { code: 'MDFh' });
     ok('nx12: ticking another one adds it behind the first', JSON.stringify(r.nxExtra(live)) === '["MDBk","MDFh"]', JSON.stringify(r.nxExtra(live)));

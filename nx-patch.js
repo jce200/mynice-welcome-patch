@@ -1343,6 +1343,20 @@
     $rootScope.nxLogOpen = function () { try { if (window.__nxLogShow) window.__nxLogShow(); } catch (e) { log('debug log', String(e)); } };
     $rootScope.nxExtra = extraCodes;
     $rootScope.nxQuickHas = function (device, code) { return quickCodes(device).indexOf(code) >= 0; };
+    // nx28: the commands that the page "Extra buttons" offers. The page of the app fills its list only after a VERIFY that succeeds at that moment (and says nothing when it fails with
+    // code 4, as it does through the Nice cloud now and then): the list stayed empty. The choice is kept on the phone, so the list does not need the accessory: until the page has its
+    // own, it shows what the app saved at the last INFO (for a user who is not the administrator: the commands that user may run). Always an array that already exists: no new object
+    // per digest.
+    var NO_COMMANDS = [];
+    $rootScope.nxPickList = function (data) {
+      try {
+        if (data && data.secondaryCommands && data.secondaryCommands.length) return data.secondaryCommands;
+        var a = data && data.device && data.device.automations && data.device.automations[0];
+        if (a && a.enabledSecondaryCommands && a.enabledSecondaryCommands.length && a.enabledSecondaryCommands[0] && a.enabledSecondaryCommands[0].code) return a.enabledSecondaryCommands;
+        if (a && a.secondaryCommands && a.secondaryCommands.length) return a.secondaryCommands;
+      } catch (e) { log('pick list', String(e)); }
+      return NO_COMMANDS;
+    };
     $rootScope.nxQuickToggle = quickToggle;
     $rootScope.nxCanQuick = canQuick;
     $rootScope.nxEditQuick = editQuick;

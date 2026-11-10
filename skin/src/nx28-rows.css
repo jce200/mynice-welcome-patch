@@ -1,0 +1,8 @@
+/* nx28: rows with a switch, and the page Extra buttons. */
+
+/* ============================================================ nx28: the switch of a row stands in the middle of the row
+   Ionic hangs the switch at a fixed distance from the top of the row (for its own row of 52 dp); in the rows of the skin, which grow with the text, it stood 9 dp too low. */
+{{P}} .item-toggle { min-height: 64px; display: flex; align-items: center; padding-left: 20px !important; }
+{{P}} .item-toggle .toggle { top: 50% !important; right: 16px !important; transform: translateY(-50%); margin: 0; }
+/* the page Extra buttons when there is no command to offer: the line that says why reads as a notice, not as one more hint */
+{{P}} .nx-pick-hint.nx-pick-empty { color: var(--md-sys-color-on-surface); font-weight: 500; }

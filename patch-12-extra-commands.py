@@ -98,17 +98,18 @@ def pick_new(m):
     return (
         '%s<div data-ng-if="nxQuickToggle">\n'
         '%s  <div class="nx-pick-hint">Each ticked command becomes a button under Open, Close and Stop.</div>\n'
-        '%s  <div class="item nx-pick" role="checkbox" tabindex="0" data-ng-repeat="item in data.secondaryCommands track by item.code"\n'
+        '%s  <div class="item nx-pick" role="checkbox" tabindex="0" data-ng-repeat="item in (nxPickList ? nxPickList(data) : data.secondaryCommands) track by item.code"\n'
         '%s       data-ng-class="{ \'nx-picked\': nxQuickHas(data.device, item.code) }" aria-checked="{{ nxQuickHas(data.device, item.code) }}"\n'
         '%s       data-ng-click="nxQuickToggle(data.device, item)">\n'
         '%s    <span translate="{{ \'DEVICE_COMMAND_\'+item.code }}"></span>\n'
         '%s    <i class="nx-tick" aria-hidden="true"></i>\n'
         '%s  </div>\n'
+        '%s  <div class="nx-pick-hint nx-pick-empty" data-ng-if="nxPickList && !nxPickList(data).length">The accessory reports no extra commands at the moment. That happens just after it restarted, or while it has no contact with the gate controller. Try again in a few minutes.</div>\n'
         '%s  <div class="nx-pick-hint">Block: the gate should ignore commands until you Release it.</div>\n'
         '%s</div>\n'
         '%s<div data-ng-if="!nxQuickToggle">\n'
         '%s  %s\n'
-        '%s</div>\n' % (i, i, i, i, i, i, i, i, i, i, i, i, m.group("radio"), i))
+        '%s</div>\n' % (i, i, i, i, i, i, i, i, i, i, i, i, i, m.group("radio"), i))
 
 
 pick, n2 = RE_PICK.subn(pick_new, pick)
