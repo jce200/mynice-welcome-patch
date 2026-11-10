@@ -1,0 +1,79 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Nice IT4WIFI toevoegen",
+        "description": "Vul het lokale adres, MAC-adres en de gebruikersnaam voor Home Assistant in.",
+        "data": {
+          "host": "IP-adres of hostnaam",
+          "mac": "MAC-adres IT4WIFI",
+          "username": "Nieuwe gebruikersnaam"
+        }
+      },
+      "pair": {
+        "title": "Home Assistant koppelen",
+        "description": "Vul de configuratiecode van module {host} in om gebruiker {username} te koppelen. Geef deze gebruiker indien nodig toestemming in de Nice-app.",
+        "data": {
+          "setup_code": "Configuratiecode van de IT4WIFI"
+        }
+      },
+      "reconfigure": {
+        "title": "Adres van de module wijzigen",
+        "description": "Het nieuwe adres wordt gecontroleerd met de bestaande aanmeldgegevens. Je entiteiten blijven behouden.",
+        "data": {
+          "host": "IP-adres of hostnaam"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Toegang tot Nice herstellen",
+        "description": "Koppel Home Assistant opnieuw. Houd de configuratiecode van de module bij de hand; toestemming in de Nice-app kan nodig zijn."
+      }
+    },
+    "error": {
+      "invalid_host": "Controleer het adres en MAC-adres.",
+      "cannot_connect": "Geen lokale verbinding met de IT4WIFI. Controleer het adres en het netwerk.",
+      "invalid_auth": "De module accepteert de code of aanmeldgegevens niet.",
+      "waiting_permission": "De gebruiker is aangemaakt. Geef toestemming in de Nice-app en probeer daarna opnieuw.",
+      "already_in_progress": "Configuration for this module is already in progress. Close the previous configuration window or finish the current one.",
+      "unknown": "Onverwachte fout. Controleer de Home Assistant-logboeken.",
+      "wrong_device": "Op dit adres staat een andere module.",
+      "pair_refused": "De module weigert het koppelen. De configuratiecode klopt niet, of er bestaat op de module al een gebruiker met deze naam: ga terug en kies een andere gebruikersnaam (bijvoorbeeld HomeAssistant2), of verwijder die gebruiker eerst in de Nice-app.",
+      "pair_no_answer": "De module is bereikbaar maar gaf geen antwoord op het verzoek. Wacht een paar seconden en probeer opnieuw; blijft het zo, kies dan een andere gebruikersnaam (mogelijk bestaat er op de module al een gebruiker met deze naam)."
+    },
+    "abort": {
+      "already_configured": "Deze module is al ingesteld.",
+      "already_in_progress": "Deze module wordt al ingesteld.",
+      "reauth_successful": "Toegang hersteld.",
+      "reconfigure_successful": "Adres bijgewerkt."
+    }
+  },
+  "entity": {
+    "cover": {
+      "gate": {
+        "name": "Hek"
+      }
+    },
+    "sensor": {
+      "gate_status": {
+        "name": "Hekstatus"
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Status verversen",
+        "description": "Tijden zijn in seconden na afloop van een verzoek. Na een commando of waargenomen beweging wordt tijdelijk vaker gemeten. Kies een duur van 0 om dit uit te zetten. Bij verbindingsproblemen wordt geleidelijk minder vaak geprobeerd.",
+        "data": {
+          "poll_interval": "Normaal verversinterval (15–300 seconden)",
+          "fast_poll_interval": "Tijdelijk sneller interval (5–30 seconden)",
+          "fast_poll_seconds": "Duur van sneller verversen (0–120 seconden)",
+          "max_backoff": "Langste interval bij verbindingsproblemen (60–900 seconden)"
+        }
+      }
+    },
+    "error": {
+      "invalid_intervals": "Het snellere interval mag niet groter zijn dan het normale interval. Het langste interval bij storingen moet minstens het normale interval zijn."
+    }
+  }
+}

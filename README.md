@@ -200,6 +200,13 @@ Three layers, applied by the `patch-*.py` scripts to the unpacked app:
 
 The full notes, with the diagnoses that led to each fix, are in [docs/DETAILS.md](docs/DETAILS.md).
 
+## Home Assistant
+
+The folder [homeassistant/](homeassistant/) holds a Home Assistant integration for the same module (*Nice Gate*, local, over the same NHK protocol): a cover,
+a status sensor, buttons for the other commands and a diagnostics download. Since its version 1.7.0 it keeps one session to the module open and follows the
+changes that the module pushes, instead of opening a new TLS session for every poll and every command. It is independent of the app: see
+[homeassistant/README.md](homeassistant/README.md). That folder is under the Apache License 2.0 (it started from another project), not under the licence below.
+
 ## Known limits
 
 - Only version 2.2.0 (90) of the app. Newer builds need new anchors.

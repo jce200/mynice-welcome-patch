@@ -1,0 +1,79 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Dodaj bramę Nice IT4WIFI",
+        "description": "Podaj lokalny adres IP lub nazwę hosta modułu IT4WIFI, jego adres MAC oraz nazwę nowego użytkownika, którego Home Assistant użyje do połączenia z bramą.",
+        "data": {
+          "host": "Adres IP / nazwa hosta modułu",
+          "mac": "Adres MAC modułu IT4WIFI",
+          "username": "Nazwa nowego użytkownika"
+        }
+      },
+      "pair": {
+        "title": "Parowanie użytkownika Home Assistant",
+        "description": "Wpisz kod konfiguracji z modułu IT4WIFI dla urządzenia {host}. Kod zostanie użyty do utworzenia użytkownika „{username}” dla Home Assistanta. Po utworzeniu użytkownika moduł może wymagać chwili na zaakceptowanie i nadanie uprawnień. Integracja spróbuje odświeżyć uprawnienia automatycznie. Dostępne funkcje będą zależeć od uprawnień nadanych temu użytkownikowi.",
+        "data": {
+          "setup_code": "Kod konfiguracji z modułu IT4WIFI"
+        }
+      },
+      "reconfigure": {
+        "title": "Change module address",
+        "description": "Verify the new address using the existing credentials. Your entities are retained.",
+        "data": {
+          "host": "Module IP / hostname"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Restore Nice access",
+        "description": "Re-pair Home Assistant with the module. Have the module configuration code ready; approval in the Nice app may be needed."
+      }
+    },
+    "error": {
+      "invalid_host": "Sprawdź adres hosta i adres MAC modułu.",
+      "cannot_connect": "Nie udało się połączyć z modułem IT4WIFI. Sprawdź adres hosta, połączenie z siecią lokalną i spróbuj ponownie po kilku sekundach.",
+      "invalid_auth": "Moduł odrzucił kod konfiguracji lub tworzenie użytkownika nie powiodło się.",
+      "waiting_permission": "Użytkownik został utworzony, ale moduł oczekuje jeszcze na akceptację / nadanie uprawnień. Zaczekaj chwilę i spróbuj ponownie. Zakres funkcji w integracji zależy od uprawnień tego użytkownika.",
+      "already_in_progress": "Konfiguracja tego modułu jest już w toku. Zamknij poprzednie okno konfiguracji albo dokończ bieżące.",
+      "unknown": "Wystąpił nieoczekiwany błąd. Sprawdź log Home Assistanta.",
+      "wrong_device": "This address belongs to a different module.",
+      "pair_refused": "The module refused the pairing. Either the configuration code is wrong, or a user with this name already exists on the module: go back and choose another user name (for example HomeAssistant2), or delete that user in the Nice app first.",
+      "pair_no_answer": "The module is reachable but did not answer the request. Wait a few seconds and try again; if it keeps happening, choose another user name (a user with this name may already exist on the module)."
+    },
+    "abort": {
+      "already_configured": "To urządzenie jest już skonfigurowane.",
+      "already_in_progress": "Konfiguracja tego modułu jest już w toku.",
+      "reauth_successful": "Access restored.",
+      "reconfigure_successful": "Address updated."
+    }
+  },
+  "entity": {
+    "cover": {
+      "gate": {
+        "name": "Brama"
+      }
+    },
+    "sensor": {
+      "gate_status": {
+        "name": "Stan bramy"
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Status refresh",
+        "description": "Intervals are in seconds after a request finishes. Faster polling is temporary after a command or detected movement. Set its duration to 0 to disable it. During an outage, retries gradually slow down.",
+        "data": {
+          "poll_interval": "Normal refresh interval (15–300 seconds)",
+          "fast_poll_interval": "Temporary faster interval (5–30 seconds)",
+          "fast_poll_seconds": "Duration of faster refresh (0–120 seconds)",
+          "max_backoff": "Maximum retry interval during an outage (60–900 seconds)"
+        }
+      }
+    },
+    "error": {
+      "invalid_intervals": "The faster interval must not exceed the normal interval, and the maximum retry interval must be at least the normal interval."
+    }
+  }
+}

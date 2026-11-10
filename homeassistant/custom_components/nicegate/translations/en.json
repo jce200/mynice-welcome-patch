@@ -1,0 +1,79 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Add Nice IT4WIFI gate",
+        "description": "Enter the local IP address or hostname of the IT4WIFI module, its MAC address, and the name of the new user that Home Assistant will use to connect to the gate.",
+        "data": {
+          "host": "Module IP / hostname",
+          "mac": "IT4WIFI MAC address",
+          "username": "New username"
+        }
+      },
+      "pair": {
+        "title": "Pair Home Assistant user",
+        "description": "Enter the configuration code from the IT4WIFI module for device {host}. The code will be used to create the user \"{username}\" for Home Assistant. The available integration features will depend on the permissions granted to this user.",
+        "data": {
+          "setup_code": "Configuration code from the IT4WIFI module"
+        }
+      },
+      "reconfigure": {
+        "title": "Change module address",
+        "description": "Verify the new address using the existing credentials. Your entities are retained.",
+        "data": {
+          "host": "Module IP / hostname"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Restore Nice access",
+        "description": "Re-pair Home Assistant with the module. Have the module configuration code ready; approval in the Nice app may be needed."
+      }
+    },
+    "error": {
+      "invalid_host": "Check the host address and the module MAC address.",
+      "cannot_connect": "Could not connect to the IT4WIFI module. Check the host address and your local network connection, then try again in a few seconds.",
+      "invalid_auth": "The module rejected the configuration code or user creation failed.",
+      "waiting_permission": "The user has been created, but the module is still waiting for approval / permissions. Available functions depend on that user's permissions.",
+      "already_in_progress": "Configuration for this module is already in progress. Close the previous configuration window or finish the current one.",
+      "unknown": "An unexpected error occurred. Check the Home Assistant log.",
+      "wrong_device": "This address belongs to a different module.",
+      "pair_refused": "The module refused the pairing. Either the configuration code is wrong, or a user with this name already exists on the module: go back and choose another user name (for example HomeAssistant2), or delete that user in the Nice app first.",
+      "pair_no_answer": "The module is reachable but did not answer the request. Wait a few seconds and try again; if it keeps happening, choose another user name (a user with this name may already exist on the module)."
+    },
+    "abort": {
+      "already_configured": "This device is already configured.",
+      "already_in_progress": "Configuration for this module is already in progress.",
+      "reauth_successful": "Access restored.",
+      "reconfigure_successful": "Address updated."
+    }
+  },
+  "entity": {
+    "cover": {
+      "gate": {
+        "name": "Gate"
+      }
+    },
+    "sensor": {
+      "gate_status": {
+        "name": "Gate status"
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Status refresh",
+        "description": "Intervals are in seconds after a request finishes. Faster polling is temporary after a command or detected movement. Set its duration to 0 to disable it. During an outage, retries gradually slow down.",
+        "data": {
+          "poll_interval": "Normal refresh interval (15–300 seconds)",
+          "fast_poll_interval": "Temporary faster interval (5–30 seconds)",
+          "fast_poll_seconds": "Duration of faster refresh (0–120 seconds)",
+          "max_backoff": "Maximum retry interval during an outage (60–900 seconds)"
+        }
+      }
+    },
+    "error": {
+      "invalid_intervals": "The faster interval must not exceed the normal interval, and the maximum retry interval must be at least the normal interval."
+    }
+  }
+}
