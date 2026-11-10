@@ -33,6 +33,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.net.ssl.SSLContext;
@@ -51,7 +52,7 @@ public final class Nx {
     private Nx() { }
 
     static final String TAG = "NX";
-    public static final String PATCH_VERSION = "nx-25";
+    public static final String PATCH_VERSION = "nx-26";
 
     /** Log channel to the LOG panel in the app (see NxPlugin 'logStream'). */
     static volatile CallbackContext logCb;
@@ -82,6 +83,37 @@ public final class Nx {
                 l.sendPluginResult(r);
             } catch (Throwable ignored) { }
         }
+    }
+
+    // ------------------------------------------------------------------ events the app does not read (nx26)
+
+    private static final Pattern EVENT_TYPE = Pattern.compile("<Event\\b[^>]*\\btype=\"([^\"]*)\"");
+    private static final Pattern EVENT_KNOWN = Pattern.compile("^(CHANGE|USER_NEW|USER_EDIT|GROUP_EDIT|TABLE_CHANGE|BINDING)$");
+
+    /** Called by MessageParser for every event, before the app parses it (patch-22). Never throws. */
+    public static void noteEvent(String xml) {
+        try {
+            String d = describeEvent(xml);
+            if (d != null) log(d);
+        } catch (Throwable ignored) { }
+    }
+
+    /**
+     * The line for the Debug log, or null for an event that the app reads completely. An event of a type that the app does not know
+     * (DIAGNOSTIC) and an event with EventDetails are written out, without the names, the addresses and the signature in them.
+     */
+    static String describeEvent(String xml) {
+        if (xml == null) return null;
+        Matcher m = EVENT_TYPE.matcher(xml);
+        String type = m.find() ? m.group(1) : "";
+        boolean known = EVENT_KNOWN.matcher(type).matches();
+        if (known && !xml.contains("EventDetails")) return null;
+        String s = xml.replaceAll("[\\u0000-\\u001f]+", " ").replaceAll("\\s+", " ").trim();
+        s = s.replaceAll("\\b(source|target|gw|username|user)=\"[^\"]*\"", "$1=\"...\"");
+        s = s.replaceAll("<(Sign|SerialNr|User|Username)>[^<]*</\\1>", "<$1>...</$1>");
+        s = s.replaceAll("(?i)\\b[0-9a-f]{2}([:-][0-9a-f]{2}){5}\\b", "..:..:..");
+        if (s.length() > 1800) s = s.substring(0, 1800) + " ... (" + s.length() + " characters)";
+        return "event " + (type.length() == 0 ? "(no type)" : type) + (known ? " with details the app does not read: " : " (not read by the app): ") + s;
     }
 
     // ------------------------------------------------------------------ small helpers

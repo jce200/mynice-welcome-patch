@@ -77,7 +77,25 @@ public class NxTest {
         is("routeLabel without destination and interface", "?", Nx.routeLabel(null, null));
         is("vpnRouteFor: invalid address", null, Nx.vpnRouteFor(null, new java.util.ArrayList<android.net.Network>(), "no-ip"));
         is("vpnRouteFor: no VPN networks", null, Nx.vpnRouteFor(null, new java.util.ArrayList<android.net.Network>(), "192.168.1.72"));
-        is("version", "nx-25", Nx.PATCH_VERSION);
+        is("version", "nx-26", Nx.PATCH_VERSION);
+
+        // nx26: events that the app does not read go to the Debug log, without names, addresses and the signature
+        String diag = "<Event id=\"7\" source=\"AA:BB:CC:DD:EE:FF\" target=\"homeuser\" gw=\"gw1\" protocolType=\"NHK\" type=\"DIAGNOSTIC\">\n<Timestamp>2026-11-10T08:00:00</Timestamp>"
+                + "<Devices><Device id=\"1\"><SerialNr>12345</SerialNr><Properties><EventDetails><CauseCode>12</CauseCode><ManoeuvreCount>4711</ManoeuvreCount></EventDetails></Properties></Device></Devices><Sign>c2lnbg==</Sign></Event>";
+        String line = Nx.describeEvent(diag);
+        is("event: a DIAGNOSTIC event is described", true, line != null && line.startsWith("event DIAGNOSTIC (not read by the app): <Event"));
+        is("event: ...with its details", true, line.contains("<CauseCode>12</CauseCode>") && line.contains("<ManoeuvreCount>4711</ManoeuvreCount>"));
+        is("event: ...without the address, the user, the gateway, the serial number and the signature", false,
+                line.contains("AA:BB") || line.contains("homeuser") || line.contains("gw1") || line.contains("12345") || line.contains("c2lnbg"));
+        is("event: ...on one line", false, line.contains("\n"));
+        String change = "<Event source=\"x\" target=\"y\" type=\"CHANGE\"><Timestamp>t</Timestamp><Devices><Device id=\"1\"><Properties><DoorStatus>open</DoorStatus></Properties></Device></Devices></Event>";
+        is("event: a CHANGE event that the app reads completely is not written", null, Nx.describeEvent(change));
+        is("event: a CHANGE event with details is", true, String.valueOf(Nx.describeEvent(change.replace("</Properties>", "<EventDetails><CauseCode>3</CauseCode></EventDetails></Properties>"))).startsWith("event CHANGE with details the app does not read: "));
+        is("event: no type", true, String.valueOf(Nx.describeEvent("<Event><Timestamp>t</Timestamp></Event>")).startsWith("event (no type) (not read by the app): "));
+        is("event: nothing", null, Nx.describeEvent(null));
+        Nx.noteEvent(null); Nx.noteEvent(diag);   // must not throw (no log channel here)
+        StringBuilder big = new StringBuilder("<Event type=\"DIAGNOSTIC\">"); for (int i = 0; i < 400; i++) big.append("<X>0123456789</X>");
+        is("event: a very long event is cut", true, Nx.describeEvent(big.toString()).length() < 1900);
 
         // nx5: does the stored address fit the network? (only the pure calculation rule; the Android calls run on a phone)
         byte[] phone = { (byte) 192, (byte) 168, 1, 50 };

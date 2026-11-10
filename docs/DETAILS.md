@@ -1,8 +1,17 @@
 # Details and history
 
 This is the technical background to the [README.md](../README.md): why every change exists, with the diagnoses that led to them
-(nx3 through nx25: the project's build numbers). The example values (Wi-Fi `HomeWifi`, accessory `NiceIT4WIFIAABBCC`, user
+(nx3 through nx26: the project's build numbers). The example values (Wi-Fi `HomeWifi`, accessory `NiceIT4WIFIAABBCC`, user
 `homeuser`) stand in for whatever is different in your case. The data in this document comes from one phone and one IT4WIFI module.
+
+## What is new in nx26 (the events that the app does not read are written to the Debug log)
+The current MyNice app of Nice (1.3.1, a new native app that speaks the same protocol to the IT4WIFI) listens to an event that the app of this kit throws away: next to `CHANGE` (the
+state of the gate) the accessory sends events of the type `DIAGNOSTIC`, with `EventDetails`: a cause code (why a manoeuvre ended), the state of the photocells (`BlueBusErrStatus`),
+the number of manoeuvres and the threshold for maintenance (`ManoeuvreCount`, `ManoeuvreThLimit`), the average motor current, the battery level. The old app knows six event types and
+answers every other one with "Event type unknown!". Which of these fields a given gate controller really fills is not known, so nx26 is a first step that changes nothing on the
+screen: `patch-22-diagnostic.py` passes the text of every event to `Nx.noteEvent` before the app parses it, and an event of a type the app does not know, or one with details the app
+does not read, is written to the Debug log as one line (`event DIAGNOSTIC (not read by the app): <Event ...>`), with the addresses, the names, the serial number and the signature
+replaced by dots. Use the gate for a while (open, close, stop it halfway, break the photocell beam) and send the Debug log. nx26 has version code 20201124.
 
 ## What is new in nx25 (everything on one left edge, and a backdrop if you want one)
 nx24 still looked untidy, and measuring the screens showed why: things that should stand on one line did not. **The header.** The app writes the title of a page as plain text on one
@@ -874,7 +883,7 @@ is a reset of the accessory.
 ## Building and the files
 
 See [README.md](../README.md) for the steps (`./get-tools.sh`, then `./build.sh <original.apk>`). The script unpacks the original APK,
-applies `patch-01-wifi-binding.py` through `patch-21-copy.py`, builds the Java layer (`java/src/com/nice/patch`) into `classes2.dex`,
+applies `patch-01-wifi-binding.py` through `patch-22-diagnostic.py` (`patch-21-copy.py` last), builds the Java layer (`java/src/com/nice/patch`) into `classes2.dex`,
 adds it, aligns, signs with your key in `keys/` and checks the result (`verify-apk.py`, if `androguard` and `loguru` are installed).
 Every patch checks that its anchor text occurs exactly once, so a different APK version is not silently patched wrongly.
 
@@ -896,6 +905,7 @@ Every patch checks that its anchor text occurs exactly once, so a different APK 
 | `patch-19-lists.py` | nx23: the Favorites card and its tap, the hint and the groups of Other commands, and the row Debug log in the settings |
 | `patch-20-wizard.py` | nx23: the texts and states of the set-up (six templates) and the two pages of a full accessory |
 | `patch-21-copy.py`, `skin/copy/` | nx23: the English wording of the original app: `*.json` give new text for keys of `locale-en.json`, `templates.json` lists exact edits of templates (every `old` text must occur once); nothing is written unless everything matched |
+| `patch-22-diagnostic.py` | nx26: the events of the accessory that the app does not read (DIAGNOSTIC) go to the Debug log |
 | `patch-09-socket-fallback.py` | nx7: `socketFor` in `_openSocket` (EPERM fallback) and the VPN guard in both `bindNiceWifi` copies |
 | `patch-08-route-choice.py` | nx6: hooks in `ConnectionsManager`: `vetLocal` (vetting the local address), `noteRoute` (remembering the chosen route), `socketAddress` (name resolution with a fallback) |
 | `patch-07-vpn-binding.py` | nx4: skipping VPN networks in the bind loop, `Nx.wifiType`/`Nx.ctx` in the Wi-Fi receiver, the `__nxWrapVerify` hook in `app.min.js` |

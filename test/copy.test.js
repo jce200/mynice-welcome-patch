@@ -212,7 +212,7 @@ ok('two files may give the same text for a key', r.status === 0 && JSON.parse(en
     console.log('note  harness/www is not there, so the keys of skin/copy/ were not compared with the English file of the app');
   }
   const build = fs.readFileSync(path.join(ROOT, 'build.sh'), 'utf8');
-  ok('build.sh runs patch-21-copy.py as the last script', /patch-20-wizard\.py patch-21-copy\.py; do/.test(build));
+  ok('build.sh runs patch-21-copy.py as the last script', / patch-21-copy\.py; do/.test(build));
 }
 
 fs.rmSync(tmp, { recursive: true, force: true });
