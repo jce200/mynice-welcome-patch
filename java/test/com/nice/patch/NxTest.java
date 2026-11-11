@@ -77,7 +77,7 @@ public class NxTest {
         is("routeLabel without destination and interface", "?", Nx.routeLabel(null, null));
         is("vpnRouteFor: invalid address", null, Nx.vpnRouteFor(null, new java.util.ArrayList<android.net.Network>(), "no-ip"));
         is("vpnRouteFor: no VPN networks", null, Nx.vpnRouteFor(null, new java.util.ArrayList<android.net.Network>(), "192.168.1.72"));
-        is("version", "nx-28", Nx.PATCH_VERSION);
+        is("version", "nx-29", Nx.PATCH_VERSION);
 
         // nx26: events that the app does not read go to the Debug log, without names, addresses and the signature
         String diag = "<Event id=\"7\" source=\"AA:BB:CC:DD:EE:FF\" target=\"homeuser\" gw=\"gw1\" protocolType=\"NHK\" type=\"DIAGNOSTIC\">\n<Timestamp>2026-11-10T08:00:00</Timestamp>"
@@ -93,6 +93,14 @@ public class NxTest {
         is("event: a CHANGE event with details is", true, String.valueOf(Nx.describeEvent(change.replace("</Properties>", "<EventDetails><CauseCode>3</CauseCode></EventDetails></Properties>"))).startsWith("event CHANGE with details the app does not read: "));
         is("event: no type", true, String.valueOf(Nx.describeEvent("<Event><Timestamp>t</Timestamp></Event>")).startsWith("event (no type) (not read by the app): "));
         is("event: nothing", null, Nx.describeEvent(null));
+
+        // nx29: a line that would be written for every request is written once a minute, with the number left out
+        is("quiet: the first time the line is written", "route x", Nx.quietLine("route x", 1000));
+        is("quiet: a copy within the minute is held back", null, Nx.quietLine("route x", 2000));
+        is("quiet: ...and another", null, Nx.quietLine("route x", 30000));
+        is("quiet: another line is not held back by it", "route y", Nx.quietLine("route y", 30000));
+        is("quiet: after the minute it is written again, with what was left out", "route x (said 2 more times since the last line)", Nx.quietLine("route x", 1000 + Nx.QUIET_MS));
+        is("quiet: ...and plain when nothing was left out", "route x", Nx.quietLine("route x", 1000 + 2 * Nx.QUIET_MS + 1));
         is("event: the type of an event", "CHANGE", Nx.eventType(change));
         Nx.noteEvent(change); Nx.noteEvent(change);   // said once, must not throw
         Nx.noteEvent(null); Nx.noteEvent(diag);   // must not throw (no log channel here)

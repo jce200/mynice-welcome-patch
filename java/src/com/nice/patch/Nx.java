@@ -52,7 +52,7 @@ public final class Nx {
     private Nx() { }
 
     static final String TAG = "NX";
-    public static final String PATCH_VERSION = "nx-28";
+    public static final String PATCH_VERSION = "nx-29";
 
     /** Log channel to the LOG panel in the app (see NxPlugin 'logStream'). */
     static volatile CallbackContext logCb;
@@ -125,6 +125,37 @@ public final class Nx {
         s = s.replaceAll("(?i)\\b[0-9a-f]{2}([:-][0-9a-f]{2}){5}\\b", "..:..:..");
         if (s.length() > 1800) s = s.substring(0, 1800) + " ... (" + s.length() + " characters)";
         return "event " + (type.length() == 0 ? "(no type)" : type) + (known ? " with details the app does not read: " : " (not read by the app): ") + s;
+    }
+
+    /**
+     * A line that the app would write for every single request (the route is chosen again each time): it is written once, and
+     * again only after QUIET_MS, then with the number of times it was left out. nx29: two such lines filled the Debug log with
+     * hundreds of copies, and what mattered no longer fitted in what a phone can copy.
+     */
+    static final long QUIET_MS = 60000L;
+    private static final Map<String, long[]> quiet = new HashMap<String, long[]>();
+
+    public static void logQuiet(String msg) {
+        // logging must never change what the caller does: any failure here ends in a plain log line
+        String out = msg;
+        try {
+            long now;
+            try { now = SystemClock.elapsedRealtime(); } catch (Throwable t) { now = System.nanoTime() / 1000000L; }
+            out = quietLine(msg, now);
+        } catch (Throwable ignored) { }
+        if (out != null) log(out);
+    }
+
+    /** The line to write now, or null while it is held back. state[0]: when it was last written, state[1]: copies left out since. */
+    static String quietLine(String msg, long now) {
+        synchronized (quiet) {
+            if (quiet.size() > 64) quiet.clear();
+            long[] state = quiet.get(msg);
+            if (state != null && now - state[0] < QUIET_MS) { state[1]++; return null; }
+            long skipped = state == null ? 0 : state[1];
+            quiet.put(msg, new long[] { now, 0 });
+            return skipped > 0 ? msg + " (said " + skipped + " more times since the last line)" : msg;
+        }
     }
 
     // ------------------------------------------------------------------ small helpers
@@ -435,7 +466,7 @@ public final class Nx {
             String addr = c.getAddress();
             if (addr == null || !IPV4.matcher(addr).matches()) return c;
             if (hintAllowed(addr)) return c;
-            log("local address " + addr + " is not reachable from the phone on this network; the app falls back to the Nice cloud");
+            logQuiet("local address " + addr + " is not reachable from the phone on this network; the app falls back to the Nice cloud");
             return null;
         } catch (Throwable t) {
             return c;
@@ -624,7 +655,7 @@ public final class Nx {
             String addr = hints.get(mac.toUpperCase(Locale.US));
             if (addr == null) return null;
             if (!hintAllowed(addr)) {
-                log("stored address " + addr + " does not fit this network; the app falls back to the Nice cloud, like the original");
+                logQuiet("stored address " + addr + " does not fit this network; the app falls back to the Nice cloud, like the original");
                 return null;
             }
             ConnectionContext c = new ConnectionContext();

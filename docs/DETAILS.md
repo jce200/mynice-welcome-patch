@@ -1,8 +1,14 @@
 # Details and history
 
 This is the technical background to the [README.md](../README.md): why every change exists, with the diagnoses that led to them
-(nx3 through nx28: the project's build numbers). The example values (Wi-Fi `HomeWifi`, accessory `NiceIT4WIFIAABBCC`, user
+(nx3 through nx29: the project's build numbers). The example values (Wi-Fi `HomeWifi`, accessory `NiceIT4WIFIAABBCC`, user
 `homeuser`) stand in for whatever is different in your case. The data in this document comes from one phone and one IT4WIFI module.
+
+## What is new in nx29 (a Debug log without hundreds of copies of the same line)
+On a phone that cannot reach the accessory locally (another Wi-Fi, or a VPN) the app chooses its route again for every request, and the native layer wrote two lines each time
+(`local address ... is not reachable from the phone on this network` and `stored address ... does not fit this network`): hundreds of copies in a few minutes, so that the lines that
+mattered (`[NX] state:`, `event ...`) no longer fitted in what a phone can copy and paste. Such a line is now written once, and again after a minute at the earliest, then with the
+number of times it was left out (`Nx.logQuiet`). Nothing else changed. nx29 has version code 20201127.
 
 ## What is new in nx28 (the page Extra buttons: a list that is always there, and a switch in the middle of its row)
 On a phone that reached the accessory through the Nice cloud the page *Extra buttons* showed its heading and its two hints, and no commands to tick. The page of the app fills the list
