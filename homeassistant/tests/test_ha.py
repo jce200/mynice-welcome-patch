@@ -66,7 +66,7 @@ async def test_integration(hass, monkeypatch):
     # the diagnostics download
     from custom_components.nicegate.diagnostics import async_get_config_entry_diagnostics
     diag = await async_get_config_entry_diagnostics(hass, entry)
-    assert diag["integration_version"] == "1.7.2" and diag["connection"]["session_open"] is True and diag["connection"]["sessions_opened"] == 2
+    assert diag["integration_version"] == "1.8.0" and diag["connection"]["session_open"] is True and diag["connection"]["sessions_opened"] == 2
     assert PWD not in str(diag) and MAC not in str(diag)
     # the module disappears: unavailable; it comes back: available again
     for w in list(mod.conns): w.transport.abort()
@@ -82,3 +82,56 @@ async def test_integration(hass, monkeypatch):
     await _settle(hass)
     assert not mod2.conns
     mod2.server.close()
+
+
+async def test_position(hass, monkeypatch):
+    """The estimated position: learned from full runs, frozen by a stop, kept over a reload."""
+    from custom_components.nicegate import travel
+    monkeypatch.setattr(travel, "MIN_TRAVEL_SECONDS", 0.5)
+    mod = Module(); await mod.start()
+    real = asyncio.open_connection
+    async def open_conn(host, port, **kw):
+        return await real("127.0.0.1", mod.port, **kw)
+    monkeypatch.setattr(nice_api.asyncio, "open_connection", open_conn)
+    entry = MockConfigEntry(domain="nicegate", unique_id=MAC, data={CONF_HOST: "192.0.2.10", "mac": MAC, CONF_USERNAME: "u", CONF_PASSWORD: PWD})
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    cover = hass.states.async_entity_ids("cover")[0]
+    pos = lambda: hass.states.get(cover).attributes.get("current_position")
+    attr = lambda k: hass.states.get(cover).attributes.get(k)
+    async def say(status, wait=0.1):
+        mod.status = status; await mod.push(); await _settle(hass, wait)
+    assert hass.states.get(cover).state == "closed" and pos() == 0
+    # the first run: nothing is known yet, so no position is invented
+    await say("opening", 2.0)
+    assert hass.states.get(cover).state == "opening" and pos() is None and attr("travel_time_open") is None
+    await say("open")
+    assert pos() == 100 and 1.8 <= attr("travel_time_open") <= 2.5
+    await say("closing", 2.0); await say("closed")
+    assert pos() == 0 and 1.8 <= attr("travel_time_close") <= 2.5
+    # now a run is drawn: the position moves while the gate moves (the state is written once a second) ...
+    await say("opening", 1.1)
+    assert attr("position_at_start") == 0 and attr("movement_started")
+    assert 35 <= pos() <= 70, pos()
+    # ... and a stop freezes it where it is; the cover is not "open at 100"
+    await say("stopped")
+    stopped_at = pos()
+    assert 35 <= stopped_at <= 75 and attr("raw_status") == "stopped" and attr("movement_started") is None
+    await _settle(hass, 1.2)
+    assert pos() == stopped_at
+    # it goes on from there
+    await say("closing", 0.1)
+    assert attr("position_at_start") == stopped_at or abs(attr("position_at_start") - stopped_at) <= 1
+    await say("closed")
+    assert pos() == 0
+    # kept over a reload
+    learned = (attr("travel_time_open"), attr("travel_time_close"))
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    assert (attr("travel_time_open"), attr("travel_time_close")) == learned and pos() == 0
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    await _settle(hass)
+    mod.server.close()

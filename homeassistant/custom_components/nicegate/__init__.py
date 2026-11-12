@@ -54,6 +54,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.setdefault(DOMAIN, {})
     api = NiceGateApi(entry.data[CONF_HOST], entry.data[CONF_MAC], entry.data[CONF_USERNAME], entry.data[CONF_PASSWORD])
     coordinator = NiceCoordinator(hass, api, entry)
+    await coordinator.async_load_travel()
     try:
         await coordinator.async_initial_load()
     except Exception:
@@ -84,6 +85,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         unsub = runtime.pop("button_unsub", None)
         if unsub:
             unsub()
+        await runtime["coordinator"].async_save_travel()
         await runtime["coordinator"].async_shutdown()
         await runtime["api"].disconnect()
     return unload_ok

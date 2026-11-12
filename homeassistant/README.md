@@ -19,7 +19,7 @@ means pairing again (with a new user name, or after deleting the old user in the
 
 It started from [PatrikTrestik/homeassistant_nicegate](https://github.com/PatrikTrestik/homeassistant_nicegate) (Apache License 2.0, see [LICENSE](LICENSE))
 and has been rewritten since: bounded and serialized requests, error categories, options, reauthentication and diagnostics (1.6.0), and one persistent session
-with pushed status instead of a new TLS session for every request (1.7.0). This folder is under the Apache License 2.0 like the original; the rest of the
+with pushed status instead of a new TLS session for every request (1.7.0), and an estimated position of the gate from travel times it learns itself (1.8.0). This folder is under the Apache License 2.0 like the original; the rest of the
 repository has its own licence.
 
 ## Tests
@@ -27,6 +27,7 @@ repository has its own licence.
 `tests/it4wifi_sim.py` is a simulated IT4WIFI (TLS, VERIFY, CONNECT, PAIR, signed requests, pushed events, and the ways a module fails).
 
 ```
+python3 tests/test_travel.py                  # the position model alone: needs nothing
 python3 tests/test_session.py                 # the client alone: needs defusedxml and the openssl command
 python -m pytest tests/test_ha.py             # in Home Assistant: needs homeassistant and pytest-homeassistant-custom-component
 ```

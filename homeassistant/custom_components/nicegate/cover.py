@@ -1,12 +1,14 @@
 """Cover platform for Nice Gate."""
 from __future__ import annotations
 
+from datetime import timedelta
 from typing import Any
 
 from homeassistant.components.cover import CoverDeviceClass, CoverEntity, CoverEntityFeature
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import STATE_CLOSED, STATE_CLOSING, STATE_OPENING
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -22,7 +24,7 @@ class NiceGateCover(CoordinatorEntity[NiceCoordinator], CoverEntity):
     _attr_device_class = CoverDeviceClass.GATE
     _attr_has_entity_name = True
     _attr_name = "Gate"
-    _unrecorded_attributes = frozenset({"last_successful_update"})
+    _unrecorded_attributes = frozenset({"last_successful_update", "movement_started", "position_at_start"})
     _attr_translation_key = "gate"
     _attr_supported_features = CoverEntityFeature.OPEN | CoverEntityFeature.CLOSE | CoverEntityFeature.STOP
 
@@ -30,6 +32,38 @@ class NiceGateCover(CoordinatorEntity[NiceCoordinator], CoverEntity):
         super().__init__(coordinator)
         self._attr_unique_id = device_id
         self._attr_device_info = device_info
+        self._tick = None
+
+    # ---- the estimated position (travel.py): while the gate moves the state is written once a second, so that the position moves too
+    @property
+    def current_cover_position(self) -> int | None:
+        position = self.coordinator.travel.position_at(self.hass.loop.time())
+        return None if position is None else int(round(position))
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        travel = self.coordinator.travel
+        moving = travel.moving() and travel.travel_time(travel.status or "") is not None
+        if moving and self._tick is None:
+            self._tick = async_track_time_interval(self.hass, self._on_tick, timedelta(seconds=1))
+        elif not moving:
+            self._stop_tick()
+        super()._handle_coordinator_update()
+
+    @callback
+    def _on_tick(self, _now) -> None:
+        if not self.coordinator.travel.moving():
+            self._stop_tick()
+        self.async_write_ha_state()
+
+    def _stop_tick(self) -> None:
+        if self._tick is not None:
+            self._tick()
+            self._tick = None
+
+    async def async_will_remove_from_hass(self) -> None:
+        self._stop_tick()
+        await super().async_will_remove_from_hass()
 
     def _door_status(self) -> str:
         return str((self.coordinator.data or {}).get("door_status") or "").strip().lower()
@@ -60,6 +94,7 @@ class NiceGateCover(CoordinatorEntity[NiceCoordinator], CoverEntity):
             "raw_status": data.get("door_status"),
             "obstruct": data.get("obstruct"),
             "last_successful_update": self.coordinator.last_successful_update,
+            **self.coordinator.travel_attributes(),
         }
 
     async def async_open_cover(self, **kwargs: Any) -> None:

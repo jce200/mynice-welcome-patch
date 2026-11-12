@@ -1,6 +1,24 @@
-# Nice Gate 1.7.2 (local maintenance release)
+# Nice Gate 1.8.0 (local maintenance release)
 
 Home Assistant integration for the local Nice IT4WIFI NHK interface.
+
+## New in 1.8.0: where the gate is
+
+The module reports no position, only when the gate starts, stops and arrives. From 1.8.0 the cover has an estimated position (`current_position`, 0 closed to
+100 open), so that a card or an animation can draw the gate where it is:
+
+- **The travel time is learned, not configured.** Every run that goes from one end to the other without a stop, and whose start and end were both pushed by
+  the module, is timed; per direction the median of the last five runs counts. Until a direction has been measured once, the position during a run in that
+  direction is unknown: nothing is guessed. One full open and one full close are enough.
+- **While the gate moves** the position is where the run started plus the share of the travel time that has passed, and the state is written once a second.
+  It does not reach 0 or 100 before the module says closed or open.
+- **A stop freezes it** where it was, and the next run goes on from there. A gate that turns around while moving turns around where it was.
+- **For a smooth animation** the cover has the attributes `travel_time_open`, `travel_time_close` (seconds), `movement_started` (when the current run
+  started) and `position_at_start`: with these a card can draw every frame itself instead of waiting for the update of each second. `raw_status` says
+  opening, closing, open, closed or stopped; the state of the cover shows a stopped gate as open.
+- The travel times and a stopped position are kept over a restart of Home Assistant.
+
+The position is an estimate: a gate that slows down before its end, or is slowed by wind, is a little ahead of or behind the drawing until it arrives.
 
 ## New in 1.7.0: one connection that stays open
 
