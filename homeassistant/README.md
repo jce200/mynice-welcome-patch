@@ -6,6 +6,11 @@ the other T4 commands, and a diagnostics download. It is unofficial and not affi
 It lives in this repository because it speaks the same protocol to the same module as the app that the rest of the repository patches, and what was learned
 there went into it. The details of the integration, its behaviour and its history are in [custom_components/nicegate/README.md](custom_components/nicegate/README.md).
 
+## Building on it
+
+[INTERFACE.md](INTERFACE.md) lists every entity and attribute and what it means, including how to draw the gate from the estimated position. Read that page
+before you build a card, an animation or an automation on the integration, and keep it up to date when the integration changes.
+
 ## Install
 
 Copy the folder `custom_components/nicegate` into the `custom_components` folder of your Home Assistant configuration and restart Home Assistant. Then add
