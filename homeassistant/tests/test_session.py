@@ -10,7 +10,7 @@ sys.path.insert(0, HERE)
 from it4wifi_sim import MAC, PWD, Module
 # nicegate.const imports homeassistant.const.Platform: a stub is enough for the client
 ha = types.ModuleType("homeassistant"); hc = types.ModuleType("homeassistant.const")
-class Platform: COVER = "cover"; SENSOR = "sensor"; BUTTON = "button"
+class Platform: COVER = "cover"; SENSOR = "sensor"; BINARY_SENSOR = "binary_sensor"; BUTTON = "button"
 hc.Platform = Platform; sys.modules["homeassistant"] = ha; sys.modules["homeassistant.const"] = hc
 sys.path.insert(0, os.path.dirname(PKG))
 pkg = types.ModuleType("nicegate"); pkg.__path__ = [PKG]; sys.modules["nicegate"] = pkg

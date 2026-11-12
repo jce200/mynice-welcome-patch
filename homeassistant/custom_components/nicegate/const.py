@@ -7,6 +7,7 @@ DOMAIN = "nicegate"
 PLATFORMS: list[Platform] = [
     Platform.COVER,
     Platform.SENSOR,
+    Platform.BINARY_SENSOR,
     Platform.BUTTON,
 ]
 

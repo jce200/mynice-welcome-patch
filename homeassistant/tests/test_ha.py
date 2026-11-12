@@ -32,7 +32,7 @@ async def test_integration(hass, monkeypatch):
     covers = hass.states.async_entity_ids("cover"); assert len(covers) == 1
     cover = covers[0]
     assert hass.states.get(cover).state == "closed"
-    sensor = [e for e in hass.states.async_entity_ids("sensor")][0]
+    sensor = [e for e in hass.states.async_entity_ids("sensor") if e.endswith("gate_status")][0]
     assert hass.states.get(sensor).state == "closed"
     assert mod.sessions == 1                       # setup (STATUS + INFO) used one session
     # a command: confirmed, and the state follows from the pushed event, without waiting for a poll
@@ -66,7 +66,7 @@ async def test_integration(hass, monkeypatch):
     # the diagnostics download
     from custom_components.nicegate.diagnostics import async_get_config_entry_diagnostics
     diag = await async_get_config_entry_diagnostics(hass, entry)
-    assert diag["integration_version"] == "1.8.0" and diag["connection"]["session_open"] is True and diag["connection"]["sessions_opened"] == 2
+    assert diag["integration_version"] == "1.9.0" and diag["connection"]["session_open"] is True and diag["connection"]["sessions_opened"] == 2
     assert PWD not in str(diag) and MAC not in str(diag)
     # the module disappears: unavailable; it comes back: available again
     for w in list(mod.conns): w.transport.abort()
@@ -125,6 +125,19 @@ async def test_position(hass, monkeypatch):
     assert attr("position_at_start") == stopped_at or abs(attr("position_at_start") - stopped_at) <= 1
     await say("closed")
     assert pos() == 0
+    # the same as entities of their own
+    sid = lambda end: [e for e in hass.states.async_entity_ids() if e.endswith(end)][0]
+    assert hass.states.get(sid("gate_position")).state == "0" and hass.states.get(sid("gate_position")).attributes["unit_of_measurement"] == "%"
+    assert float(hass.states.get(sid("travel_time_open")).state) == attr("travel_time_open")
+    assert float(hass.states.get(sid("travel_time_close")).state) == attr("travel_time_close")
+    assert hass.states.get(sid("_obstruction")).state == "off"
+    await say("opening", 1.2)
+    assert 35 <= int(hass.states.get(sid("gate_position")).state) <= 75        # the sensor moves with the gate too
+    mod.status = "stopped"
+    await mod.push("CHANGE", '<Devices><Device id="1"><Properties><DoorStatus>stopped</DoorStatus><Obstruct>1</Obstruct></Properties></Device></Devices>'); await _settle(hass)
+    assert hass.states.get(sid("_obstruction")).state == "on"
+    await say("closing", 0.1); await say("closed")
+    assert hass.states.get(sid("_obstruction")).state == "off" and hass.states.get(sid("gate_position")).state == "0"
     # kept over a reload
     learned = (attr("travel_time_open"), attr("travel_time_close"))
     assert await hass.config_entries.async_unload(entry.entry_id)

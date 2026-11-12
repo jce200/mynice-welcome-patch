@@ -7,7 +7,8 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.exceptions import ConfigEntryAuthFailed, HomeAssistantError
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -39,6 +40,7 @@ class NiceCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # where the gate is, estimated from the travel times it learned (travel.py); kept over a restart
         self.travel = TravelModel()
         self.movement_started: str | None = None
+        self._tick = None
         self._travel_store: Store | None = Store(hass, 1, f"nicegate.{entry.entry_id}.travel") if entry else None
         self._reconnecting = False
         api.set_listener(self._handle_push)
@@ -63,6 +65,29 @@ class NiceCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if self.travel.changed and self._travel_store:
             self.travel.changed = False
             self._travel_store.async_delay_save(self.travel.dump, 5)
+        self._set_ticking(self.travel.moving() and self.travel.travel_time(self.travel.status or "") is not None)
+
+    def _set_ticking(self, on: bool) -> None:
+        """While the gate moves and its travel time is known, the entities are written once a second, so that the position moves."""
+        if on and self._tick is None:
+            self._tick = async_track_time_interval(self.hass, self._on_tick, timedelta(seconds=1))
+        elif not on and self._tick is not None:
+            self._tick()
+            self._tick = None
+
+    @callback
+    def _on_tick(self, _now) -> None:
+        if not self.travel.moving():
+            self._set_ticking(False)
+        self.async_update_listeners()
+
+    def position(self) -> int | None:
+        value = self.travel.position_at(self.hass.loop.time())
+        return None if value is None else int(round(value))
+
+    async def async_shutdown(self) -> None:
+        self._set_ticking(False)
+        await super().async_shutdown()
 
     def travel_attributes(self) -> dict[str, Any]:
         """What a card needs to draw the gate between two updates: where the run started, when, and how long a full run takes."""

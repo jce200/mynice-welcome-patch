@@ -1,6 +1,13 @@
-# Nice Gate 1.8.0 (local maintenance release)
+# Nice Gate 1.9.0 (local maintenance release)
 
 Home Assistant integration for the local Nice IT4WIFI NHK interface.
+
+## New in 1.9.0: the position and the obstruction as entities of their own
+
+What 1.8.0 put in attributes of the cover is now also there as entities, with a line on the device page and a history of their own: the sensor
+**Gate position** (0 to 100 %), the binary sensor **Obstruction** (on while the module reports one: it has one flag for a photocell, a safety edge and the
+force limit alike), and under Diagnostic the sensors **Travel time open** and **Travel time close** (seconds, unknown until a full run was measured). The
+attributes of the cover are unchanged.
 
 ## New in 1.8.0: where the gate is
 
