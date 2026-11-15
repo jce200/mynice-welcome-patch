@@ -1,8 +1,26 @@
 # Details and history
 
 This is the technical background to the [README.md](../README.md): why every change exists, with the diagnoses that led to them
-(nx3 through nx29: the project's build numbers). The example values (Wi-Fi `HomeWifi`, accessory `NiceIT4WIFIAABBCC`, user
+(nx3 through nx30: the project's build numbers). The example values (Wi-Fi `HomeWifi`, accessory `NiceIT4WIFIAABBCC`, user
 `homeuser`) stand in for whatever is different in your case. The data in this document comes from one phone and one IT4WIFI module.
+
+## What is new in nx30 (a calmer accessory screen, and an app that starts on it when there is one accessory)
+The accessory screen showed everything at once: the state, a pill with the last command, a line with a message, Open, Close and Stop of up to 136 dp, a caption, up to six extra buttons
+and a link. On a phone with a low screen the pill and the line ended up on top of each other. Now the screen says one thing at a time:
+
+- **One slot under the state.** The pill "Last: …" is gone from the page; its place is a round button *Activity* in the header, next to the one for the other commands (the sheet it
+  opens is the same, and a screen reader still hears the last command in its name). The line no longer says "Checking the gate…" for an ordinary check: the chip in the header and
+  the pale state word already say it. A check that takes long, a failure and a command on its way still get their words.
+- **A smaller pad.** Open and Close are 88 dp high and Stop 64 (80 and 56 on a low screen). Stop at rest lost the outline around it.
+- **The extra buttons fold away** behind one text button, *More commands* / *Fewer commands*. The choice is remembered (`nxMore` in localStorage). The link *Edit extra buttons* is
+  inside the opened part; *Add extra buttons* (nothing ticked yet) stays where it was.
+- **One accessory: no Favorites.** With exactly one accessory that the app would open with a tap (a favorite with an automation that this phone may use, not a Core or a bridge) and
+  no scene, the app goes from Favorites to the screen of that accessory by itself, at the start and whenever the first tab is tapped. That tab is then named after the automation
+  (*Gate*, *Door* or *Control*), the tab *System* (the same list once more) is not shown, and the accessory screen has no back button: the back key of the phone leaves the app, as
+  it did on Favorites. Adding an accessory or a scene is in *Settings*, as before, and brings Favorites and System back.
+
+`patch-23-calm.py` edits the template after the patches that made it, `skin/src/nx30-calm.css` has the rules, and the logic is in `nx-patch.js` (`nxMore`, `nxMoreOpen`, `nxSingle`,
+`data-nx-single` on `<html>`). nx30 has version code 20201128.
 
 ## What is new in nx29 (a Debug log without hundreds of copies of the same line)
 On a phone that cannot reach the accessory locally (another Wi-Fi, or a VPN) the app chooses its route again for every request, and the native layer wrote two lines each time
@@ -901,7 +919,7 @@ is a reset of the accessory.
 ## Building and the files
 
 See [README.md](../README.md) for the steps (`./get-tools.sh`, then `./build.sh <original.apk>`). The script unpacks the original APK,
-applies `patch-01-wifi-binding.py` through `patch-22-diagnostic.py` (`patch-21-copy.py` last), builds the Java layer (`java/src/com/nice/patch`) into `classes2.dex`,
+applies `patch-01-wifi-binding.py` through `patch-23-calm.py` (`patch-21-copy.py` last), builds the Java layer (`java/src/com/nice/patch`) into `classes2.dex`,
 adds it, aligns, signs with your key in `keys/` and checks the result (`verify-apk.py`, if `androguard` and `loguru` are installed).
 Every patch checks that its anchor text occurs exactly once, so a different APK version is not silently patched wrongly.
 
@@ -924,6 +942,7 @@ Every patch checks that its anchor text occurs exactly once, so a different APK 
 | `patch-20-wizard.py` | nx23: the texts and states of the set-up (six templates) and the two pages of a full accessory |
 | `patch-21-copy.py`, `skin/copy/` | nx23: the English wording of the original app: `*.json` give new text for keys of `locale-en.json`, `templates.json` lists exact edits of templates (every `old` text must occur once); nothing is written unless everything matched |
 | `patch-22-diagnostic.py` | nx26: the events of the accessory that the app does not read (DIAGNOSTIC) go to the Debug log |
+| `patch-23-calm.py` | nx30: the accessory screen: Activity in the header, the extra buttons behind *More commands* |
 | `patch-09-socket-fallback.py` | nx7: `socketFor` in `_openSocket` (EPERM fallback) and the VPN guard in both `bindNiceWifi` copies |
 | `patch-08-route-choice.py` | nx6: hooks in `ConnectionsManager`: `vetLocal` (vetting the local address), `noteRoute` (remembering the chosen route), `socketAddress` (name resolution with a fallback) |
 | `patch-07-vpn-binding.py` | nx4: skipping VPN networks in the bind loop, `Nx.wifiType`/`Nx.ctx` in the Wi-Fi receiver, the `__nxWrapVerify` hook in `app.min.js` |

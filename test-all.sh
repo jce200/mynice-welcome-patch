@@ -9,6 +9,7 @@
 #   gallery  nx-gallery.js (Settings > Design, the page of Material 3 Expressive) in jsdom, and patch-17-gallery.py on an invented app tree
 #   copy     patch-21-copy.py on an invented app tree (the English wording of the original app)
 #   nx23-*   one test file per workstream of nx23
+#   nx30-*   the calmer accessory screen, and the start on it with one accessory
 #   java     the logic of the native layer on a plain JVM, against android-all-10 (run ./get-tools.sh first)
 set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -34,7 +35,7 @@ echo "== gallery (Settings > Design)"
 node test/gallery.test.js | tail -1 || failed=1       # without jsdom it says that it is skipped
 echo "== copy (patch-21-copy.py: the English wording of the original app)"
 node test/copy.test.js | tail -1 || failed=1
-for t in test/nx23-*.test.js; do
+for t in test/nx23-*.test.js test/nx30-*.test.js; do
   [ -f "$t" ] || continue
   echo "== $(basename "$t" .test.js)"
   node "$t" | tail -1 || failed=1

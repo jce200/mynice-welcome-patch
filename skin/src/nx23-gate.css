@@ -133,10 +133,10 @@
 {{P}} .full-container:is(:has(.nx-line[data-nx-trust="checking"]), :has(.nx-line[data-nx-trust="stale"])) .nx-reach > span:not(.status-1) { color: var(--md-sys-color-on-surface-variant); }
 
 /* ============================================================ Stop
-   solid red whenever it may be needed (skin.css); at confirmed rest the quieter error container with a 2 dp error outline: the gate is open or closed, nothing flagged (status-0), the app
+   solid red whenever it may be needed (skin.css); at confirmed rest the quieter error container (nx30: without the 2 dp outline it had, the fill says enough): the gate is open or closed, nothing flagged (status-0), the app
    is not checking or connecting, "Not usable" is not shown, nobody waits for a confirmation, and the status line does not say that the state is old or being checked. */
 {{P}} .full-container:has(.device-icon i:is(.open, .closed).status-0):not(:has(.nx-unusable:not(.ng-hide))):not(:has(strong.nx-checking-text:not(.ng-hide))):not(:has(span[translate="DEVICE_STATE_CONFIRMATION_PENDING"]:not(.ng-hide))):not(:has(.nx-line:is([data-nx-trust="checking"], [data-nx-trust="aging"], [data-nx-trust="stale"]))) .device-commands .command:has([translate$="_stop"]) {
-  --_bg: var(--md-sys-color-error-container); --_fg: var(--md-sys-color-on-error-container); --_sh: inset 0 0 0 2px var(--md-sys-color-error);
+  --_bg: var(--md-sys-color-error-container); --_fg: var(--md-sys-color-on-error-container);
 }
 
 /* ============================================================ the extra commands: a caption, 24 dp under Stop; a lower screen has no room for the caption and the link, the buttons are 48 dp high there

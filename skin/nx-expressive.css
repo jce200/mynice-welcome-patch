@@ -2217,7 +2217,7 @@ html:root body[data-ng-app] .m3e-i {
 
 /* ============================================================ buttons: five sizes, round or square, five styles; the shape morphs when pressed and when selected
    --_h height, --_pad leading and trailing space, --_gap icon to label, --_icon icon size, --_sq corner of the square shape, --_pr corner when pressed */
-html:root body[data-ng-app] :where(.m3e-btn, .m3e-icon-btn, .device-commands .command, .start-commands .command, .bar .button, .button, .nx-seg-btn, .nx-extra-edit, #nx-log-button, .nx-sheet button, .nx-last, .nx-pill, .nx-line-act, .nx-line-act, .nx-snack button) {
+html:root body[data-ng-app] :where(.m3e-btn, .m3e-icon-btn, .device-commands .command, .start-commands .command, .bar .button, .button, .nx-seg-btn, .nx-extra-edit, #nx-log-button, .nx-sheet button, .nx-last, .nx-pill, .nx-line-act, .nx-line-act, .nx-snack button, .device-commands .nx-more) {
   --_round: calc(var(--_h) / 2);       /* fully round is half the height: a huge radius would make the animation of the corners wait until the last moment */
   --_r: var(--_round);
   --_rl: var(--_r); --_rr: var(--_r);   /* the corners at the left and at the right: they differ in a connected group and in a split button */
@@ -2233,8 +2233,8 @@ html:root body[data-ng-app] :where(.m3e-btn, .m3e-icon-btn, .device-commands .co
 }
 /* the state layer: a veil of the color of the text over the button, 10 % when pressed. It is an inset shadow, so that it needs no pseudo-element (the buttons of the app use :before
    for their icons) and fades in with the other shadows. */
-html:root body[data-ng-app] :where(.m3e-btn, .m3e-icon-btn, .device-commands .command, .start-commands .command, .bar .button, .button, .nx-seg-btn, .nx-extra-edit, #nx-log-button, .nx-sheet button, .nx-last, .nx-pill, .nx-line-act, .nx-line-act, .nx-snack button):active, html:root body[data-ng-app] :where(.m3e-btn, .m3e-icon-btn, .device-commands .command, .start-commands .command, .bar .button, .button, .nx-seg-btn, .nx-extra-edit, #nx-log-button, .nx-sheet button, .nx-last, .nx-pill, .nx-line-act, .nx-line-act, .nx-snack button).activated, html:root body[data-ng-app] .m3e-fab:active { --_veil: color-mix(in srgb, currentColor 10%, transparent); }
-html:root body[data-ng-app] :where(.m3e-btn, .m3e-icon-btn, .device-commands .command, .start-commands .command, .bar .button, .button, .nx-seg-btn, .nx-extra-edit, #nx-log-button, .nx-sheet button, .nx-last, .nx-pill, .nx-line-act, .nx-line-act, .nx-snack button):focus-visible, html:root body[data-ng-app] .m3e-fab:focus-visible { outline: 3px solid var(--md-sys-color-secondary); outline-offset: 2px; }
+html:root body[data-ng-app] :where(.m3e-btn, .m3e-icon-btn, .device-commands .command, .start-commands .command, .bar .button, .button, .nx-seg-btn, .nx-extra-edit, #nx-log-button, .nx-sheet button, .nx-last, .nx-pill, .nx-line-act, .nx-line-act, .nx-snack button, .device-commands .nx-more):active, html:root body[data-ng-app] :where(.m3e-btn, .m3e-icon-btn, .device-commands .command, .start-commands .command, .bar .button, .button, .nx-seg-btn, .nx-extra-edit, #nx-log-button, .nx-sheet button, .nx-last, .nx-pill, .nx-line-act, .nx-line-act, .nx-snack button, .device-commands .nx-more).activated, html:root body[data-ng-app] .m3e-fab:active { --_veil: color-mix(in srgb, currentColor 10%, transparent); }
+html:root body[data-ng-app] :where(.m3e-btn, .m3e-icon-btn, .device-commands .command, .start-commands .command, .bar .button, .button, .nx-seg-btn, .nx-extra-edit, #nx-log-button, .nx-sheet button, .nx-last, .nx-pill, .nx-line-act, .nx-line-act, .nx-snack button, .device-commands .nx-more):focus-visible, html:root body[data-ng-app] .m3e-fab:focus-visible { outline: 3px solid var(--md-sys-color-secondary); outline-offset: 2px; }
 
 /* the sizes (ButtonXSmallTokens ... ButtonXLargeTokens); the label is the style that M3 gives that size */
 html:root body[data-ng-app] .m3e-xs { --_h: 32px; --_pad: 16px; --_gap: 8px; --_icon: 20px; --_sq: 12px; --_pr: 8px; --_ol: 1px; --_fs: 14px; --_lh: 20px; --_fw: 500; --_ls: .1px; }
@@ -2247,7 +2247,7 @@ html:root body[data-ng-app] .m3e-xl { --_h: 136px; --_pad: 64px; --_gap: 16px; -
 html:root body[data-ng-app] .m3e-btn:where(.m3e-square), html:root body[data-ng-app] .m3e-icon-btn:where(.m3e-square) { --_r: var(--_sq); }
 html:root body[data-ng-app] .m3e-btn:where([aria-pressed="true"]), html:root body[data-ng-app] .m3e-icon-btn:where([aria-pressed="true"]) { --_r: var(--_sq); }
 html:root body[data-ng-app] .m3e-btn:where(.m3e-square[aria-pressed="true"]), html:root body[data-ng-app] .m3e-icon-btn:where(.m3e-square[aria-pressed="true"]) { --_r: var(--_round); }
-html:root body[data-ng-app] :where(.m3e-btn, .m3e-icon-btn, .device-commands .command, .start-commands .command, .bar .button, .button, .nx-seg-btn, .nx-extra-edit, #nx-log-button, .nx-sheet button, .nx-last, .nx-pill, .nx-line-act, .nx-line-act, .nx-snack button):active, html:root body[data-ng-app] :where(.m3e-btn, .m3e-icon-btn, .device-commands .command, .start-commands .command, .bar .button, .button, .nx-seg-btn, .nx-extra-edit, #nx-log-button, .nx-sheet button, .nx-last, .nx-pill, .nx-line-act, .nx-line-act, .nx-snack button).activated, html:root body[data-ng-app] :where(.m3e-btn, .m3e-icon-btn, .device-commands .command, .start-commands .command, .bar .button, .button, .nx-seg-btn, .nx-extra-edit, #nx-log-button, .nx-sheet button, .nx-last, .nx-pill, .nx-line-act, .nx-line-act, .nx-snack button).m3e-pressed { --_r: var(--_pr); --_rl: var(--_pr); --_rr: var(--_pr); }
+html:root body[data-ng-app] :where(.m3e-btn, .m3e-icon-btn, .device-commands .command, .start-commands .command, .bar .button, .button, .nx-seg-btn, .nx-extra-edit, #nx-log-button, .nx-sheet button, .nx-last, .nx-pill, .nx-line-act, .nx-line-act, .nx-snack button, .device-commands .nx-more):active, html:root body[data-ng-app] :where(.m3e-btn, .m3e-icon-btn, .device-commands .command, .start-commands .command, .bar .button, .button, .nx-seg-btn, .nx-extra-edit, #nx-log-button, .nx-sheet button, .nx-last, .nx-pill, .nx-line-act, .nx-line-act, .nx-snack button, .device-commands .nx-more).activated, html:root body[data-ng-app] :where(.m3e-btn, .m3e-icon-btn, .device-commands .command, .start-commands .command, .bar .button, .button, .nx-seg-btn, .nx-extra-edit, #nx-log-button, .nx-sheet button, .nx-last, .nx-pill, .nx-line-act, .nx-line-act, .nx-snack button, .device-commands .nx-more).m3e-pressed { --_r: var(--_pr); --_rl: var(--_pr); --_rr: var(--_pr); }
 
 /* the five styles, and what a toggle (aria-pressed) looks like unselected and selected */
 html:root body[data-ng-app] .m3e-filled { --_bg: var(--md-sys-color-primary); --_fg: var(--md-sys-color-on-primary); }
@@ -2890,10 +2890,10 @@ html:root body[data-ng-app] .full-container:is(:has(.nx-unusable:not(.ng-hide)),
 html:root body[data-ng-app] .full-container:is(:has(.nx-line[data-nx-trust="checking"]), :has(.nx-line[data-nx-trust="stale"])) .nx-reach > span:not(.status-1) { color: var(--md-sys-color-on-surface-variant); }
 
 /* ============================================================ Stop
-   solid red whenever it may be needed (skin.css); at confirmed rest the quieter error container with a 2 dp error outline: the gate is open or closed, nothing flagged (status-0), the app
+   solid red whenever it may be needed (skin.css); at confirmed rest the quieter error container (nx30: without the 2 dp outline it had, the fill says enough): the gate is open or closed, nothing flagged (status-0), the app
    is not checking or connecting, "Not usable" is not shown, nobody waits for a confirmation, and the status line does not say that the state is old or being checked. */
 html:root body[data-ng-app] .full-container:has(.device-icon i:is(.open, .closed).status-0):not(:has(.nx-unusable:not(.ng-hide))):not(:has(strong.nx-checking-text:not(.ng-hide))):not(:has(span[translate="DEVICE_STATE_CONFIRMATION_PENDING"]:not(.ng-hide))):not(:has(.nx-line:is([data-nx-trust="checking"], [data-nx-trust="aging"], [data-nx-trust="stale"]))) .device-commands .command:has([translate$="_stop"]) {
-  --_bg: var(--md-sys-color-error-container); --_fg: var(--md-sys-color-on-error-container); --_sh: inset 0 0 0 2px var(--md-sys-color-error);
+  --_bg: var(--md-sys-color-error-container); --_fg: var(--md-sys-color-on-error-container);
 }
 
 /* ============================================================ the extra commands: a caption, 24 dp under Stop; a lower screen has no room for the caption and the link, the buttons are 48 dp high there
@@ -3129,3 +3129,59 @@ html:root body[data-ng-app] .item-toggle { min-height: 64px; display: flex; alig
 html:root body[data-ng-app] .item-toggle .toggle { top: 50% !important; right: 16px !important; transform: translateY(-50%); margin: 0; }
 /* the page Extra buttons when there is no command to offer: the line that says why reads as a notice, not as one more hint */
 html:root body[data-ng-app] .nx-pick-hint.nx-pick-empty { color: var(--md-sys-color-on-surface); font-weight: 500; }
+
+/* nx30: a calmer accessory screen, and an app that starts on it when there is one accessory.
+   The screen says one thing at a time: the state (the hero and the word), under it one line when there is something to say, then Open, Close and Stop. What was also
+   there moved: the entry to Activity is a round button in the header, the extra buttons are behind "More commands". */
+
+/* ============================================================ the header: Activity */
+html:root body[data-ng-app] .bar .button.nx-hist:before {
+  content: '' !important; display: block; width: 24px; height: 24px; background: currentColor; font-size: 0;
+  -webkit-mask: var(--nx-i-history) center / contain no-repeat; mask: var(--nx-i-history) center / contain no-repeat;
+}
+/* a round tonal button like the one next to it, not the filled pill of a header button with words */
+html:root body[data-ng-app] .bar .button.header-item.nx-hist:not(.icon-occhio):not([class*="ion-"]) {
+  --_bg: var(--md-sys-color-surface-container-high); --_fg: var(--md-sys-color-on-surface-variant); width: 48px; padding: 0 !important;
+}
+/* the pill under the state word that this button replaces (it stays in the page: patch-14) */
+html:root body[data-ng-app] .device-detail .nx-last { display: none !important; }
+
+/* ============================================================ the pad: smaller, and one look for Stop at rest
+   Open and Close were 136 dp high on a tall phone and Stop 96: three slabs that filled half the screen. Now 88 and 64 (80 and 56 on a low screen). */
+html:root body[data-ng-app] .device-commands .command:has([translate$="_open"]), html:root body[data-ng-app] .device-commands .command:has([translate$="_close"]) {
+  --_h: 88px; --_icon: 28px; --_gap: 12px; --_fs: clamp(18px, 5.6vw, 24px); --_lh: 32px;
+}
+html:root body[data-ng-app] .device-commands .command:has([translate$="_stop"]) { --_h: 64px; --_icon: 24px; --_fs: clamp(17px, 5vw, 20px); --_lh: 28px; }
+@media (max-height: 700px) {
+  html:root body[data-ng-app] .device-commands .command:has([translate$="_open"]), html:root body[data-ng-app] .device-commands .command:has([translate$="_close"]) { --_h: 80px; }
+  html:root body[data-ng-app] .device-commands .command:has([translate$="_stop"]) { --_h: 56px; }
+}
+
+/* ============================================================ the extra buttons behind one button
+   "More commands" is a text button with a chevron, as wide as its words, in the middle under Stop. Open, it shows the buttons the user ticked and the link to choose them. */
+html:root body[data-ng-app] .device-commands .nx-more {
+  --_h: 48px; --_pad: 16px; --_gap: 4px; --_pr: 12px; --_fs: 14px; --_lh: 20px; --_fw: 600; --_ls: .1px; --_bg: transparent; --_fg: var(--md-sys-color-on-surface-variant);
+  grid-column: 1 / -1; justify-self: center; margin: 0; padding: 0 12px 0 16px; background: transparent; color: var(--_fg); border: 0;
+  border-top: 4px solid transparent; border-bottom: 4px solid transparent; background-clip: padding-box;
+}
+html:root body[data-ng-app] .device-commands .nx-more > i {
+  flex: 0 0 auto; width: 20px; height: 20px; background: currentColor; -webkit-mask: var(--nx-i-expand) center / contain no-repeat; mask: var(--nx-i-expand) center / contain no-repeat;
+  transition: transform var(--nx-spatial-fast-ms) var(--nx-spatial-fast);
+}
+html:root body[data-ng-app] .device-commands .nx-more[aria-expanded="true"] > i { transform: rotate(180deg); }
+@media (prefers-reduced-motion: reduce) { html:root body[data-ng-app] .device-commands .nx-more > i { transition: none; } }
+html:root body[data-ng-app] .device-commands .nx-folded { display: none !important; }
+/* the caption said what the button says now */
+html:root body[data-ng-app] .device-commands .nx-more ~ .nx-extras .nx-extras-cap { display: none; }
+html:root body[data-ng-app] .device-commands .nx-more ~ .nx-extras { margin-top: 0; }
+
+/* ============================================================ one accessory: the app starts on its screen
+   nx-patch.js sets data-nx-single="1" on <html> while there is exactly one accessory and no scene. Then Favorites would be a list of one and System the same list again: the first
+   tab is the accessory (its label is --nx-single-label), the second is not shown, and the accessory screen has no back button (there is nothing behind it). */
+html:root[data-nx-single="1"] body[data-ng-app] .bar .button.nx-back-detail { display: none !important; }
+html:root[data-nx-single="1"] body[data-ng-app] .tabs > a.tab-item:nth-of-type(2) { display: none !important; }
+html:root[data-nx-single="1"] body[data-ng-app] .tabs > a.tab-item:first-of-type .tab-title { font-size: 0; }
+html:root[data-nx-single="1"] body[data-ng-app] .tabs > a.tab-item:first-of-type .tab-title:after { content: var(--nx-single-label, 'Control'); font-size: 12px; }
+html:root[data-nx-single="1"] body[data-ng-app] .tabs > a.tab-item:first-of-type .icon:before { -webkit-mask-image: var(--nx-i-gate); mask-image: var(--nx-i-gate); }
+/* the moment between "the app is on Favorites" and "the app is on the accessory screen": the list of one is not drawn (nx-patch.js takes the attribute away after a second at most) */
+html:root[data-nx-single-go="1"] body[data-ng-app] ion-view#favorites .scroll-content { visibility: hidden; }

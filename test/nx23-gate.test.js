@@ -50,8 +50,8 @@ const esc = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   // Stop
   const rest = (gate.match(/\.full-container:has\(\.device-icon i:is\(\.open, \.closed\)\.status-0\)[^{]*\.command:has\(\[translate\$="_stop"\]\) \{([^}]*)\}/) || [])[0] || '';
   ok('Stop: solid error in every state (the default), with its on-error label', /\.command:has\(\[translate\$="_stop"\]\) \{\s*--_bg:\s*var\(--md-sys-color-error\);\s*--_fg:\s*var\(--md-sys-color-on-error\)/.test(skin));
-  ok('Stop: at confirmed rest only (open or closed, nothing flagged, not unusable, not checking, nobody waiting, no doubt about the age) the error container with a 2 dp error outline',
-    rest.length > 0 && /--_bg:\s*var\(--md-sys-color-error-container\)/.test(rest) && /--_sh:\s*inset 0 0 0 2px var\(--md-sys-color-error\)/.test(rest) && /:not\(:has\(\.nx-unusable:not\(\.ng-hide\)\)\)/.test(rest) &&
+  ok('Stop: at confirmed rest only (open or closed, nothing flagged, not unusable, not checking, nobody waiting, no doubt about the age) the error container, without the 2 dp outline it had (nx30)',
+    rest.length > 0 && /--_bg:\s*var\(--md-sys-color-error-container\)/.test(rest) && !/--_sh:/.test(rest) && /:not\(:has\(\.nx-unusable:not\(\.ng-hide\)\)\)/.test(rest) &&
     /:not\(:has\(strong\.nx-checking-text:not\(\.ng-hide\)\)\)/.test(rest) && /DEVICE_STATE_CONFIRMATION_PENDING"\]:not\(\.ng-hide\)/.test(rest) && /data-nx-trust="checking"\], \[data-nx-trust="aging"\], \[data-nx-trust="stale"\]/.test(rest));
   ok('Stop keeps its size and place: nothing in the rules for Stop moves it (colors and the outline only)', !/_stop"\]\)[^{]*\{[^}]*(width|height|margin|top|bottom|transform|order)\s*:/.test(skin + gate));
 

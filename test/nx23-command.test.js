@@ -476,7 +476,7 @@ async function environment(scen) {
     ok('never asked in this session: no verdict (the lists show the state only when it is live)', r.nxTrust(d) === '' && W.__nxTrust(d) === '' && r.nxLine(d) === '');
     env.ctl.status = { hold: true };
     const p = env.NHK.status(d);
-    ok('the state is being asked for: checking (busy line, "Checking the gate…")', r.nxTrust(d) === 'checking' && env.line(d) === 'Checking the gate…' && r.nxLineKind(d) === 'busy' && r.nxUnsure(d) === '');
+    ok('the state is being asked for: checking (nx30: no line for a short check, the chip and the hero say it)', r.nxTrust(d) === 'checking' && env.line(d) === '' && r.nxLineKind(d) === '' && r.nxUnsure(d) === '');
     env.clock.off += 11000;
     ok('... and when it takes long: "Still checking. The accessory is slow to answer."', env.line(d) === 'Still checking. The accessory is slow to answer.');
     env.statusResolve('open'); await p; await sleep(20);
@@ -536,7 +536,7 @@ async function environment(scen) {
     // entering the screen: checking until the answer
     const e = env.add('00:0B:6C:AA:BB:23');
     env.handlers['$stateChangeSuccess'].forEach((f) => f({}, { name: 'tabsController.favorites-device-detail' }, { homeId: 1, mac: e.mac }));
-    ok('entering the accessory screen: checking right away (before the app\'s request is on its way)', r.nxTrust(e) === 'checking' && env.line(e) === 'Checking the gate…');
+    ok('entering the accessory screen: checking right away (before the app\'s request is on its way)', r.nxTrust(e) === 'checking' && env.line(e) === '');
     env.clock.off += 2000;
     ok('... and not for ever when nothing is asked', r.nxTrust(e) === '');
     // resume: what was confirmed before it is not live any more
@@ -556,7 +556,7 @@ async function environment(scen) {
     d.reachable = false;
     ok('not reachable, but no resume: the app\'s flag counts (as before)', r.nxCheck(d) === '');
     env.clock.off += 5; W.document.dispatchEvent(new W.Event('resume'));
-    ok('right after a resume: "checking" while the app\'s own check has not answered (hero: "Checking…", not a red "Not usable")', r.nxCheck(d) === 'checking' && env.line(d) === 'Checking the gate…', [r.nxCheck(d), env.line(d)]);
+    ok('right after a resume: "checking" while the app\'s own check has not answered (hero: "Checking…", not a red "Not usable")', r.nxCheck(d) === 'checking' && env.line(d) === '', [r.nxCheck(d), env.line(d)]);
     d.reachable = true;
     ok('... the app has checked: nothing is held', r.nxCheck(d) === '');
     d.reachable = false;

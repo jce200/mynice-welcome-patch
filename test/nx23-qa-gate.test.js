@@ -298,7 +298,7 @@ async function environment(scen) {
     env.clock.off += 3000;
     d.reachable = false;                                          // what the app does to every accessory on resume
     env.w.document.dispatchEvent(new env.w.Event('resume'));
-    ok('right after a resume the old state is not "live" any more, and the red "does not answer" is held back as "checking" for a few seconds', r.nxTrust(d) !== 'live' && r.nxLine(d) === 'Checking the gate…' && r.nxLineKind(d) === 'busy' && r.nxUnsure(d) === '', [r.nxTrust(d), r.nxLine(d), r.nxUnsure(d)]);
+    ok('right after a resume the old state is not "live" any more, and the red "does not answer" is held back as "checking" for a few seconds', r.nxTrust(d) !== 'live' && r.nxLine(d) === '' && r.nxLineKind(d) === '' && r.nxUnsure(d) === '', [r.nxTrust(d), r.nxLine(d), r.nxUnsure(d)]);
     env.clock.off += 20000;
     ok('... after 8 s without an answer the hold ends: the accessory does not answer (said, with Reconnect)', r.nxLine(d) === 'The accessory does not answer.' && r.nxLineAct(d) === 'Reconnect' && r.nxUnsure(d) === '1', [r.nxLine(d), r.nxUnsure(d)]);
     env.report(MAC, 'open');
@@ -329,7 +329,7 @@ async function environment(scen) {
     env.ctl.status = { hold: true };
     (env.handlers['$stateChangeSuccess'] || []).forEach((h) => h({}, { name: 'tabsController.favorites-device-detail' }, { mac: MAC }));
     env.NHK.status(d);
-    ok('a request for the state is out: "Checking the gate…"', r.nxTrust(d) === 'checking' && r.nxLine(d) === 'Checking the gate…');
+    ok('a request for the state is out: checking, without a line (nx30)', r.nxTrust(d) === 'checking' && r.nxLine(d) === '');
     env.clock.off += 23000;
     ok('... after 10 s: "Still checking. The accessory is slow to answer."', r.nxLine(d) === 'Still checking. The accessory is slow to answer.');
     env.clock.off += 30000;

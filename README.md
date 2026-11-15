@@ -30,6 +30,8 @@ screen whose buttons never move, a line that says what became of every tap, and 
   - **Nothing sits on the controls.** A request for access is a snack on the accessory screen (a popup elsewhere), the Debug log is a sheet that you can close, and the floating
     bug button is gone.
   - **For screen readers and keyboards.** Roles, names, headings, focus handling, Back and Escape for every dialog; the click of a key press or of TalkBack reaches the controls.
+  - **A calm accessory screen.** One message at a time under the state, Activity as a button in the header, the extra buttons behind *More commands*. With one accessory the app
+    starts on its screen: no list of one in Favorites, and no tab System.
   - **Answers first.** Activity opens with what happened (a third shorter, charts that never draw an unknown day as zero), Favorites is a status card, the set-up says what it
     waits for, and the English of the original app is rewritten.
 - **Pairing on Android 10+.** The wizard joins the accessory's Wi-Fi through Android's `WifiNetworkSpecifier` dialog (the old Wi-Fi
@@ -154,7 +156,7 @@ This way you don't have to trust a binary from someone else, and the app is sign
 ```
 ./get-tools.sh                               # once: downloads apktool and friends into ./tools, checked on SHA-256
 ./build.sh /path/to/MyNiceWelcome_2.2.0.apk
-# result: out/MyNiceWelcome_2.2.0_nx29.apk
+# result: out/MyNiceWelcome_2.2.0_nx30.apk
 ```
 
 The first build creates **your own signing key** in `keys/` (with a random password in `keys/password.txt`). Keep that folder

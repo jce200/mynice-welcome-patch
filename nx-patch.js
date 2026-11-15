@@ -1361,10 +1361,82 @@
     $rootScope.nxCanQuick = canQuick;
     $rootScope.nxEditQuick = editQuick;
 
+    // -------------------------------------------------------------- nx30: a calmer accessory screen
+    // The extra buttons are behind "More commands" (patch-23-calm.py). Open or folded is the user's choice and is remembered ('nxMore' in localStorage); folded until they open it.
+    var MORE_KEY = 'nxMore', moreOpen = false;
+    try { moreOpen = window.localStorage.getItem(MORE_KEY) === '1'; } catch (e) { /* no storage: folded */ }
+    $rootScope.nxMoreOpen = function () { return moreOpen; };
+    $rootScope.nxMore = function () {
+      moreOpen = !moreOpen;
+      try { if (moreOpen) window.localStorage.setItem(MORE_KEY, '1'); else window.localStorage.removeItem(MORE_KEY); } catch (e) { log('more commands: not saved', String(e)); }
+    };
+    // One accessory (and no scene): Favorites would be a list of one, so the app starts on the screen of that accessory, the first tab is that screen and System is not shown
+    // (nx30-calm.css answers to data-nx-single on <html>). The accessory screen is then the root of its tab: the back key of the phone leaves the app, as it did on Favorites.
+    // Only for an accessory that the app itself would open from Favorites with a tap: a favorite with an automation that this phone may use, with the plain accessory screen (not a
+    // Core or a bridge, which have pages of their own). Anything else (a second accessory, a scene, an accessory that is not a favorite) and the app is as it was.
+    var singleAt = 0, singleCache = null, singleJump = 0;
+    function sceneCount() {
+      try {
+        var k = window.STORAGE_KEYS && window.STORAGE_KEYS.KEY_SCENES, s = k ? JSON.parse(window.localStorage.getItem(k) || '[]') : [];
+        return s instanceof Array ? s.length : 0;
+      } catch (e) { return 0; }
+    }
+    function singleDevice() {
+      var t = Date.now();
+      if (t - singleAt < 1500 && t >= singleAt) return singleCache;
+      singleAt = t;
+      singleCache = null;
+      try {
+        var all = allDevices();
+        if (all.length === 1 && !sceneCount()) {
+          var d = all[0].device;
+          var perm = d && d.permissions;
+          if (d && d.mac && d.homeId != null && d.favorites === true && d.automations && d.automations.length && perm && (perm.isAdmin || perm.isUser) &&
+              !/Bridge|CORE/.test(String(d.name || ''))) singleCache = d;
+        }
+      } catch (e) { log('single accessory', String(e)); }
+      return singleCache;
+    }
+    function singleLabel(d) {
+      var a = automationOf(d), type = String((a && a.type) || '').toLowerCase();
+      return /slid|swing|gate|barrier/.test(type) ? 'Gate' : /garage|section|door|overhead|shutter/.test(type) ? 'Door' : 'Control';
+    }
+    function applySingle() {
+      try {
+        var d = singleDevice(), r = document.documentElement;
+        if (d) { if (r.getAttribute('data-nx-single') !== '1') r.setAttribute('data-nx-single', '1'); r.style.setProperty('--nx-single-label', "'" + singleLabel(d) + "'"); }
+        else if (r.hasAttribute('data-nx-single')) { r.removeAttribute('data-nx-single'); r.style.removeProperty('--nx-single-label'); }
+        return d;
+      } catch (e) { log('single accessory', String(e)); return null; }
+    }
+    $rootScope.nxSingle = function () { return !!singleDevice(); };
+    function singleStart(name) {
+      singleAt = 0;                                        // a change of page is when the list of accessories may have changed
+      var d = applySingle();
+      if (!d || name !== 'tabsController.favorites') return;
+      var t = Date.now();
+      if (t - singleJump < 1500) return;                   // the accessory screen sent the app back here itself: no tug of war
+      singleJump = t;
+      var root = document.documentElement;
+      root.setAttribute('data-nx-single-go', '1');         // the list of Favorites is not shown for the moment that it is the page (nx30-calm.css); never longer than a second
+      setTimeout(function () { root.removeAttribute('data-nx-single-go'); }, 1000);
+      $timeout(function () {
+        try {
+          if (!inj.has('$state') || inj.get('$state').current.name !== 'tabsController.favorites') return;
+          if (inj.has('NHKPluginService')) inj.get('NHKPluginService').setAccessoryType('IT4WIFI');   // what the tap on the card does first
+          if (inj.has('$ionicHistory')) inj.get('$ionicHistory').nextViewOptions({ disableAnimate: true, disableBack: true, historyRoot: true });
+          inj.get('$state').go('tabsController.favorites-device-detail', { homeId: d.homeId, mac: d.mac });
+          log('single accessory', 'the app starts on its screen');
+        } catch (e) { log('single accessory', String(e)); }
+      }, 0);
+    }
+    try { singleStart(inj.has('$state') ? String((inj.get('$state').current || {}).name || '') : ''); } catch (e) { log('single accessory', String(e)); }   // the app may be on Favorites already
+
     // -------------------------------------------------------------- navigation
     $rootScope.$on('$stateChangeSuccess', function (ev, toState) {
       var n = (toState && toState.name) || '';
       if (/add-device-settings$/.test(n)) window.__nxCfgAt = 0;                 // back on the configuration screen
+      singleStart(n);                                                            // nx30: one accessory: its screen instead of Favorites
       // Outside the wizard the app must not stay tied to the accessory Wi-Fi (which has no internet).
       if (/^(tabsController\.(favorites|controls|system)|start-home$|init$)/.test(n)) nx('release', []);
       setTimeout(refreshPill, 800);
@@ -2925,7 +2997,7 @@
     }
     function trustLine(d, L, t) {
       var tr = trustOf(d);
-      if (tr === 'checking') return { kind: 'busy', text: checkingText(L, t), act: '' };
+      if (tr === 'checking') { var ct = checkingText(L, t); return ct ? { kind: 'busy', text: ct, act: '' } : null; }
       if (tr === 'aging') return restingBusy(d) ? null : { kind: '', text: 'Updated ' + hhmm(L.stateAt || L.heardAt), act: '' };
       if (tr !== 'stale') return null;
       var st = stateName(d), when = L && L.stateAt ? hhmm(L.stateAt) : '', text;
@@ -2934,7 +3006,9 @@
       else text = 'Last confirmed ' + when;
       return { kind: 'warn', text: text, act: REFRESH_BUTTON ? 'Refresh' : '' };
     }
-    function checkingText(L, t) { return (L && L.askAt > L.askEnd && t - L.askAt > CHECK_LONG_MS) ? 'Still checking. The accessory is slow to answer.' : 'Checking the gate…'; }
+    // nx30: an ordinary check says nothing in the line. The hero is the loading shape while it lasts and the chip says "Checking…": a third "Checking the gate…" under them was one
+    // message too many. Only a check that takes long gets words.
+    function checkingText(L, t) { return (L && L.askAt > L.askEnd && t - L.askAt > CHECK_LONG_MS) ? 'Still checking. The accessory is slow to answer.' : ''; }
 
     // ---- the status line
     var NONE = { kind: '', text: '', act: '' };
@@ -3015,7 +3089,7 @@
           if (answeredJustNow(L, t)) return { kind: '', text: 'The accessory answered a moment ago.', act: '' };
           return { kind: 'bad', text: (L && L.manualDoneAt && t - L.manualDoneAt < 60000) ? 'Still no answer. Tap the status for details.' : unreachableCause(), act: unreachableAct() };
         }
-        if (chk === 'checking') return { kind: 'busy', text: checkingText(L, t), act: '' };
+        if (chk === 'checking') { var ct = checkingText(L, t); return ct ? { kind: 'busy', text: ct, act: '' } : NONE; }      // nx30: a short check has no line
         return trustLine(d, L, t) || NONE;
       } catch (e) { log('nxLine', String(e)); return NONE; }
     }

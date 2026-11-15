@@ -1,0 +1,55 @@
+/* nx30: a calmer accessory screen, and an app that starts on it when there is one accessory.
+   The screen says one thing at a time: the state (the hero and the word), under it one line when there is something to say, then Open, Close and Stop. What was also
+   there moved: the entry to Activity is a round button in the header, the extra buttons are behind "More commands". */
+
+/* ============================================================ the header: Activity */
+{{P}} .bar .button.nx-hist:before {
+  content: '' !important; display: block; width: 24px; height: 24px; background: currentColor; font-size: 0;
+  -webkit-mask: var(--nx-i-history) center / contain no-repeat; mask: var(--nx-i-history) center / contain no-repeat;
+}
+/* a round tonal button like the one next to it, not the filled pill of a header button with words */
+{{P}} .bar .button.header-item.nx-hist:not(.icon-occhio):not([class*="ion-"]) {
+  --_bg: var(--md-sys-color-surface-container-high); --_fg: var(--md-sys-color-on-surface-variant); width: 48px; padding: 0 !important;
+}
+/* the pill under the state word that this button replaces (it stays in the page: patch-14) */
+{{P}} .device-detail .nx-last { display: none !important; }
+
+/* ============================================================ the pad: smaller, and one look for Stop at rest
+   Open and Close were 136 dp high on a tall phone and Stop 96: three slabs that filled half the screen. Now 88 and 64 (80 and 56 on a low screen). */
+{{P}} .device-commands .command:has([translate$="_open"]), {{P}} .device-commands .command:has([translate$="_close"]) {
+  --_h: 88px; --_icon: 28px; --_gap: 12px; --_fs: clamp(18px, 5.6vw, 24px); --_lh: 32px;
+}
+{{P}} .device-commands .command:has([translate$="_stop"]) { --_h: 64px; --_icon: 24px; --_fs: clamp(17px, 5vw, 20px); --_lh: 28px; }
+@media (max-height: 700px) {
+  {{P}} .device-commands .command:has([translate$="_open"]), {{P}} .device-commands .command:has([translate$="_close"]) { --_h: 80px; }
+  {{P}} .device-commands .command:has([translate$="_stop"]) { --_h: 56px; }
+}
+
+/* ============================================================ the extra buttons behind one button
+   "More commands" is a text button with a chevron, as wide as its words, in the middle under Stop. Open, it shows the buttons the user ticked and the link to choose them. */
+{{P}} .device-commands .nx-more {
+  --_h: 48px; --_pad: 16px; --_gap: 4px; --_pr: 12px; --_fs: 14px; --_lh: 20px; --_fw: 600; --_ls: .1px; --_bg: transparent; --_fg: var(--md-sys-color-on-surface-variant);
+  grid-column: 1 / -1; justify-self: center; margin: 0; padding: 0 12px 0 16px; background: transparent; color: var(--_fg); border: 0;
+  border-top: 4px solid transparent; border-bottom: 4px solid transparent; background-clip: padding-box;
+}
+{{P}} .device-commands .nx-more > i {
+  flex: 0 0 auto; width: 20px; height: 20px; background: currentColor; -webkit-mask: var(--nx-i-expand) center / contain no-repeat; mask: var(--nx-i-expand) center / contain no-repeat;
+  transition: transform var(--nx-spatial-fast-ms) var(--nx-spatial-fast);
+}
+{{P}} .device-commands .nx-more[aria-expanded="true"] > i { transform: rotate(180deg); }
+@media (prefers-reduced-motion: reduce) { {{P}} .device-commands .nx-more > i { transition: none; } }
+{{P}} .device-commands .nx-folded { display: none !important; }
+/* the caption said what the button says now */
+{{P}} .device-commands .nx-more ~ .nx-extras .nx-extras-cap { display: none; }
+{{P}} .device-commands .nx-more ~ .nx-extras { margin-top: 0; }
+
+/* ============================================================ one accessory: the app starts on its screen
+   nx-patch.js sets data-nx-single="1" on <html> while there is exactly one accessory and no scene. Then Favorites would be a list of one and System the same list again: the first
+   tab is the accessory (its label is --nx-single-label), the second is not shown, and the accessory screen has no back button (there is nothing behind it). */
+html:root[data-nx-single="1"] body[data-ng-app] .bar .button.nx-back-detail { display: none !important; }
+html:root[data-nx-single="1"] body[data-ng-app] .tabs > a.tab-item:nth-of-type(2) { display: none !important; }
+html:root[data-nx-single="1"] body[data-ng-app] .tabs > a.tab-item:first-of-type .tab-title { font-size: 0; }
+html:root[data-nx-single="1"] body[data-ng-app] .tabs > a.tab-item:first-of-type .tab-title:after { content: var(--nx-single-label, 'Control'); font-size: 12px; }
+html:root[data-nx-single="1"] body[data-ng-app] .tabs > a.tab-item:first-of-type .icon:before { -webkit-mask-image: var(--nx-i-gate); mask-image: var(--nx-i-gate); }
+/* the moment between "the app is on Favorites" and "the app is on the accessory screen": the list of one is not drawn (nx-patch.js takes the attribute away after a second at most) */
+html:root[data-nx-single-go="1"] body[data-ng-app] ion-view#favorites .scroll-content { visibility: hidden; }
