@@ -1,8 +1,23 @@
 # Details and history
 
 This is the technical background to the [README.md](../README.md): why every change exists, with the diagnoses that led to them
-(nx3 through nx30: the project's build numbers). The example values (Wi-Fi `HomeWifi`, accessory `NiceIT4WIFIAABBCC`, user
+(nx3 through nx31: the project's build numbers). The example values (Wi-Fi `HomeWifi`, accessory `NiceIT4WIFIAABBCC`, user
 `homeuser`) stand in for whatever is different in your case. The data in this document comes from one phone and one IT4WIFI module.
+
+## What is new in nx31 (a test: two other styles, Mono and Carbon)
+*Settings > Appearance > Style* chooses between the skin as it is (*Expressive*) and two other looks. Both are a layer of rules over the skin, behind `data-nx-style` on `<html>`:
+without a style nothing of them applies, and the choice can be undone with one tap.
+
+- **Mono** is a design of this project: black, white and hairlines. A control is either ink or an outline, one corner of 10 px for everything, color only for what the gate says
+  (a green ring for open, a turning dashed ring while it moves, red for a fault), the typeface Geist.
+- **Carbon** follows the IBM Carbon Design System (the themes White and Gray 100): IBM Plex Sans, no rounded corners, flat layers on a 16 px grid that starts at the left margin,
+  buttons with the label at the top left and the icon at the right, a light weight for the state word, a tag for the status and an inline notification for a message.
+
+A style brings its own colors (`skin/src/styles.json`; `build-css.py` writes them as the same tokens as a palette, for light, for dark by the phone and for dark by choice), so the
+palette and the backdrop are not offered while one is chosen; they are kept and are back with *Expressive*. The theme (Auto, Light, Dark) works in every style. The rules are in
+`skin/src/nx31-mono.css` and `skin/src/nx31-carbon.css`; their prefix is heavier than any rule of the skin, so a style wins without knowing how the rule it replaces was written.
+The fonts (Latin subsets, SIL Open Font License) are in `skin/fonts-nx/` with their license texts. The choice is `nxStyle` in localStorage; `nx-theme.js` applies it before the
+first paint. This is a test: the two styles were looked at on the accessory screen, Settings, the sheets and the lists, not on every page of the set-up. nx31 has version code 20201129.
 
 ## What is new in nx30 (a calmer accessory screen, and an app that starts on it when there is one accessory)
 The accessory screen showed everything at once: the state, a pill with the last command, a line with a message, Open, Close and Stop of up to 136 dp, a caption, up to six extra buttons

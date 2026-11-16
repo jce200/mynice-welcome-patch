@@ -60,6 +60,14 @@ def seg(mode, label):
 
 
 ROW = ('    <div class="item item-divider" data-ng-if="nxSetTheme">Appearance</div>\n'
+       # nx31 (a test): the style
+       '    <div class="item nx-bg-row nx-style-row" data-ng-if="nxSetStyle">\n'
+       '      <span>Style</span>\n'
+       '      <div class="nx-seg" role="radiogroup" aria-label="Style">\n'
+       '        <a class="nx-seg-btn" role="radio" tabindex="0" data-ng-repeat="s in nxStyles" data-ng-class="{ \'nx-on\': nxStyle() === s.id }" '
+       'aria-checked="{{ nxStyle() === s.id }}" data-ng-click="nxSetStyle(s.id)">{{ s.label }}</a>\n'
+       '      </div>\n'
+       '    </div>\n'
        '    <div class="item nx-theme-row" data-ng-if="nxSetTheme">\n'
        '      <span>Theme</span>\n'
        '      <div class="nx-seg" role="radiogroup" aria-label="Theme">\n'

@@ -1,0 +1,65 @@
+{
+  "_about": "nx31: the colors of the styles that are a layer over the skin (Settings > Appearance > Style). build-css.py writes them as the same tokens as the palettes (tokens.css), three times per style: light, dark when the phone is dark and no theme was chosen, dark when the theme Dark was chosen. A style has its own colors, so these rules are stronger than those of a palette.",
+  "mono": {
+    "light": {
+      "--md-sys-color-primary": "#0a0a0a", "--md-sys-color-on-primary": "#ffffff", "--md-sys-color-primary-container": "#f0f0f0", "--md-sys-color-on-primary-container": "#0a0a0a",
+      "--md-sys-color-secondary": "#404040", "--md-sys-color-on-secondary": "#ffffff", "--md-sys-color-secondary-container": "#efefef", "--md-sys-color-on-secondary-container": "#0a0a0a",
+      "--md-sys-color-tertiary": "#0a0a0a", "--md-sys-color-on-tertiary": "#ffffff", "--md-sys-color-tertiary-container": "#f0f0f0", "--md-sys-color-on-tertiary-container": "#0a0a0a",
+      "--md-sys-color-error": "#d92d20", "--md-sys-color-on-error": "#ffffff", "--md-sys-color-error-container": "#fff0ee", "--md-sys-color-on-error-container": "#b42318",
+      "--md-sys-color-surface": "#ffffff", "--md-sys-color-on-surface": "#0a0a0a", "--md-sys-color-surface-variant": "#ededed", "--md-sys-color-on-surface-variant": "#5c5c5c",
+      "--md-sys-color-outline": "#8f8f8f", "--md-sys-color-outline-variant": "#e5e5e5", "--md-sys-color-surface-dim": "#ebebeb", "--md-sys-color-surface-bright": "#ffffff",
+      "--md-sys-color-surface-container-lowest": "#ffffff", "--md-sys-color-surface-container-low": "#fafafa", "--md-sys-color-surface-container": "#f5f5f5",
+      "--md-sys-color-surface-container-high": "#efefef", "--md-sys-color-surface-container-highest": "#e8e8e8",
+      "--md-sys-color-inverse-surface": "#0a0a0a", "--md-sys-color-inverse-on-surface": "#fafafa", "--md-sys-color-inverse-primary": "#ffffff", "--md-sys-color-scrim": "#000000",
+      "--nx-ok": "#0f7b3f", "--nx-on-ok": "#ffffff", "--nx-ok-container": "#e6f6ec", "--nx-on-ok-container": "#0b5c2f",
+      "--nx-warn": "#9a6700", "--nx-on-warn": "#ffffff", "--nx-warn-container": "#fff4d6", "--nx-on-warn-container": "#7a5200",
+      "--nx-brand": "#0a0a0a", "--nx-stage": "#111111"
+    },
+    "dark": {
+      "--md-sys-color-primary": "#ededed", "--md-sys-color-on-primary": "#0a0a0a", "--md-sys-color-primary-container": "#1a1a1a", "--md-sys-color-on-primary-container": "#ededed",
+      "--md-sys-color-secondary": "#c7c7c7", "--md-sys-color-on-secondary": "#0a0a0a", "--md-sys-color-secondary-container": "#1f1f1f", "--md-sys-color-on-secondary-container": "#ededed",
+      "--md-sys-color-tertiary": "#ededed", "--md-sys-color-on-tertiary": "#0a0a0a", "--md-sys-color-tertiary-container": "#1a1a1a", "--md-sys-color-on-tertiary-container": "#ededed",
+      "--md-sys-color-error": "#ff6166", "--md-sys-color-on-error": "#1a0000", "--md-sys-color-error-container": "#2a0d0e", "--md-sys-color-on-error-container": "#ff9ea1",
+      "--md-sys-color-surface": "#000000", "--md-sys-color-on-surface": "#ededed", "--md-sys-color-surface-variant": "#1f1f1f", "--md-sys-color-on-surface-variant": "#a1a1a1",
+      "--md-sys-color-outline": "#6b6b6b", "--md-sys-color-outline-variant": "#262626", "--md-sys-color-surface-dim": "#000000", "--md-sys-color-surface-bright": "#2a2a2a",
+      "--md-sys-color-surface-container-lowest": "#000000", "--md-sys-color-surface-container-low": "#0a0a0a", "--md-sys-color-surface-container": "#111111",
+      "--md-sys-color-surface-container-high": "#1a1a1a", "--md-sys-color-surface-container-highest": "#222222",
+      "--md-sys-color-inverse-surface": "#ededed", "--md-sys-color-inverse-on-surface": "#0a0a0a", "--md-sys-color-inverse-primary": "#0a0a0a", "--md-sys-color-scrim": "#000000",
+      "--nx-ok": "#45d483", "--nx-on-ok": "#00210f", "--nx-ok-container": "#0b2416", "--nx-on-ok-container": "#7ee2a8",
+      "--nx-warn": "#f5b53d", "--nx-on-warn": "#2b1a00", "--nx-warn-container": "#2a1f05", "--nx-on-warn-container": "#f8cf7a",
+      "--nx-brand": "#ededed", "--nx-stage": "#111111"
+    }
+  },
+  "carbon": {
+    "light": {
+      "--md-sys-color-primary": "#0f62fe", "--md-sys-color-on-primary": "#ffffff", "--md-sys-color-primary-container": "#d0e2ff", "--md-sys-color-on-primary-container": "#002d9c",
+      "--md-sys-color-secondary": "#393939", "--md-sys-color-on-secondary": "#ffffff", "--md-sys-color-secondary-container": "#e0e0e0", "--md-sys-color-on-secondary-container": "#161616",
+      "--md-sys-color-tertiary": "#0043ce", "--md-sys-color-on-tertiary": "#ffffff", "--md-sys-color-tertiary-container": "#edf5ff", "--md-sys-color-on-tertiary-container": "#0043ce",
+      "--md-sys-color-error": "#da1e28", "--md-sys-color-on-error": "#ffffff", "--md-sys-color-error-container": "#fff1f1", "--md-sys-color-on-error-container": "#a2191f",
+      "--md-sys-color-surface": "#ffffff", "--md-sys-color-on-surface": "#161616", "--md-sys-color-surface-variant": "#e0e0e0", "--md-sys-color-on-surface-variant": "#525252",
+      "--md-sys-color-outline": "#8d8d8d", "--md-sys-color-outline-variant": "#e0e0e0", "--md-sys-color-surface-dim": "#e0e0e0", "--md-sys-color-surface-bright": "#ffffff",
+      "--md-sys-color-surface-container-lowest": "#ffffff", "--md-sys-color-surface-container-low": "#f4f4f4", "--md-sys-color-surface-container": "#f4f4f4",
+      "--md-sys-color-surface-container-high": "#e8e8e8", "--md-sys-color-surface-container-highest": "#e0e0e0",
+      "--md-sys-color-inverse-surface": "#393939", "--md-sys-color-inverse-on-surface": "#ffffff", "--md-sys-color-inverse-primary": "#78a9ff", "--md-sys-color-scrim": "#161616",
+      "--nx-ok": "#198038", "--nx-on-ok": "#ffffff", "--nx-ok-container": "#defbe6", "--nx-on-ok-container": "#0e6027",
+      "--nx-warn": "#8e6a00", "--nx-on-warn": "#ffffff", "--nx-warn-container": "#fcf4d6", "--nx-on-warn-container": "#684e00",
+      "--nx-brand": "#0f62fe", "--nx-stage": "#262626",
+      "--cb-button-primary": "#0f62fe", "--cb-button-secondary": "#393939", "--cb-button-danger": "#da1e28", "--cb-link": "#0f62fe", "--cb-focus": "#0f62fe", "--cb-border-strong": "#8d8d8d"
+    },
+    "dark": {
+      "--md-sys-color-primary": "#4589ff", "--md-sys-color-on-primary": "#ffffff", "--md-sys-color-primary-container": "#001d6c", "--md-sys-color-on-primary-container": "#d0e2ff",
+      "--md-sys-color-secondary": "#c6c6c6", "--md-sys-color-on-secondary": "#161616", "--md-sys-color-secondary-container": "#393939", "--md-sys-color-on-secondary-container": "#f4f4f4",
+      "--md-sys-color-tertiary": "#78a9ff", "--md-sys-color-on-tertiary": "#161616", "--md-sys-color-tertiary-container": "#001d6c", "--md-sys-color-on-tertiary-container": "#d0e2ff",
+      "--md-sys-color-error": "#fa4d56", "--md-sys-color-on-error": "#161616", "--md-sys-color-error-container": "#520408", "--md-sys-color-on-error-container": "#ffd7d9",
+      "--md-sys-color-surface": "#161616", "--md-sys-color-on-surface": "#f4f4f4", "--md-sys-color-surface-variant": "#393939", "--md-sys-color-on-surface-variant": "#c6c6c6",
+      "--md-sys-color-outline": "#6f6f6f", "--md-sys-color-outline-variant": "#393939", "--md-sys-color-surface-dim": "#161616", "--md-sys-color-surface-bright": "#393939",
+      "--md-sys-color-surface-container-lowest": "#161616", "--md-sys-color-surface-container-low": "#262626", "--md-sys-color-surface-container": "#262626",
+      "--md-sys-color-surface-container-high": "#333333", "--md-sys-color-surface-container-highest": "#393939",
+      "--md-sys-color-inverse-surface": "#f4f4f4", "--md-sys-color-inverse-on-surface": "#161616", "--md-sys-color-inverse-primary": "#0f62fe", "--md-sys-color-scrim": "#000000",
+      "--nx-ok": "#42be65", "--nx-on-ok": "#161616", "--nx-ok-container": "#022d0d", "--nx-on-ok-container": "#a7f0ba",
+      "--nx-warn": "#f1c21b", "--nx-on-warn": "#161616", "--nx-warn-container": "#302400", "--nx-on-warn-container": "#fddc69",
+      "--nx-brand": "#0f62fe", "--nx-stage": "#262626",
+      "--cb-button-primary": "#0f62fe", "--cb-button-secondary": "#6f6f6f", "--cb-button-danger": "#da1e28", "--cb-link": "#78a9ff", "--cb-focus": "#ffffff", "--cb-border-strong": "#6f6f6f"
+    }
+  }
+}

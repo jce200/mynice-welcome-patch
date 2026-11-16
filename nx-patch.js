@@ -119,6 +119,21 @@
     if (backdropIndex(id) > 0) r.setAttribute('data-nx-bg', id); else r.removeAttribute('data-nx-bg');
   }
 
+  // ------------------------------------------------------------------ style (nx31, a test)
+  // Settings > Appearance > Style: the skin as it is (Material 3 Expressive), or one of two other looks that are a layer of rules over it (skin/src/nx31-*.css): "mono", a quiet
+  // design of this project (black, white and hairlines), and "carbon", after the IBM Carbon Design System. A style brings its own colors, so the palette and the backdrop are not
+  // offered while one is chosen (they are kept, and are back with "expressive"). localStorage 'nxStyle', data-nx-style on <html>; nx-theme.js sets it before the first paint.
+  var STYLES = [['expressive', 'Expressive'], ['mono', 'Mono'], ['carbon', 'Carbon']];
+  var STYLE_KEY = 'nxStyle';
+  function styleIndex(id) { for (var i = 0; i < STYLES.length; i++) if (STYLES[i][0] === id) return i; return -1; }
+  function readStyle() {
+    try { var s = window.localStorage.getItem(STYLE_KEY); return styleIndex(s) > 0 ? s : STYLES[0][0]; } catch (e) { return STYLES[0][0]; }
+  }
+  function applyStyle(id) {
+    var r = document.documentElement;
+    if (styleIndex(id) > 0) r.setAttribute('data-nx-style', id); else r.removeAttribute('data-nx-style');
+  }
+
   // ------------------------------------------------------------------ 1. error messages
   window.__nxMsg = function (e, fallback) {
     try {
@@ -1221,6 +1236,20 @@
         tuneStatusBar();
         log('palette', id);
       } catch (e) { log('palette', String(e)); }
+    };
+    // style (nx31): the same again
+    var styleNow = readStyle();
+    applyStyle(styleNow);
+    $rootScope.nxStyles = STYLES.map(function (p) { return { id: p[0], label: p[1] }; });
+    $rootScope.nxStyle = function () { return styleNow; };
+    $rootScope.nxSetStyle = function (id) {
+      try {
+        if (typeof id !== 'string' || styleIndex(id) < 0) return;
+        styleNow = id;
+        try { if (styleIndex(id) === 0) window.localStorage.removeItem(STYLE_KEY); else window.localStorage.setItem(STYLE_KEY, id); } catch (e) { log('style: not saved', String(e)); }
+        applyStyle(id);
+        log('style', id);
+      } catch (e) { log('style', String(e)); }
     };
     // backdrop (nx25): the same once more
     var backdropNow = readBackdrop();
@@ -2619,6 +2648,7 @@
       theme: function (mode) { if (mode) $rootScope.nxSetTheme(mode); return themeNow; },
       palette: function (id) { if (id) $rootScope.nxSetPalette(id); return paletteNow; },
       backdrop: function (id) { if (id) $rootScope.nxSetBackdrop(id); return backdropNow; },
+      style: function (id) { if (id) $rootScope.nxSetStyle(id); return styleNow; },
       activity: function (device) {
         if (!activity) return;
         var d = device || (allDevices()[0] || {}).device;

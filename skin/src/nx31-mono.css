@@ -1,0 +1,76 @@
+/* nx31 (a test): the style "Mono", a design of this project, as a layer over the skin. Every rule is behind data-nx-style="mono" on <html> (Settings > Appearance > Style);
+   without it nothing here applies. The colors are in styles.json. The idea: black, white and hairlines. Color is kept for what the gate says (open, moving, a fault); a control
+   is either ink or an outline; one corner of 10 px for everything; the typeface Geist, tight and a little heavier where it is large. */
+@font-face { font-family: 'Geist'; font-style: normal; font-weight: 100 900; font-display: swap; src: url('../fonts-nx/geist-latin.woff2') format('woff2'); }
+html:root[data-nx-style="mono"] { --nx-font: 'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif; --nx-r-s: 10px; --nx-r-m: 10px; --nx-r-l: 10px; --mono-line: var(--md-sys-color-outline-variant); }
+
+/* ============================================================ the ground rules */
+{{M}} *, {{M}} *:before, {{M}} *:after { border-radius: 10px !important; }
+/* what fills the window from edge to edge has no corners */
+{{M}}, {{M}} .pane, {{M}} .view, {{M}} .bar, {{M}} .tabs, {{M}} .scroll-content, {{M}} ion-content, {{M}} .backdrop, {{M}} .popup-container, {{M}} .loading-container, {{M}} .modal-backdrop,
+{{M}} .modal-backdrop-bg, {{M}} .nx-scrim, {{M}} ion-nav-view, {{M}} ion-nav-bar, {{M}} ion-tabs, {{M}} .nav-bar-block { border-radius: 0 !important; }
+{{M}}, {{M}} .pane, {{M}} .view { background-image: none !important; }
+{{M}} .item.nx-palette-row, {{M}} .item.nx-bg-row:not(.nx-style-row) { display: none !important; }
+
+/* ============================================================ the header */
+{{M}} .bar .title { font-weight: 600 !important; letter-spacing: -.02em !important; }
+{{M}} .bar .button { --_bg: transparent; --_fg: var(--md-sys-color-on-surface); --_sh: inset 0 0 0 1px var(--mono-line); }
+{{M}} .bar .button.header-item:not(.icon-occhio):not([class*="ion-"]):not(.nx-hist):not(:has(> .icon-settings)) { --_bg: var(--md-sys-color-primary); --_fg: var(--md-sys-color-on-primary); --_sh: 0 0 0 0 transparent; }
+{{M}} .bar .button.header-item.nx-hist:not(.icon-occhio):not([class*="ion-"]), {{M}} .bar .button.header-item:has(> .icon-settings) { --_bg: transparent; --_fg: var(--md-sys-color-on-surface); }
+
+/* ============================================================ the accessory screen */
+/* the hero is a ring; its color and its line say the state: green for open, a turning dashed line while the gate moves, red for a fault */
+{{M}} .device-icon:before {
+  clip-path: none !important; animation: none !important; transform: none; background: transparent !important; border-radius: 50% !important;
+  border: 1.5px solid var(--mono-line); box-sizing: border-box;
+}
+{{M}} .device-icon i { color: var(--md-sys-color-on-surface) !important; }
+{{M}} .device-icon:has(i.open):before { border-color: var(--nx-ok); }
+{{M}} .device-icon:has(i.open) i { color: var(--nx-ok) !important; }
+{{M}} .device-icon:has(i.opening):before, {{M}} .device-icon:has(i.closing):before { border: 2px dashed var(--md-sys-color-on-surface); animation: nx-mono-turn 12s linear infinite !important; }
+{{M}} .device-icon:has(i.stopped):before { border-color: var(--nx-warn); }
+{{M}} .device-icon:has(i.stopped) i { color: var(--nx-warn) !important; }
+{{M}} .device-icon:has(i.status-1):before { border: 2px solid var(--md-sys-color-error); }
+{{M}} .device-icon:has(i.status-1) i { color: var(--md-sys-color-error) !important; }
+{{M}} .full-container:has(.nx-line[data-nx-trust="checking"]) .device-icon:before { border-style: dashed; animation: nx-mono-pulse 1.6s ease-in-out infinite !important; }
+@keyframes nx-mono-turn { to { transform: rotate(360deg); } }
+@keyframes nx-mono-pulse { 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { {{M}} .device-icon:before { animation: none !important; } }
+{{M}} .nx-state strong, {{M}} .nx-state strong > span { font-weight: 600 !important; letter-spacing: -.04em !important; }
+/* the line: a hairline box, the color is in a bar at its left */
+{{M}} .nx-line:is([data-nx-kind="busy"], [data-nx-kind="ok"], [data-nx-kind="warn"], [data-nx-kind="bad"]) {
+  background: transparent !important; color: var(--md-sys-color-on-surface) !important; box-shadow: inset 0 0 0 1px var(--mono-line) !important; font-weight: 500;
+}
+{{M}} .nx-line[data-nx-kind="warn"] { box-shadow: inset 0 0 0 1px var(--nx-warn) !important; }
+{{M}} .nx-line[data-nx-kind="bad"] { box-shadow: inset 0 0 0 1px var(--md-sys-color-error) !important; }
+{{M}} .nx-line .nx-line-act { --_bg: var(--md-sys-color-primary); --_fg: var(--md-sys-color-on-primary); }
+/* the pad: Open is ink, Close an outline, Stop an outline in red until it may be needed (then it is solid) */
+{{M}} .row.flex-3:has(> .nx-line) > .device-commands { column-gap: 8px !important; row-gap: 8px !important; }
+{{M}} .device-commands .command, {{M}} .device-commands a.command { --_fs: 17px; --_lh: 24px; --_fw: 500; --_ls: -.01em; --_icon: 20px; --_gap: 10px; }
+{{M}} .device-commands .command:has([translate$="_open"]) { --_h: 72px; --_bg: var(--md-sys-color-primary); --_fg: var(--md-sys-color-on-primary); }
+{{M}} .device-commands .command:has([translate$="_close"]) { --_h: 72px; --_bg: transparent; --_fg: var(--md-sys-color-on-surface); --_sh: inset 0 0 0 1.5px var(--md-sys-color-outline); }
+/* Stop when it may be needed: one red for both themes, with white on it */
+{{M}} .device-commands .command:has([translate$="_stop"]) { --_h: 56px; --_bg: #e5484d; --_fg: #ffffff; --_sh: 0 0 0 0 transparent; }
+{{M}} .full-container:has(.device-icon i:is(.open, .closed).status-0):not(:has(.nx-unusable:not(.ng-hide))):not(:has(strong.nx-checking-text:not(.ng-hide))):not(:has(span[translate="DEVICE_STATE_CONFIRMATION_PENDING"]:not(.ng-hide))):not(:has(.nx-line:is([data-nx-trust="checking"], [data-nx-trust="aging"], [data-nx-trust="stale"]))) .device-commands .command:has([translate$="_stop"]) { --_bg: transparent; --_fg: var(--md-sys-color-error); --_sh: inset 0 0 0 1.5px color-mix(in srgb, var(--md-sys-color-error) 55%, transparent); }
+{{M}} .device-commands .nx-more { --_fg: var(--md-sys-color-on-surface-variant); --_fw: 500; }
+{{M}} .device-commands .nx-extras .command.nx-extra {
+  --_bg: transparent; --_fg: var(--md-sys-color-on-surface); --_sh: inset 0 0 0 1px var(--mono-line); --_fs: 14px; --_lh: 18px; --_fw: 500; min-height: 48px;
+}
+{{M}} .device-commands .nx-extra-edit { --_fg: var(--md-sys-color-on-surface-variant); color: var(--md-sys-color-on-surface-variant) !important; }
+
+/* ============================================================ the bar at the bottom: a hairline, no pill; the selected tab is ink, the others grey */
+{{M}} .tabs, {{M}} .tab-nav.tabs { background: var(--md-sys-color-surface) !important; box-shadow: inset 0 1px 0 var(--mono-line) !important; }
+{{M}} .tab-item { color: var(--md-sys-color-outline) !important; }
+{{M}} .tab-item .icon { background: transparent !important; }
+{{M}} .tab-item.tab-item-active, {{M}} .tab-item.active { color: var(--md-sys-color-on-surface) !important; }
+{{M}} .tab-item.tab-item-active .icon, {{M}} .tab-item.active .icon { color: var(--md-sys-color-on-surface) !important; }
+{{M}} .tab-item.tab-item-active .tab-title, {{M}} .tab-item.active .tab-title { font-weight: 600; }
+
+/* ============================================================ controls elsewhere */
+{{M}} .nx-seg-btn { --_bg: transparent; --_fg: var(--md-sys-color-on-surface-variant); --_sh: inset 0 0 0 1px var(--mono-line); }
+{{M}} .nx-seg-btn.nx-on { --_bg: var(--md-sys-color-primary); --_fg: var(--md-sys-color-on-primary); --_sh: 0 0 0 0 transparent; }
+/* the shape of the status sheet: a ring, like the hero */
+{{M}} .nx-shape:before { clip-path: none !important; animation: none !important; transform: none !important; border-radius: 50% !important; }
+/* a sheet stands on the bottom edge of the window: corners at its top only */
+{{M}} .nx-sheet, {{M}} .nx-sheet > .nx-handle { border-radius: 16px 16px 0 0 !important; }
+{{M}} .nx-sheet > .nx-footer { border-radius: 0 !important; }

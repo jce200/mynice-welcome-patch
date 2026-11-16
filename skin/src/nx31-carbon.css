@@ -1,0 +1,85 @@
+/* nx31 (a test): the style "Carbon", after the IBM Carbon Design System (themes White and Gray 100), as a layer over the skin. Every rule is behind data-nx-style="carbon" on <html>
+   (Settings > Appearance > Style); without it nothing here applies. The colors are in styles.json. What makes it Carbon: IBM Plex Sans, no rounded corners, flat layers on a 16 px
+   grid, buttons with the label at the top left and the icon at the right, a light weight for the large word, tags and inline notifications for what the app has to say. */
+@font-face { font-family: 'IBM Plex Sans'; font-style: normal; font-weight: 300; font-display: swap; src: url('../fonts-nx/ibm-plex-sans-latin-300.woff2') format('woff2'); }
+@font-face { font-family: 'IBM Plex Sans'; font-style: normal; font-weight: 400; font-display: swap; src: url('../fonts-nx/ibm-plex-sans-latin-400.woff2') format('woff2'); }
+@font-face { font-family: 'IBM Plex Sans'; font-style: normal; font-weight: 600; font-display: swap; src: url('../fonts-nx/ibm-plex-sans-latin-600.woff2') format('woff2'); }
+html:root[data-nx-style="carbon"] { --nx-font: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif; --nx-r-s: 0px; --nx-r-m: 0px; --nx-r-l: 0px; }
+
+/* ============================================================ the ground rules */
+{{C}} *, {{C}} *:before, {{C}} *:after { border-radius: 0 !important; }
+{{C}}, {{C}} .pane, {{C}} .view { background-image: none !important; }
+/* the palette and the backdrop belong to the style Expressive */
+{{C}} .item.nx-palette-row, {{C}} .item.nx-bg-row:not(.nx-style-row) { display: none !important; }
+/* what stays round in Carbon: a tag, a toggle, a dot */
+{{C}} .nx-chip:before { border-radius: 16px !important; }
+{{C}} .toggle .track { border-radius: 999px !important; }
+{{C}} .toggle .handle, {{C}} .toggle .handle:before { border-radius: 50% !important; }
+
+/* ============================================================ the header */
+{{C}} .bar .title { font-weight: 400 !important; letter-spacing: 0 !important; }
+{{C}} .bar .button { --_bg: transparent; --_fg: var(--md-sys-color-on-surface); }
+{{C}} .bar .button.header-item:not(.icon-occhio):not([class*="ion-"]):not(.nx-hist):not(:has(> .icon-settings)) { --_bg: var(--cb-button-primary); --_fg: #ffffff; }
+{{C}} .bar .button.header-item.nx-hist:not(.icon-occhio):not([class*="ion-"]), {{C}} .bar .button.header-item:has(> .icon-settings) { --_bg: transparent; --_fg: var(--md-sys-color-on-surface); }
+
+/* ============================================================ the accessory screen */
+/* the hero is a tile; the glyph has the color of the state */
+{{C}} .device-icon:before { clip-path: none !important; animation: none !important; transform: none !important; background: var(--md-sys-color-surface-container-low) !important; }
+{{C}} .device-icon i { color: var(--md-sys-color-on-surface) !important; }
+{{C}} .device-icon:has(i.open) i { color: var(--nx-ok) !important; }
+{{C}} .device-icon:has(i.opening) i, {{C}} .device-icon:has(i.closing) i { color: var(--cb-link) !important; }
+{{C}} .device-icon:has(i.stopped) i { color: var(--nx-warn) !important; }
+{{C}} .device-icon:has(i.status-1) i { color: var(--md-sys-color-error) !important; }
+{{C}} .nx-state strong, {{C}} .nx-state strong > span { font-weight: 300 !important; letter-spacing: 0 !important; }
+/* the line is an inline notification: a layer with a bar of 3 px in the color of what it says */
+{{C}} .nx-line:is([data-nx-kind="busy"], [data-nx-kind="ok"], [data-nx-kind="warn"], [data-nx-kind="bad"]) {
+  background: var(--md-sys-color-surface-container-low) !important; color: var(--md-sys-color-on-surface) !important; box-shadow: inset 3px 0 0 var(--cb-link) !important; font-weight: 400;
+}
+{{C}} .nx-line[data-nx-kind="ok"] { box-shadow: inset 3px 0 0 var(--nx-ok) !important; }
+{{C}} .nx-line[data-nx-kind="warn"] { box-shadow: inset 3px 0 0 var(--nx-warn) !important; }
+{{C}} .nx-line[data-nx-kind="bad"] { box-shadow: inset 3px 0 0 var(--md-sys-color-error) !important; }
+{{C}} .nx-line .nx-line-act { --_bg: transparent; --_fg: var(--cb-link); }
+/* the pad: a button set, 1 px between the buttons, the label at the top left and the icon at the right */
+{{C}} .row.flex-3:has(> .nx-line) > .device-commands { column-gap: 1px !important; row-gap: 1px !important; }
+{{C}} .device-commands .command, {{C}} .device-commands a.command {
+  --_fs: 16px; --_lh: 22px; --_fw: 400; --_ls: 0; --_icon: 20px; align-items: flex-start !important; justify-content: flex-start !important; padding: 15px 16px !important; text-align: left;
+}
+{{C}} .device-commands .command span { width: 100% !important; flex-direction: row-reverse; justify-content: space-between; align-items: flex-start; }
+{{C}} .device-commands .command:has([translate$="_open"]) { --_h: 80px; --_bg: var(--cb-button-primary); --_fg: #ffffff; }
+{{C}} .device-commands .command:has([translate$="_close"]) { --_h: 80px; --_bg: var(--cb-button-secondary); --_fg: #ffffff; }
+{{C}} .device-commands .command:has([translate$="_stop"]) { --_h: 64px; --_bg: var(--cb-button-danger); --_fg: #ffffff; --_sh: 0 0 0 0 transparent; }
+/* Stop at rest: the tertiary danger button (an outline) */
+{{C}} .full-container:has(.device-icon i:is(.open, .closed).status-0):not(:has(.nx-unusable:not(.ng-hide))):not(:has(strong.nx-checking-text:not(.ng-hide))):not(:has(span[translate="DEVICE_STATE_CONFIRMATION_PENDING"]:not(.ng-hide))):not(:has(.nx-line:is([data-nx-trust="checking"], [data-nx-trust="aging"], [data-nx-trust="stale"]))) .device-commands .command:has([translate$="_stop"]) { --_bg: transparent; --_fg: var(--md-sys-color-error); --_sh: inset 0 0 0 1px var(--md-sys-color-error); }
+{{C}} .device-commands .nx-more { justify-self: start; --_fg: var(--cb-link); color: var(--cb-link) !important; padding: 0 12px 0 16px !important; }
+{{C}} .device-commands .nx-extras { gap: 1px !important; }
+{{C}} .device-commands .nx-extras .command.nx-extra {
+  --_bg: var(--md-sys-color-surface-container-low); --_fg: var(--md-sys-color-on-surface); --_fs: 14px; --_lh: 18px; min-height: 48px; padding: 8px 16px !important; text-align: left;
+  align-items: center !important; justify-content: flex-start !important;
+}
+{{C}} .device-commands .nx-extra-edit { --_fg: var(--cb-link); color: var(--cb-link) !important; justify-self: start; }
+
+/* ============================================================ the bar at the bottom: tabs with a line of 2 px over the selected one */
+{{C}} .tabs, {{C}} .tab-nav.tabs { background: var(--md-sys-color-surface-container-low) !important; padding: 0 !important; align-items: stretch !important; box-shadow: inset 0 1px 0 var(--md-sys-color-outline-variant) !important; }
+{{C}} .tab-item { padding-top: 12px !important; }
+{{C}} .tab-item .icon { background: transparent !important; }
+{{C}} .tab-item.tab-item-active, {{C}} .tab-item.active { box-shadow: inset 0 2px 0 var(--cb-button-primary) !important; }
+{{C}} .tab-item.tab-item-active .icon, {{C}} .tab-item.active .icon { color: var(--md-sys-color-on-surface) !important; }
+{{C}} .tab-item.tab-item-active .tab-title, {{C}} .tab-item.active .tab-title { font-weight: 600; }
+
+/* ============================================================ controls elsewhere */
+{{C}} .m3e-filled:not([aria-pressed="false"]) { --_bg: var(--cb-button-primary); --_fg: #ffffff; }
+{{C}} .m3e-text, {{C}} .nx-link { --_fg: var(--cb-link); color: var(--cb-link); }
+/* a choice of one (theme, style): the content switcher, the selected part is the inverse layer */
+{{C}} .nx-seg { gap: 0 !important; }
+{{C}} .nx-seg-btn { --_bg: var(--md-sys-color-surface-container-low); --_fg: var(--md-sys-color-on-surface-variant); --_sh: inset 0 0 0 1px var(--md-sys-color-outline-variant); }
+{{C}} .nx-seg-btn.nx-on { --_bg: var(--md-sys-color-inverse-surface); --_fg: var(--md-sys-color-inverse-on-surface); --_sh: 0 0 0 0 transparent; }
+
+/* ============================================================ the grid: everything starts at the left margin of 16 px */
+{{C}} .full-container > .row.flex-2:has(.nx-state) { padding: 0 16px !important; }
+{{C}} .row.flex-2:has(.nx-state) .device-icon { margin: auto auto 12px 0 !important; flex-basis: 144px; }
+{{C}} .row.flex-2:has(.nx-state) .device-info { align-items: flex-start !important; text-align: left; }
+{{C}} .nx-state, {{C}} .nx-state strong { text-align: left !important; justify-content: flex-start !important; align-items: flex-start !important; }
+/* a label over a group is quiet: the secondary text color, not the color of a link */
+{{C}} .list .item-divider, {{C}} .item-divider { color: var(--md-sys-color-on-surface-variant) !important; font-weight: 400 !important; letter-spacing: .32px !important; }
+/* the shape of the status sheet is a tile too */
+{{C}} .nx-shape:before { clip-path: none !important; animation: none !important; transform: none !important; }

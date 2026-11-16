@@ -982,6 +982,300 @@
 }
 
 
+/* nx31: the colors of the styles (generated from styles.json) */
+html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] {
+  --md-sys-color-primary: #0f62fe;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #d0e2ff;
+  --md-sys-color-on-primary-container: #002d9c;
+  --md-sys-color-secondary: #393939;
+  --md-sys-color-on-secondary: #ffffff;
+  --md-sys-color-secondary-container: #e0e0e0;
+  --md-sys-color-on-secondary-container: #161616;
+  --md-sys-color-tertiary: #0043ce;
+  --md-sys-color-on-tertiary: #ffffff;
+  --md-sys-color-tertiary-container: #edf5ff;
+  --md-sys-color-on-tertiary-container: #0043ce;
+  --md-sys-color-error: #da1e28;
+  --md-sys-color-on-error: #ffffff;
+  --md-sys-color-error-container: #fff1f1;
+  --md-sys-color-on-error-container: #a2191f;
+  --md-sys-color-surface: #ffffff;
+  --md-sys-color-on-surface: #161616;
+  --md-sys-color-surface-variant: #e0e0e0;
+  --md-sys-color-on-surface-variant: #525252;
+  --md-sys-color-outline: #8d8d8d;
+  --md-sys-color-outline-variant: #e0e0e0;
+  --md-sys-color-surface-dim: #e0e0e0;
+  --md-sys-color-surface-bright: #ffffff;
+  --md-sys-color-surface-container-lowest: #ffffff;
+  --md-sys-color-surface-container-low: #f4f4f4;
+  --md-sys-color-surface-container: #f4f4f4;
+  --md-sys-color-surface-container-high: #e8e8e8;
+  --md-sys-color-surface-container-highest: #e0e0e0;
+  --md-sys-color-inverse-surface: #393939;
+  --md-sys-color-inverse-on-surface: #ffffff;
+  --md-sys-color-inverse-primary: #78a9ff;
+  --md-sys-color-scrim: #161616;
+  --nx-ok: #198038;
+  --nx-on-ok: #ffffff;
+  --nx-ok-container: #defbe6;
+  --nx-on-ok-container: #0e6027;
+  --nx-warn: #8e6a00;
+  --nx-on-warn: #ffffff;
+  --nx-warn-container: #fcf4d6;
+  --nx-on-warn-container: #684e00;
+  --nx-brand: #0f62fe;
+  --nx-stage: #262626;
+  --cb-button-primary: #0f62fe;
+  --cb-button-secondary: #393939;
+  --cb-button-danger: #da1e28;
+  --cb-link: #0f62fe;
+  --cb-focus: #0f62fe;
+  --cb-border-strong: #8d8d8d;
+}
+@media (prefers-color-scheme: dark) {
+  html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style]:not([data-nx-theme="light"]) {
+    --md-sys-color-primary: #4589ff;
+    --md-sys-color-on-primary: #ffffff;
+    --md-sys-color-primary-container: #001d6c;
+    --md-sys-color-on-primary-container: #d0e2ff;
+    --md-sys-color-secondary: #c6c6c6;
+    --md-sys-color-on-secondary: #161616;
+    --md-sys-color-secondary-container: #393939;
+    --md-sys-color-on-secondary-container: #f4f4f4;
+    --md-sys-color-tertiary: #78a9ff;
+    --md-sys-color-on-tertiary: #161616;
+    --md-sys-color-tertiary-container: #001d6c;
+    --md-sys-color-on-tertiary-container: #d0e2ff;
+    --md-sys-color-error: #fa4d56;
+    --md-sys-color-on-error: #161616;
+    --md-sys-color-error-container: #520408;
+    --md-sys-color-on-error-container: #ffd7d9;
+    --md-sys-color-surface: #161616;
+    --md-sys-color-on-surface: #f4f4f4;
+    --md-sys-color-surface-variant: #393939;
+    --md-sys-color-on-surface-variant: #c6c6c6;
+    --md-sys-color-outline: #6f6f6f;
+    --md-sys-color-outline-variant: #393939;
+    --md-sys-color-surface-dim: #161616;
+    --md-sys-color-surface-bright: #393939;
+    --md-sys-color-surface-container-lowest: #161616;
+    --md-sys-color-surface-container-low: #262626;
+    --md-sys-color-surface-container: #262626;
+    --md-sys-color-surface-container-high: #333333;
+    --md-sys-color-surface-container-highest: #393939;
+    --md-sys-color-inverse-surface: #f4f4f4;
+    --md-sys-color-inverse-on-surface: #161616;
+    --md-sys-color-inverse-primary: #0f62fe;
+    --md-sys-color-scrim: #000000;
+    --nx-ok: #42be65;
+    --nx-on-ok: #161616;
+    --nx-ok-container: #022d0d;
+    --nx-on-ok-container: #a7f0ba;
+    --nx-warn: #f1c21b;
+    --nx-on-warn: #161616;
+    --nx-warn-container: #302400;
+    --nx-on-warn-container: #fddc69;
+    --nx-brand: #0f62fe;
+    --nx-stage: #262626;
+    --cb-button-primary: #0f62fe;
+    --cb-button-secondary: #6f6f6f;
+    --cb-button-danger: #da1e28;
+    --cb-link: #78a9ff;
+    --cb-focus: #ffffff;
+    --cb-border-strong: #6f6f6f;
+  }
+}
+html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style][data-nx-theme="dark"] {
+  --md-sys-color-primary: #4589ff;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #001d6c;
+  --md-sys-color-on-primary-container: #d0e2ff;
+  --md-sys-color-secondary: #c6c6c6;
+  --md-sys-color-on-secondary: #161616;
+  --md-sys-color-secondary-container: #393939;
+  --md-sys-color-on-secondary-container: #f4f4f4;
+  --md-sys-color-tertiary: #78a9ff;
+  --md-sys-color-on-tertiary: #161616;
+  --md-sys-color-tertiary-container: #001d6c;
+  --md-sys-color-on-tertiary-container: #d0e2ff;
+  --md-sys-color-error: #fa4d56;
+  --md-sys-color-on-error: #161616;
+  --md-sys-color-error-container: #520408;
+  --md-sys-color-on-error-container: #ffd7d9;
+  --md-sys-color-surface: #161616;
+  --md-sys-color-on-surface: #f4f4f4;
+  --md-sys-color-surface-variant: #393939;
+  --md-sys-color-on-surface-variant: #c6c6c6;
+  --md-sys-color-outline: #6f6f6f;
+  --md-sys-color-outline-variant: #393939;
+  --md-sys-color-surface-dim: #161616;
+  --md-sys-color-surface-bright: #393939;
+  --md-sys-color-surface-container-lowest: #161616;
+  --md-sys-color-surface-container-low: #262626;
+  --md-sys-color-surface-container: #262626;
+  --md-sys-color-surface-container-high: #333333;
+  --md-sys-color-surface-container-highest: #393939;
+  --md-sys-color-inverse-surface: #f4f4f4;
+  --md-sys-color-inverse-on-surface: #161616;
+  --md-sys-color-inverse-primary: #0f62fe;
+  --md-sys-color-scrim: #000000;
+  --nx-ok: #42be65;
+  --nx-on-ok: #161616;
+  --nx-ok-container: #022d0d;
+  --nx-on-ok-container: #a7f0ba;
+  --nx-warn: #f1c21b;
+  --nx-on-warn: #161616;
+  --nx-warn-container: #302400;
+  --nx-on-warn-container: #fddc69;
+  --nx-brand: #0f62fe;
+  --nx-stage: #262626;
+  --cb-button-primary: #0f62fe;
+  --cb-button-secondary: #6f6f6f;
+  --cb-button-danger: #da1e28;
+  --cb-link: #78a9ff;
+  --cb-focus: #ffffff;
+  --cb-border-strong: #6f6f6f;
+}
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] {
+  --md-sys-color-primary: #0a0a0a;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #f0f0f0;
+  --md-sys-color-on-primary-container: #0a0a0a;
+  --md-sys-color-secondary: #404040;
+  --md-sys-color-on-secondary: #ffffff;
+  --md-sys-color-secondary-container: #efefef;
+  --md-sys-color-on-secondary-container: #0a0a0a;
+  --md-sys-color-tertiary: #0a0a0a;
+  --md-sys-color-on-tertiary: #ffffff;
+  --md-sys-color-tertiary-container: #f0f0f0;
+  --md-sys-color-on-tertiary-container: #0a0a0a;
+  --md-sys-color-error: #d92d20;
+  --md-sys-color-on-error: #ffffff;
+  --md-sys-color-error-container: #fff0ee;
+  --md-sys-color-on-error-container: #b42318;
+  --md-sys-color-surface: #ffffff;
+  --md-sys-color-on-surface: #0a0a0a;
+  --md-sys-color-surface-variant: #ededed;
+  --md-sys-color-on-surface-variant: #5c5c5c;
+  --md-sys-color-outline: #8f8f8f;
+  --md-sys-color-outline-variant: #e5e5e5;
+  --md-sys-color-surface-dim: #ebebeb;
+  --md-sys-color-surface-bright: #ffffff;
+  --md-sys-color-surface-container-lowest: #ffffff;
+  --md-sys-color-surface-container-low: #fafafa;
+  --md-sys-color-surface-container: #f5f5f5;
+  --md-sys-color-surface-container-high: #efefef;
+  --md-sys-color-surface-container-highest: #e8e8e8;
+  --md-sys-color-inverse-surface: #0a0a0a;
+  --md-sys-color-inverse-on-surface: #fafafa;
+  --md-sys-color-inverse-primary: #ffffff;
+  --md-sys-color-scrim: #000000;
+  --nx-ok: #0f7b3f;
+  --nx-on-ok: #ffffff;
+  --nx-ok-container: #e6f6ec;
+  --nx-on-ok-container: #0b5c2f;
+  --nx-warn: #9a6700;
+  --nx-on-warn: #ffffff;
+  --nx-warn-container: #fff4d6;
+  --nx-on-warn-container: #7a5200;
+  --nx-brand: #0a0a0a;
+  --nx-stage: #111111;
+}
+@media (prefers-color-scheme: dark) {
+  html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style]:not([data-nx-theme="light"]) {
+    --md-sys-color-primary: #ededed;
+    --md-sys-color-on-primary: #0a0a0a;
+    --md-sys-color-primary-container: #1a1a1a;
+    --md-sys-color-on-primary-container: #ededed;
+    --md-sys-color-secondary: #c7c7c7;
+    --md-sys-color-on-secondary: #0a0a0a;
+    --md-sys-color-secondary-container: #1f1f1f;
+    --md-sys-color-on-secondary-container: #ededed;
+    --md-sys-color-tertiary: #ededed;
+    --md-sys-color-on-tertiary: #0a0a0a;
+    --md-sys-color-tertiary-container: #1a1a1a;
+    --md-sys-color-on-tertiary-container: #ededed;
+    --md-sys-color-error: #ff6166;
+    --md-sys-color-on-error: #1a0000;
+    --md-sys-color-error-container: #2a0d0e;
+    --md-sys-color-on-error-container: #ff9ea1;
+    --md-sys-color-surface: #000000;
+    --md-sys-color-on-surface: #ededed;
+    --md-sys-color-surface-variant: #1f1f1f;
+    --md-sys-color-on-surface-variant: #a1a1a1;
+    --md-sys-color-outline: #6b6b6b;
+    --md-sys-color-outline-variant: #262626;
+    --md-sys-color-surface-dim: #000000;
+    --md-sys-color-surface-bright: #2a2a2a;
+    --md-sys-color-surface-container-lowest: #000000;
+    --md-sys-color-surface-container-low: #0a0a0a;
+    --md-sys-color-surface-container: #111111;
+    --md-sys-color-surface-container-high: #1a1a1a;
+    --md-sys-color-surface-container-highest: #222222;
+    --md-sys-color-inverse-surface: #ededed;
+    --md-sys-color-inverse-on-surface: #0a0a0a;
+    --md-sys-color-inverse-primary: #0a0a0a;
+    --md-sys-color-scrim: #000000;
+    --nx-ok: #45d483;
+    --nx-on-ok: #00210f;
+    --nx-ok-container: #0b2416;
+    --nx-on-ok-container: #7ee2a8;
+    --nx-warn: #f5b53d;
+    --nx-on-warn: #2b1a00;
+    --nx-warn-container: #2a1f05;
+    --nx-on-warn-container: #f8cf7a;
+    --nx-brand: #ededed;
+    --nx-stage: #111111;
+  }
+}
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style][data-nx-theme="dark"] {
+  --md-sys-color-primary: #ededed;
+  --md-sys-color-on-primary: #0a0a0a;
+  --md-sys-color-primary-container: #1a1a1a;
+  --md-sys-color-on-primary-container: #ededed;
+  --md-sys-color-secondary: #c7c7c7;
+  --md-sys-color-on-secondary: #0a0a0a;
+  --md-sys-color-secondary-container: #1f1f1f;
+  --md-sys-color-on-secondary-container: #ededed;
+  --md-sys-color-tertiary: #ededed;
+  --md-sys-color-on-tertiary: #0a0a0a;
+  --md-sys-color-tertiary-container: #1a1a1a;
+  --md-sys-color-on-tertiary-container: #ededed;
+  --md-sys-color-error: #ff6166;
+  --md-sys-color-on-error: #1a0000;
+  --md-sys-color-error-container: #2a0d0e;
+  --md-sys-color-on-error-container: #ff9ea1;
+  --md-sys-color-surface: #000000;
+  --md-sys-color-on-surface: #ededed;
+  --md-sys-color-surface-variant: #1f1f1f;
+  --md-sys-color-on-surface-variant: #a1a1a1;
+  --md-sys-color-outline: #6b6b6b;
+  --md-sys-color-outline-variant: #262626;
+  --md-sys-color-surface-dim: #000000;
+  --md-sys-color-surface-bright: #2a2a2a;
+  --md-sys-color-surface-container-lowest: #000000;
+  --md-sys-color-surface-container-low: #0a0a0a;
+  --md-sys-color-surface-container: #111111;
+  --md-sys-color-surface-container-high: #1a1a1a;
+  --md-sys-color-surface-container-highest: #222222;
+  --md-sys-color-inverse-surface: #ededed;
+  --md-sys-color-inverse-on-surface: #0a0a0a;
+  --md-sys-color-inverse-primary: #0a0a0a;
+  --md-sys-color-scrim: #000000;
+  --nx-ok: #45d483;
+  --nx-on-ok: #00210f;
+  --nx-ok-container: #0b2416;
+  --nx-on-ok-container: #7ee2a8;
+  --nx-warn: #f5b53d;
+  --nx-on-warn: #2b1a00;
+  --nx-warn-container: #2a1f05;
+  --nx-on-warn-container: #f8cf7a;
+  --nx-brand: #ededed;
+  --nx-stage: #111111;
+}
+
 /* nx-expressive.css (skin): the MyNice Welcome app in the style of Material 3 Expressive.
  *
  * Appearance only, not a single line of logic. Color roles and spring curves come from tokens.css (light and dark follow the
@@ -3185,3 +3479,166 @@ html:root[data-nx-single="1"] body[data-ng-app] .tabs > a.tab-item:first-of-type
 html:root[data-nx-single="1"] body[data-ng-app] .tabs > a.tab-item:first-of-type .icon:before { -webkit-mask-image: var(--nx-i-gate); mask-image: var(--nx-i-gate); }
 /* the moment between "the app is on Favorites" and "the app is on the accessory screen": the list of one is not drawn (nx-patch.js takes the attribute away after a second at most) */
 html:root[data-nx-single-go="1"] body[data-ng-app] ion-view#favorites .scroll-content { visibility: hidden; }
+
+/* nx31 (a test): the style "Carbon", after the IBM Carbon Design System (themes White and Gray 100), as a layer over the skin. Every rule is behind data-nx-style="carbon" on <html>
+   (Settings > Appearance > Style); without it nothing here applies. The colors are in styles.json. What makes it Carbon: IBM Plex Sans, no rounded corners, flat layers on a 16 px
+   grid, buttons with the label at the top left and the icon at the right, a light weight for the large word, tags and inline notifications for what the app has to say. */
+@font-face { font-family: 'IBM Plex Sans'; font-style: normal; font-weight: 300; font-display: swap; src: url('../fonts-nx/ibm-plex-sans-latin-300.woff2') format('woff2'); }
+@font-face { font-family: 'IBM Plex Sans'; font-style: normal; font-weight: 400; font-display: swap; src: url('../fonts-nx/ibm-plex-sans-latin-400.woff2') format('woff2'); }
+@font-face { font-family: 'IBM Plex Sans'; font-style: normal; font-weight: 600; font-display: swap; src: url('../fonts-nx/ibm-plex-sans-latin-600.woff2') format('woff2'); }
+html:root[data-nx-style="carbon"] { --nx-font: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif; --nx-r-s: 0px; --nx-r-m: 0px; --nx-r-l: 0px; }
+
+/* ============================================================ the ground rules */
+html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] *, html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] *:before, html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] *:after { border-radius: 0 !important; }
+html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app], html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .pane, html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .view { background-image: none !important; }
+/* the palette and the backdrop belong to the style Expressive */
+html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .item.nx-palette-row, html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .item.nx-bg-row:not(.nx-style-row) { display: none !important; }
+/* what stays round in Carbon: a tag, a toggle, a dot */
+html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .nx-chip:before { border-radius: 16px !important; }
+html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .toggle .track { border-radius: 999px !important; }
+html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .toggle .handle, html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .toggle .handle:before { border-radius: 50% !important; }
+
+/* ============================================================ the header */
+html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .bar .title { font-weight: 400 !important; letter-spacing: 0 !important; }
+html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .bar .button { --_bg: transparent; --_fg: var(--md-sys-color-on-surface); }
+html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .bar .button.header-item:not(.icon-occhio):not([class*="ion-"]):not(.nx-hist):not(:has(> .icon-settings)) { --_bg: var(--cb-button-primary); --_fg: #ffffff; }
+html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .bar .button.header-item.nx-hist:not(.icon-occhio):not([class*="ion-"]), html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .bar .button.header-item:has(> .icon-settings) { --_bg: transparent; --_fg: var(--md-sys-color-on-surface); }
+
+/* ============================================================ the accessory screen */
+/* the hero is a tile; the glyph has the color of the state */
+html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .device-icon:before { clip-path: none !important; animation: none !important; transform: none !important; background: var(--md-sys-color-surface-container-low) !important; }
+html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .device-icon i { color: var(--md-sys-color-on-surface) !important; }
+html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .device-icon:has(i.open) i { color: var(--nx-ok) !important; }
+html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .device-icon:has(i.opening) i, html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .device-icon:has(i.closing) i { color: var(--cb-link) !important; }
+html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .device-icon:has(i.stopped) i { color: var(--nx-warn) !important; }
+html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .device-icon:has(i.status-1) i { color: var(--md-sys-color-error) !important; }
+html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .nx-state strong, html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .nx-state strong > span { font-weight: 300 !important; letter-spacing: 0 !important; }
+/* the line is an inline notification: a layer with a bar of 3 px in the color of what it says */
+html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .nx-line:is([data-nx-kind="busy"], [data-nx-kind="ok"], [data-nx-kind="warn"], [data-nx-kind="bad"]) {
+  background: var(--md-sys-color-surface-container-low) !important; color: var(--md-sys-color-on-surface) !important; box-shadow: inset 3px 0 0 var(--cb-link) !important; font-weight: 400;
+}
+html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .nx-line[data-nx-kind="ok"] { box-shadow: inset 3px 0 0 var(--nx-ok) !important; }
+html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .nx-line[data-nx-kind="warn"] { box-shadow: inset 3px 0 0 var(--nx-warn) !important; }
+html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .nx-line[data-nx-kind="bad"] { box-shadow: inset 3px 0 0 var(--md-sys-color-error) !important; }
+html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .nx-line .nx-line-act { --_bg: transparent; --_fg: var(--cb-link); }
+/* the pad: a button set, 1 px between the buttons, the label at the top left and the icon at the right */
+html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .row.flex-3:has(> .nx-line) > .device-commands { column-gap: 1px !important; row-gap: 1px !important; }
+html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .device-commands .command, html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .device-commands a.command {
+  --_fs: 16px; --_lh: 22px; --_fw: 400; --_ls: 0; --_icon: 20px; align-items: flex-start !important; justify-content: flex-start !important; padding: 15px 16px !important; text-align: left;
+}
+html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .device-commands .command span { width: 100% !important; flex-direction: row-reverse; justify-content: space-between; align-items: flex-start; }
+html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .device-commands .command:has([translate$="_open"]) { --_h: 80px; --_bg: var(--cb-button-primary); --_fg: #ffffff; }
+html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .device-commands .command:has([translate$="_close"]) { --_h: 80px; --_bg: var(--cb-button-secondary); --_fg: #ffffff; }
+html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .device-commands .command:has([translate$="_stop"]) { --_h: 64px; --_bg: var(--cb-button-danger); --_fg: #ffffff; --_sh: 0 0 0 0 transparent; }
+/* Stop at rest: the tertiary danger button (an outline) */
+html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .full-container:has(.device-icon i:is(.open, .closed).status-0):not(:has(.nx-unusable:not(.ng-hide))):not(:has(strong.nx-checking-text:not(.ng-hide))):not(:has(span[translate="DEVICE_STATE_CONFIRMATION_PENDING"]:not(.ng-hide))):not(:has(.nx-line:is([data-nx-trust="checking"], [data-nx-trust="aging"], [data-nx-trust="stale"]))) .device-commands .command:has([translate$="_stop"]) { --_bg: transparent; --_fg: var(--md-sys-color-error); --_sh: inset 0 0 0 1px var(--md-sys-color-error); }
+html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .device-commands .nx-more { justify-self: start; --_fg: var(--cb-link); color: var(--cb-link) !important; padding: 0 12px 0 16px !important; }
+html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .device-commands .nx-extras { gap: 1px !important; }
+html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .device-commands .nx-extras .command.nx-extra {
+  --_bg: var(--md-sys-color-surface-container-low); --_fg: var(--md-sys-color-on-surface); --_fs: 14px; --_lh: 18px; min-height: 48px; padding: 8px 16px !important; text-align: left;
+  align-items: center !important; justify-content: flex-start !important;
+}
+html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .device-commands .nx-extra-edit { --_fg: var(--cb-link); color: var(--cb-link) !important; justify-self: start; }
+
+/* ============================================================ the bar at the bottom: tabs with a line of 2 px over the selected one */
+html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .tabs, html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .tab-nav.tabs { background: var(--md-sys-color-surface-container-low) !important; padding: 0 !important; align-items: stretch !important; box-shadow: inset 0 1px 0 var(--md-sys-color-outline-variant) !important; }
+html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .tab-item { padding-top: 12px !important; }
+html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .tab-item .icon { background: transparent !important; }
+html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .tab-item.tab-item-active, html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .tab-item.active { box-shadow: inset 0 2px 0 var(--cb-button-primary) !important; }
+html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .tab-item.tab-item-active .icon, html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .tab-item.active .icon { color: var(--md-sys-color-on-surface) !important; }
+html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .tab-item.tab-item-active .tab-title, html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .tab-item.active .tab-title { font-weight: 600; }
+
+/* ============================================================ controls elsewhere */
+html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .m3e-filled:not([aria-pressed="false"]) { --_bg: var(--cb-button-primary); --_fg: #ffffff; }
+html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .m3e-text, html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .nx-link { --_fg: var(--cb-link); color: var(--cb-link); }
+/* a choice of one (theme, style): the content switcher, the selected part is the inverse layer */
+html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .nx-seg { gap: 0 !important; }
+html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .nx-seg-btn { --_bg: var(--md-sys-color-surface-container-low); --_fg: var(--md-sys-color-on-surface-variant); --_sh: inset 0 0 0 1px var(--md-sys-color-outline-variant); }
+html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .nx-seg-btn.nx-on { --_bg: var(--md-sys-color-inverse-surface); --_fg: var(--md-sys-color-inverse-on-surface); --_sh: 0 0 0 0 transparent; }
+
+/* ============================================================ the grid: everything starts at the left margin of 16 px */
+html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .full-container > .row.flex-2:has(.nx-state) { padding: 0 16px !important; }
+html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .row.flex-2:has(.nx-state) .device-icon { margin: auto auto 12px 0 !important; flex-basis: 144px; }
+html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .row.flex-2:has(.nx-state) .device-info { align-items: flex-start !important; text-align: left; }
+html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .nx-state, html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .nx-state strong { text-align: left !important; justify-content: flex-start !important; align-items: flex-start !important; }
+/* a label over a group is quiet: the secondary text color, not the color of a link */
+html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .list .item-divider, html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .item-divider { color: var(--md-sys-color-on-surface-variant) !important; font-weight: 400 !important; letter-spacing: .32px !important; }
+/* the shape of the status sheet is a tile too */
+html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .nx-shape:before { clip-path: none !important; animation: none !important; transform: none !important; }
+
+/* nx31 (a test): the style "Mono", a design of this project, as a layer over the skin. Every rule is behind data-nx-style="mono" on <html> (Settings > Appearance > Style);
+   without it nothing here applies. The colors are in styles.json. The idea: black, white and hairlines. Color is kept for what the gate says (open, moving, a fault); a control
+   is either ink or an outline; one corner of 10 px for everything; the typeface Geist, tight and a little heavier where it is large. */
+@font-face { font-family: 'Geist'; font-style: normal; font-weight: 100 900; font-display: swap; src: url('../fonts-nx/geist-latin.woff2') format('woff2'); }
+html:root[data-nx-style="mono"] { --nx-font: 'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif; --nx-r-s: 10px; --nx-r-m: 10px; --nx-r-l: 10px; --mono-line: var(--md-sys-color-outline-variant); }
+
+/* ============================================================ the ground rules */
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] *, html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] *:before, html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] *:after { border-radius: 10px !important; }
+/* what fills the window from edge to edge has no corners */
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app], html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .pane, html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .view, html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .bar, html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .tabs, html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .scroll-content, html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] ion-content, html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .backdrop, html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .popup-container, html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .loading-container, html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .modal-backdrop,
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .modal-backdrop-bg, html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .nx-scrim, html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] ion-nav-view, html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] ion-nav-bar, html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] ion-tabs, html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .nav-bar-block { border-radius: 0 !important; }
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app], html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .pane, html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .view { background-image: none !important; }
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .item.nx-palette-row, html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .item.nx-bg-row:not(.nx-style-row) { display: none !important; }
+
+/* ============================================================ the header */
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .bar .title { font-weight: 600 !important; letter-spacing: -.02em !important; }
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .bar .button { --_bg: transparent; --_fg: var(--md-sys-color-on-surface); --_sh: inset 0 0 0 1px var(--mono-line); }
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .bar .button.header-item:not(.icon-occhio):not([class*="ion-"]):not(.nx-hist):not(:has(> .icon-settings)) { --_bg: var(--md-sys-color-primary); --_fg: var(--md-sys-color-on-primary); --_sh: 0 0 0 0 transparent; }
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .bar .button.header-item.nx-hist:not(.icon-occhio):not([class*="ion-"]), html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .bar .button.header-item:has(> .icon-settings) { --_bg: transparent; --_fg: var(--md-sys-color-on-surface); }
+
+/* ============================================================ the accessory screen */
+/* the hero is a ring; its color and its line say the state: green for open, a turning dashed line while the gate moves, red for a fault */
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .device-icon:before {
+  clip-path: none !important; animation: none !important; transform: none; background: transparent !important; border-radius: 50% !important;
+  border: 1.5px solid var(--mono-line); box-sizing: border-box;
+}
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .device-icon i { color: var(--md-sys-color-on-surface) !important; }
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .device-icon:has(i.open):before { border-color: var(--nx-ok); }
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .device-icon:has(i.open) i { color: var(--nx-ok) !important; }
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .device-icon:has(i.opening):before, html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .device-icon:has(i.closing):before { border: 2px dashed var(--md-sys-color-on-surface); animation: nx-mono-turn 12s linear infinite !important; }
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .device-icon:has(i.stopped):before { border-color: var(--nx-warn); }
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .device-icon:has(i.stopped) i { color: var(--nx-warn) !important; }
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .device-icon:has(i.status-1):before { border: 2px solid var(--md-sys-color-error); }
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .device-icon:has(i.status-1) i { color: var(--md-sys-color-error) !important; }
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .full-container:has(.nx-line[data-nx-trust="checking"]) .device-icon:before { border-style: dashed; animation: nx-mono-pulse 1.6s ease-in-out infinite !important; }
+@keyframes nx-mono-turn { to { transform: rotate(360deg); } }
+@keyframes nx-mono-pulse { 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .device-icon:before { animation: none !important; } }
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .nx-state strong, html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .nx-state strong > span { font-weight: 600 !important; letter-spacing: -.04em !important; }
+/* the line: a hairline box, the color is in a bar at its left */
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .nx-line:is([data-nx-kind="busy"], [data-nx-kind="ok"], [data-nx-kind="warn"], [data-nx-kind="bad"]) {
+  background: transparent !important; color: var(--md-sys-color-on-surface) !important; box-shadow: inset 0 0 0 1px var(--mono-line) !important; font-weight: 500;
+}
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .nx-line[data-nx-kind="warn"] { box-shadow: inset 0 0 0 1px var(--nx-warn) !important; }
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .nx-line[data-nx-kind="bad"] { box-shadow: inset 0 0 0 1px var(--md-sys-color-error) !important; }
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .nx-line .nx-line-act { --_bg: var(--md-sys-color-primary); --_fg: var(--md-sys-color-on-primary); }
+/* the pad: Open is ink, Close an outline, Stop an outline in red until it may be needed (then it is solid) */
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .row.flex-3:has(> .nx-line) > .device-commands { column-gap: 8px !important; row-gap: 8px !important; }
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .device-commands .command, html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .device-commands a.command { --_fs: 17px; --_lh: 24px; --_fw: 500; --_ls: -.01em; --_icon: 20px; --_gap: 10px; }
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .device-commands .command:has([translate$="_open"]) { --_h: 72px; --_bg: var(--md-sys-color-primary); --_fg: var(--md-sys-color-on-primary); }
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .device-commands .command:has([translate$="_close"]) { --_h: 72px; --_bg: transparent; --_fg: var(--md-sys-color-on-surface); --_sh: inset 0 0 0 1.5px var(--md-sys-color-outline); }
+/* Stop when it may be needed: one red for both themes, with white on it */
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .device-commands .command:has([translate$="_stop"]) { --_h: 56px; --_bg: #e5484d; --_fg: #ffffff; --_sh: 0 0 0 0 transparent; }
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .full-container:has(.device-icon i:is(.open, .closed).status-0):not(:has(.nx-unusable:not(.ng-hide))):not(:has(strong.nx-checking-text:not(.ng-hide))):not(:has(span[translate="DEVICE_STATE_CONFIRMATION_PENDING"]:not(.ng-hide))):not(:has(.nx-line:is([data-nx-trust="checking"], [data-nx-trust="aging"], [data-nx-trust="stale"]))) .device-commands .command:has([translate$="_stop"]) { --_bg: transparent; --_fg: var(--md-sys-color-error); --_sh: inset 0 0 0 1.5px color-mix(in srgb, var(--md-sys-color-error) 55%, transparent); }
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .device-commands .nx-more { --_fg: var(--md-sys-color-on-surface-variant); --_fw: 500; }
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .device-commands .nx-extras .command.nx-extra {
+  --_bg: transparent; --_fg: var(--md-sys-color-on-surface); --_sh: inset 0 0 0 1px var(--mono-line); --_fs: 14px; --_lh: 18px; --_fw: 500; min-height: 48px;
+}
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .device-commands .nx-extra-edit { --_fg: var(--md-sys-color-on-surface-variant); color: var(--md-sys-color-on-surface-variant) !important; }
+
+/* ============================================================ the bar at the bottom: a hairline, no pill; the selected tab is ink, the others grey */
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .tabs, html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .tab-nav.tabs { background: var(--md-sys-color-surface) !important; box-shadow: inset 0 1px 0 var(--mono-line) !important; }
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .tab-item { color: var(--md-sys-color-outline) !important; }
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .tab-item .icon { background: transparent !important; }
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .tab-item.tab-item-active, html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .tab-item.active { color: var(--md-sys-color-on-surface) !important; }
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .tab-item.tab-item-active .icon, html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .tab-item.active .icon { color: var(--md-sys-color-on-surface) !important; }
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .tab-item.tab-item-active .tab-title, html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .tab-item.active .tab-title { font-weight: 600; }
+
+/* ============================================================ controls elsewhere */
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .nx-seg-btn { --_bg: transparent; --_fg: var(--md-sys-color-on-surface-variant); --_sh: inset 0 0 0 1px var(--mono-line); }
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .nx-seg-btn.nx-on { --_bg: var(--md-sys-color-primary); --_fg: var(--md-sys-color-on-primary); --_sh: 0 0 0 0 transparent; }
+/* the shape of the status sheet: a ring, like the hero */
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .nx-shape:before { clip-path: none !important; animation: none !important; transform: none !important; border-radius: 50% !important; }
+/* a sheet stands on the bottom edge of the window: corners at its top only */
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .nx-sheet, html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .nx-sheet > .nx-handle { border-radius: 16px 16px 0 0 !important; }
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .nx-sheet > .nx-footer { border-radius: 0 !important; }

@@ -26,6 +26,9 @@ not grant any rights to, the Nice / MyNice Welcome app that these scripts patch.
 | What | Where | License |
 |---|---|---|
 | Roboto Flex (variable font, Latin subset) | `skin/fonts-nx/` (license text next to it) | SIL Open Font License 1.1 |
+| IBM Plex Sans (300, 400 and 600, Latin subset; for the style *Carbon*) | `skin/fonts-nx/` (license text next to it) | SIL Open Font License 1.1, IBM Corp. |
+| Geist (variable font, Latin subset; for the style *Mono*) | `skin/fonts-nx/` (license text next to it) | SIL Open Font License 1.1, The Geist Project Authors |
+| The color, type and spacing values of the IBM Carbon Design System (themes White and Gray 100) that the style *Carbon* follows | `skin/src/nx31-carbon.css` | Apache License 2.0, IBM Corp. |
 | Material Design icon paths (as inline SVG masks) | `skin/src/build-css.py` | Apache License 2.0, Google |
 | Color values generated with `@material/material-color-utilities` (build time only; the library itself is not included) | `skin/src/tokens.css`, `skin/src/tools/` | Apache License 2.0, Google |
 | The geometry of the 35 shapes of Material 3 Expressive (`MaterialShapes` and `androidx.graphics.shapes`: the coordinates and rounding values of the vertices and the way a rounded corner is built), ported to Python and sampled as polygons of 144 points. An independent port, not a copy of the Kotlin code. | `skin/src/tools/build-shapes.py`, `skin/src/shapes.json` | Apache License 2.0, The Android Open Source Project |

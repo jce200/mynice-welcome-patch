@@ -22,4 +22,9 @@
     var b = window.localStorage.getItem('nxBackdrop');
     if (/^(glow|shapes|rings)$/.test(b)) document.documentElement.setAttribute('data-nx-bg', b);
   } catch (e) { /* no storage: no backdrop */ }
+  // nx31: the style (Settings > Appearance > Style), data-nx-style on <html>; "expressive" is the skin as it is, so it is never set. The names are those of STYLES in nx-patch.js
+  try {
+    var s = window.localStorage.getItem('nxStyle');
+    if (/^(mono|carbon)$/.test(s)) document.documentElement.setAttribute('data-nx-style', s);
+  } catch (e) { /* no storage: the skin as it is */ }
 })();

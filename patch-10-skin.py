@@ -46,5 +46,9 @@ os.makedirs(os.path.join(WWW, "fonts-nx"), exist_ok=True)
 shutil.copy(css_path, os.path.join(WWW, "css", "nx-expressive.css"))
 shutil.copy(font_path, os.path.join(WWW, "fonts-nx", "roboto-flex-latin.woff2"))
 shutil.copy(license_path, os.path.join(WWW, "fonts-nx", "ROBOTO-FLEX-LICENSE.txt"))
+# nx31: the fonts of the other styles (Settings > Appearance > Style), each with its license text
+for name in sorted(os.listdir(os.path.join(SKIN, "fonts-nx"))):
+    if name.endswith((".woff2", "-LICENSE.txt")) and not name.lower().startswith("roboto-flex"):
+        shutil.copy(os.path.join(SKIN, "fonts-nx", name), os.path.join(WWW, "fonts-nx", name))
 open(idx_path, "w", encoding="utf-8", newline="").write(idx)
 print("patched (nx9 appearance): css/nx-expressive.css (%d bytes), fonts-nx/roboto-flex-latin.woff2, index.html" % len(css.encode("utf-8")))

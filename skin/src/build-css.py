@@ -142,12 +142,32 @@ skin = read('skin.css')
 nx23 = '\n'.join(read(os.path.basename(p)) for p in sorted(glob.glob(os.path.join(HERE, 'nx[2-9][0-9]-*.css'))))
 extra = read('status.css') + '\n' + read('activity.css') + '\n' + m3e + '\n' + read('gallery.css') + '\n' + nx23
 extra = extra.replace('{{P}}', 'html:root body[data-ng-app]')
+# nx31: a style is a layer of rules over the skin (nx31-*.css), each behind data-nx-style on <html>. Its prefix is heavier than any rule of the skin ({{P}} and what follows it), so
+# that a rule of a style wins without knowing how the rule it replaces was written.
+STYLE_HEAVY = '[data-nx-style]' * 4
+def style_prefix(name): return 'html:root[data-nx-style="%s"]%s body[data-ng-app][data-ng-app][data-ng-app]' % (name, STYLE_HEAVY)
+extra = extra.replace('{{M}}', style_prefix('mono')).replace('{{C}}', style_prefix('carbon'))
 skin = skin.replace('{{P}}', 'html:root body[data-ng-app]')
 skin = skin.replace('{{ICONS}}', icons)
 LEGACY_SHAPES = ('cookie', 'sun', 'star')   # names from before nx22 that shapes.json still has: copies of cookie9, sunny and burst; not repeated in the css
 lines = ['--nx-v-%s: %s;' % (k, v) for k, v in shapes.items() if k not in LEGACY_SHAPES]
 skin = skin.replace('{{SHAPES}}', '\n  '.join(lines))
 tokens = read('tokens.css')
+# nx31: the colors of the styles (styles.json), as the same tokens: light, dark by the phone, dark by choice
+def style_tokens():
+    data = json.load(open(os.path.join(HERE, 'styles.json'), encoding='utf-8'))
+    out = ['/* nx31: the colors of the styles (generated from styles.json) */']
+    for name in sorted(k for k in data if not k.startswith('_')):
+        light, dark = data[name]['light'], data[name]['dark']
+        if sorted(light) != sorted(dark):
+            raise SystemExit('styles.json: %s has other tokens in light than in dark' % name)
+        root = 'html:root[data-nx-style="%s"]%s' % (name, STYLE_HEAVY)
+        body = lambda d, pad: ''.join('%s%s: %s;\n' % (pad, k, d[k]) for k in d)
+        out.append('%s {\n%s}' % (root, body(light, '  ')))
+        out.append('@media (prefers-color-scheme: dark) {\n  %s:not([data-nx-theme="light"]) {\n%s  }\n}' % (root, body(dark, '    ')))
+        out.append('%s[data-nx-theme="dark"] {\n%s}' % (root, body(dark, '  ')))
+    return '\n'.join(out) + '\n'
+tokens = tokens + '\n' + style_tokens()
 out = tokens + '\n' + skin + '\n' + extra
 left = re.findall(r'\{\{[A-Za-z_]+\}\}', out)
 if left:
