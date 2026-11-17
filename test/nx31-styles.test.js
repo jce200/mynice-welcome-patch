@@ -87,6 +87,10 @@ const STYLES = ['mono', 'carbon'];
   ok('rules: Carbon has no rounded corner but a tag and a toggle; Mono has one corner of 10 px and none on what fills the window', /@P@ \*, @P@ \*:before, @P@ \*:after \{ border-radius: 0 !important; \}/.test(carbon) &&
     /@P@ \.nx-chip:before \{ border-radius: 16px !important; \}/.test(carbon) && /@P@ \*, @P@ \*:before, @P@ \*:after \{ border-radius: 10px !important; \}/.test(mono) &&
     /@P@ \.tabs,[^{]*\{ border-radius: 0 !important; \}/.test(mono) && /@P@ \.nx-sheet, @P@ \.nx-sheet > \.nx-handle \{ border-radius: 16px 16px 0 0 !important; \}/.test(mono));
+  ok('rules: Mono on the rest of the app (nx33): a ring for every spinner and loader, a straight line for progress, popups with ink for the answer that goes on, the wizard picture in a plate',
+    /@P@ ion-spinner:before \{\s*clip-path: none !important;[^}]*nx-mono-turn/.test(mono) && /@P@ \.m3e-loader > i, @P@ \.m3e-morphing \{\s*clip-path: none !important;/.test(mono) &&
+    /@P@ \.m3e-progress > i::before, @P@ \.m3e-progress > b::before \{[^}]*mask: none !important/.test(mono) && /@P@ \.popup-buttons \.button\.button-positive,[^{]*\{\s*--_bg: var\(--md-sys-color-primary\)/.test(mono) &&
+    /@P@ \.setup-wifi-bridge \.area\.bg-black-one,[^{]*\{\s*margin: 8px 16px 0 !important;/.test(mono) && /@media \(prefers-reduced-motion: reduce\) \{ @P@ \.m3e-loader > i, @P@ \.m3e-morphing, @P@ ion-spinner:before \{ animation: none !important; \} \}/.test(mono));
   ok('sheet: no placeholder of a style is left, and the prefix of a style is heavier than the one of the skin', !/\{\{[MC]\}\}/.test(css) &&
     css.indexOf('html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] ') >= 0);
   // the fonts

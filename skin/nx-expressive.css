@@ -3642,3 +3642,47 @@ html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][dat
 /* a sheet stands on the bottom edge of the window: corners at its top only */
 html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .nx-sheet, html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .nx-sheet > .nx-handle { border-radius: 16px 16px 0 0 !important; }
 html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .nx-sheet > .nx-footer { border-radius: 0 !important; }
+
+/* ============================================================ nx33: the rest of the app in Mono
+   The status chip: a hairline, no fill (the dot and the words say the status) */
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .bar .title > .nx-chip:before { background-color: transparent !important; box-shadow: inset 0 0 0 1px var(--md-sys-color-outline); }
+/* focus: a thin line in ink, 2 px away from what has it */
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .button:focus-visible, html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] button:focus-visible, html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] a:focus-visible, html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] [role="radio"]:focus-visible { outline: 2px solid var(--md-sys-color-on-surface) !important; outline-offset: 2px !important; }
+
+/* ---- the set-up wizard: the picture stands in a dark plate with the corner of everything else, 16 px from the edges (not a block from edge to edge) */
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .setup-wifi-bridge .area.bg-black-one, html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .setup-wifi-bridge .area.bg-blu_nice, html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .setup-wifi-bridge .area.bg-verde, html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .loading-container .area.bg-black-one {
+  margin: 8px 16px 0 !important; width: auto !important;
+}
+/* the first page: the way in is ink, the demo an outline */
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .start-commands .command { --_fw: 500; --_ls: -.02em; }
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .start-commands .command.bg-blue-two { --_bg: transparent; --_fg: var(--md-sys-color-on-surface); --_sh: inset 0 0 0 1px var(--md-sys-color-outline); }
+/* waiting: a ring that turns, and a straight line of 2 px for progress (no shapes that morph, no wave) */
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .m3e-loader > i, html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .m3e-morphing {
+  clip-path: none !important; background: transparent !important; box-sizing: border-box; border: 2px solid rgba(128, 128, 128, .35); border-top-color: currentColor;
+  border-radius: 50% !important; rotate: none; animation: nx-mono-turn .9s linear infinite !important;
+}
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .m3e-progress::before { top: 4px; left: 0 !important; height: 2px; -webkit-mask: none !important; mask: none !important; background: var(--mono-line); }
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .m3e-progress::after { display: none; }
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .m3e-progress > i::before, html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .m3e-progress > b::before { top: 4px; height: 2px; -webkit-mask: none !important; mask: none !important; animation: none !important; }
+/* every spinner of the app is that ring too (the skin draws a shape that morphs over the invisible svg of ion-spinner) */
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] ion-spinner:before {
+  clip-path: none !important; background: transparent !important; box-sizing: border-box; border: 2px solid rgba(128, 128, 128, .35); border-top-color: currentColor;
+  border-radius: 50% !important; rotate: none; animation: nx-mono-turn .9s linear infinite !important;
+}
+@media (prefers-reduced-motion: reduce) { html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .m3e-loader > i, html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .m3e-morphing, html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] ion-spinner:before { animation: none !important; } }
+/* the full-screen wait of the wizard fills the window: no corners, no frame */
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .loading-container .loading:has(.popUp) { border-radius: 0 !important; box-shadow: none !important; }
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .loading-container .loading { box-shadow: inset 0 0 0 1px var(--mono-line); background: var(--md-sys-color-surface-container-low) !important; }
+
+/* ---- popups: a plate with a hairline; the answer that goes on is ink, the other an outline, a destructive one red; the buttons share the width */
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .popup { background: var(--md-sys-color-surface-container-low) !important; box-shadow: 0 0 0 1px var(--mono-line), 0 16px 48px rgba(0, 0, 0, .4) !important; }
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .popup .popup-title { font-size: 20px; line-height: 28px; letter-spacing: -.02em; }
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .popup-buttons, html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .nx-popup .popup-buttons { gap: 8px; padding: 12px 24px 24px !important; }
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .popup-buttons .button, html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .nx-popup .popup-buttons .button {
+  --_h: 44px; --_pad: 16px; --_fw: 500; --_bg: transparent; --_fg: var(--md-sys-color-on-surface); --_sh: inset 0 0 0 1px var(--md-sys-color-outline);
+  flex: 1 1 0 !important; min-width: 0; background: transparent !important; color: var(--md-sys-color-on-surface) !important;
+}
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .popup-buttons .button.button-positive, html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .nx-popup .popup-buttons .button.button-positive {
+  --_bg: var(--md-sys-color-primary); --_fg: var(--md-sys-color-on-primary); --_sh: 0 0 0 0 transparent; background: var(--md-sys-color-primary) !important; color: var(--md-sys-color-on-primary) !important;
+}
+html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .popup-buttons .button.button-assertive { --_fg: var(--md-sys-color-error); --_sh: inset 0 0 0 1px var(--md-sys-color-error); color: var(--md-sys-color-error) !important; }

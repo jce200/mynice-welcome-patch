@@ -20,6 +20,36 @@ configuration code of the module; approve the new user in the Nice app.
 To update: replace the files in that folder and restart. Leave the integration entry itself in place: it holds the credentials of its user, and removing it
 means pairing again (with a new user name, or after deleting the old user in the Nice app).
 
+## A notification on your phone when the gate moves
+
+The integration keeps a connection to the module all day, so Home Assistant is the reliable place to send a notification from (a phone app would have to stay awake for it). With the
+Home Assistant Companion app on the phone, this automation says when the gate starts to open or close and when it has arrived; a new notification replaces the one before it.
+Look up the two ids in your own installation: the status sensor of the gate and the notify service of your phone.
+
+```yaml
+alias: Gate - notify when it opens or closes
+mode: queued
+triggers:
+  - trigger: state
+    entity_id: sensor.<device>_gate_status
+    to: [opening, closing, open, closed, stopped]
+conditions:
+  - condition: template
+    value_template: "{{ trigger.from_state is not none and trigger.from_state.state not in ['unknown', 'unavailable'] }}"
+actions:
+  - action: notify.mobile_app_<your_phone>
+    data:
+      title: Gate
+      message: >-
+        {{ {'opening': 'The gate is opening', 'closing': 'The gate is closing', 'open': 'The gate is open',
+            'closed': 'The gate is closed', 'stopped': 'The gate was stopped'}[trigger.to_state.state] }}
+      data:
+        tag: nice-gate
+        channel: Gate
+```
+
+The condition keeps a restart of Home Assistant, or a module that comes back, from sending one. Take `opening` and `closing` out of the list for a notification on arrival only.
+
 ## Where it comes from
 
 It started from [PatrikTrestik/homeassistant_nicegate](https://github.com/PatrikTrestik/homeassistant_nicegate) (Apache License 2.0, see [LICENSE](LICENSE))

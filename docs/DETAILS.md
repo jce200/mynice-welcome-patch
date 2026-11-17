@@ -1,8 +1,19 @@
 # Details and history
 
 This is the technical background to the [README.md](../README.md): why every change exists, with the diagnoses that led to them
-(nx3 through nx32: the project's build numbers). The example values (Wi-Fi `HomeWifi`, accessory `NiceIT4WIFIAABBCC`, user
+(nx3 through nx33: the project's build numbers). The example values (Wi-Fi `HomeWifi`, accessory `NiceIT4WIFIAABBCC`, user
 `homeuser`) stand in for whatever is different in your case. The data in this document comes from one phone and one IT4WIFI module.
+
+## What is new in nx33 (the style Mono on the rest of the app)
+The style *Mono* (nx31) was looked at on the accessory screen, Settings and the sheets only. Now also:
+
+- **The set-up wizard.** The picture of a step stands in a dark plate with the corner of everything else, 16 px from the edges, where it was a block from edge to edge with rounded
+  corners. The first page has the way in as ink and the demo as an outline.
+- **Waiting.** Every spinner of the app and the loading indicator are a thin ring that turns, and progress is a straight line of 2 px: no shapes that morph and no wave.
+- **Popups.** A plate with a hairline; the answer that goes on is ink, the other an outline, a destructive one red, and the buttons share the width.
+- **Small things.** The status chip is a hairline in the color of its words (no fill), focus is a thin line in ink, and the full-screen wait of the wizard has no corners.
+
+Only `skin/src/nx31-mono.css` changed; without the style nothing of it applies. nx33 has version code 20201131.
 
 ## What is new in nx32 (no alert at the start when the accessory cannot be reached)
 Since nx30 the app starts on the accessory screen when there is one accessory. That screen asks the accessory for its state as soon as it opens, and the original shows an alert
