@@ -1,0 +1,4 @@
+/* nx34: the group Notifications in Settings (patch-25-notify.py): the switch, the line that says what it costs, and the rows that lead to the settings of Android */
+{{P}} .item.nx-notify-row > span { white-space: normal; padding-right: 72px; }
+{{P}} .item.nx-notify-note { font-size: 14px; line-height: 20px; color: var(--md-sys-color-on-surface-variant); white-space: normal; }
+{{P}} .item.nx-notify-fix { color: var(--md-sys-color-primary); font-weight: 500; white-space: normal; }

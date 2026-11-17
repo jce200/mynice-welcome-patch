@@ -1390,6 +1390,67 @@
     $rootScope.nxCanQuick = canQuick;
     $rootScope.nxEditQuick = editQuick;
 
+    // -------------------------------------------------------------- nx34: a notification of Android when the gate moves
+    // Settings > Notifications. The native layer does the work (NxWatch: a foreground service keeps the app alive in the background, and it notifies when the state of a gate
+    // changes while the app is not on the screen). This layer: the switch, telling the native layer every state it learns (an event of the accessory, the answer to a request
+    // for the state; the native layer drops what it knew already), and a check of the connection every two minutes while the app is in the background, so that a connection
+    // that was lost comes back. Whether it is on is kept by the native layer (it must know without this page), so it is asked for at the start.
+    var notifyOn = false, notifyInfo = {}, appPaused = false;
+    var NOTIFY_TICK = (typeof window.__nxNotifyTickMs === 'number') ? window.__nxNotifyTickMs : 120000;
+    function setNotifyInfo(info) {
+      notifyInfo = (info && typeof info === 'object') ? info : {};
+      notifyOn = notifyInfo.on === true;
+      digestSoon();
+    }
+    function gateLabel(mac) {
+      try {
+        var all = allDevices();
+        for (var i = 0; i < all.length; i++) if (all[i].device.mac === mac) return String(all[i].device.description || all[i].device.name || '');
+      } catch (e) { /* no name: the native layer says "Gate" */ }
+      return '';
+    }
+    function reportGate(mac, state, obstruct) {
+      if (!mac || typeof state !== 'string' || !state) return;
+      nx('gateState', [String(mac), gateLabel(mac), state, obstruct == null ? '' : String(obstruct)]);
+    }
+    $rootScope.nxNotify = function () { return notifyOn; };
+    $rootScope.nxNotifyInfo = function () { return notifyInfo; };
+    $rootScope.nxSetNotify = function (on) {
+      on = on === true;
+      notifyOn = on;                                        // the switch follows the finger; the answer of the native layer has the last word
+      log('notifications', on ? 'on' : 'off');
+      nx('watch', [on], setNotifyInfo, function (e) { log('notifications: not changed', String(e)); notifyOn = !on; digestSoon(); });
+    };
+    $rootScope.nxNotifySettings = function (what) { nx('openSettings', [what === 'battery' ? 'battery' : 'notifications']); };
+    try {
+      nx('watchState', [], setNotifyInfo);
+      window.addEventListener('newDeviceState', function (e) { if (e) reportGate(e.mac, e.state, e.obstruct); }, false);
+      document.addEventListener('pause', function () { appPaused = true; }, false);
+      document.addEventListener('resume', function () { appPaused = false; nx('watchState', [], setNotifyInfo); }, false);   // the user may have changed a setting of Android meanwhile
+      // the answer to a request for the state (the accessory screen asks, and so does the check below)
+      if (inj.has('NHKPluginService')) {
+        var nSvc = inj.get('NHKPluginService'), nOrig = nSvc.status;
+        if (typeof nOrig === 'function' && !nOrig.__nxNotify) {
+          var nWrap = function (d) {
+            var p = nOrig.apply(nSvc, arguments);
+            try {
+              if (p && typeof p.then === 'function') p.then(function (res) {
+                var pr = res && res.devices && res.devices[0] && res.devices[0].properties;
+                if (pr && pr[0]) reportGate(d && d.mac, pr[0].value, pr[1] ? pr[1].value : null);
+              }, function () { /* a failed request says nothing about the gate */ });
+            } catch (e) { log('notifications: status', String(e)); }
+            return p;
+          };
+          for (var nk in nOrig) if (Object.prototype.hasOwnProperty.call(nOrig, nk)) nWrap[nk] = nOrig[nk];      // the marks of the wrappers before this one
+          nWrap.__nxNotify = true;
+          nSvc.status = nWrap;
+        }
+      }
+      setInterval(function () {
+        try { if (notifyOn && appPaused) verifyAll(function () {}); } catch (e) { log('notifications: check', String(e)); }
+      }, NOTIFY_TICK);
+    } catch (e) { log('notifications', String(e)); }
+
     // -------------------------------------------------------------- nx30: a calmer accessory screen
     // The extra buttons are behind "More commands" (patch-23-calm.py). Open or folded is the user's choice and is remembered ('nxMore' in localStorage); folded until they open it.
     var MORE_KEY = 'nxMore', moreOpen = false;

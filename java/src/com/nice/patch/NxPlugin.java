@@ -23,8 +23,26 @@ import org.json.JSONObject;
  *   reconnect            close sessions and restart discovery
  *   release              release the accessory Wi-Fi (app-specific connection)
  *   version               returns the version of the native layer
+ *   watch [on]           nx34: notifications when the gate moves on or off (NxWatch); answers { on, allowed, battery }
+ *   watchState           the same answer without changing anything
+ *   gateState [mac, name, state, obstruct]   the JS layer tells the state of a gate it learned
+ *   openSettings [what]  the page of Android for "notifications" or "battery"
  */
 public class NxPlugin extends CordovaPlugin {
+
+    // nx34: nothing is notified while the app itself is on the screen
+    @Override protected void pluginInitialize() {
+        NxWatch.appVisible = true;
+        try {
+            Context ctx = cordova.getActivity().getApplicationContext();
+            Nx.appCtx = ctx;
+            if (NxWatch.enabled(ctx)) NxWatch.setEnabled(ctx, true);      // the app was started again: the service with it
+        } catch (Throwable ignored) { }
+    }
+    @Override public void onResume(boolean multitasking) { NxWatch.appVisible = true; }
+    @Override public void onPause(boolean multitasking) { NxWatch.appVisible = false; }
+    @Override public void onStart() { NxWatch.appVisible = true; }
+    @Override public void onStop() { NxWatch.appVisible = false; }
 
     @Override
     public boolean execute(final String action, final JSONArray args, final CallbackContext cb) throws JSONException {
@@ -47,6 +65,33 @@ public class NxPlugin extends CordovaPlugin {
         }
         if ("version".equals(action)) {
             cb.success(Nx.PATCH_VERSION);
+            return true;
+        }
+        if ("watch".equals(action) || "watchState".equals(action)) {
+            try {
+                if ("watch".equals(action)) NxWatch.setEnabled(ctx, args.optBoolean(0, false));
+                cb.success(NxWatch.info(ctx));
+            } catch (Throwable t) {
+                cb.error(String.valueOf(t));
+            }
+            return true;
+        }
+        if ("gateState".equals(action)) {
+            try {
+                NxWatch.gateState(ctx, args.optString(0, ""), args.optString(1, ""), args.optString(2, ""), args.optString(3, ""));
+                cb.success();
+            } catch (Throwable t) {
+                cb.error(String.valueOf(t));
+            }
+            return true;
+        }
+        if ("openSettings".equals(action)) {
+            try {
+                NxWatch.openSettings(ctx, args.optString(0, "notifications"));
+                cb.success();
+            } catch (Throwable t) {
+                cb.error(String.valueOf(t));
+            }
             return true;
         }
         if ("setHints".equals(action)) {

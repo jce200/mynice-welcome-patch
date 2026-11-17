@@ -268,12 +268,26 @@ man.replace_once(
     '    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>\n'
     '    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE"/>\n',
     "manifest CHANGE_NETWORK_STATE")
+# nx34: notifications when the gate moves: a foreground service keeps the app alive (NxWatchService), Android 13 asks the user whether the app may notify,
+# and the user can let the app run while the phone sleeps
+man.replace_once(
+    '    <uses-permission android:name="android.permission.WAKE_LOCK"/>\n',
+    '    <uses-permission android:name="android.permission.WAKE_LOCK"/>\n'
+    '    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>\n'
+    '    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>\n'
+    '    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>\n',
+    "manifest permissions for the notifications")
+man.replace_once(
+    '        <service android:name="com.adobe.phonegap.push.FCMService">\n',
+    '        <service android:exported="false" android:name="com.nice.patch.NxWatchService"/>\n'
+    '        <service android:name="com.adobe.phonegap.push.FCMService">\n',
+    "manifest NxWatchService")
 # New version number (apktool 2.10 only keeps it in apktool.yml), so that Android sees the installation as an
 # update; with the same key the data of the app is preserved.
 yml_path = os.path.join(ROOT, "apktool.yml")
 yml = open(yml_path, encoding="utf-8", newline="").read()
-yml, n3 = re.subn(r"versionCode: \d+", "versionCode: 20201131", yml, count=1)
-yml, n4 = re.subn(r"versionName: \S+", "versionName: 2.2.0-nx33", yml, count=1)
+yml, n3 = re.subn(r"versionCode: \d+", "versionCode: 20201132", yml, count=1)
+yml, n4 = re.subn(r"versionName: \S+", "versionName: 2.2.0-nx34", yml, count=1)
 if n3 != 1 or n4 != 1:
     sys.exit("version number not found in apktool.yml")
 YML = (yml_path, yml)

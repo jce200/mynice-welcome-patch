@@ -41,6 +41,7 @@
       devices: [{ properties: [{ value: CFG.statusState || CFG.state || 'closed' }, { value: CFG.obstruct || '0' }] }] };   // nx23 command: CFG.statusState: what the accessory answers when the stored state (CFG.state) is another one
   }
   var verifyCount = 0;
+  var watchInfo = Object.assign({ on: false, allowed: true, battery: true }, CFG.notify || {});
   // nx14: the event log of the accessory (made up). CFG.activity: 'none' (an empty log), 'error' (reading fails), 'slow' (answers after 4 s),
   // 'blocked' (the last thing in the log is an "Open and Block" of 20 minutes ago); CFG.logs: a log of your own ({ interfaceLogs, deviceLogs }).
   // The default is the last 12 days of a household: two people (Anna and Ben) who open and close the gate on workdays, a schedule that closes
@@ -156,14 +157,19 @@
     'NetworkStatus.getConnectionInfo': function () { return 'wifi'; },
     'Globalization.getPreferredLanguage': function () { return { value: CFG.lang || 'en-US' }; },
     'Globalization.getLocaleName': function () { return { value: CFG.lang || 'en-US' }; },
-    'Nx.version': function () { return 'nx-33'; },
+    'Nx.version': function () { return 'nx-34'; },
     'Nx.logStream': function () { return { keep: true, none: true }; },
     'Nx.setHints': function () { return {}; },
     'Nx.release': function () { return {}; },
     'Nx.reconnect': function () { return {}; },
     'Nx.checkSucceeded': function () { return {}; },
     'Nx.checkFailed': function () { return {}; },
-    'Nx.netState': function () { return CFG.net || { version: 'nx-33', sdk: 37, wifi: true, ssid: 'HomeWifi', ip: '192.168.1.172', validated: true, cellular: false, vpn: false, module: false, defaultType: 'wifi', route: 'local', routeAgeSeconds: 4 }; },
+    // nx34 notifications. CFG.notify: what the native layer answers ({ on, allowed, battery }); the switch changes "on"
+    'Nx.watchState': function () { return watchInfo; },
+    'Nx.watch': function (args) { watchInfo = Object.assign({}, watchInfo, { on: args[0] === true }); return watchInfo; },
+    'Nx.gateState': function () { return {}; },
+    'Nx.openSettings': function () { return {}; },
+    'Nx.netState': function () { return CFG.net || { version: 'nx-34', sdk: 37, wifi: true, ssid: 'HomeWifi', ip: '192.168.1.172', validated: true, cellular: false, vpn: false, module: false, defaultType: 'wifi', route: 'local', routeAgeSeconds: 4 }; },
     'Nx.probe': function () { return CFG.probe || { ok: true, tcpMs: 14, tlsMs: 380, bound: true, cloud: { ok: true, dns: '63.182.6.157', dnsMs: 12, tcpMs: 20 } }; }
   };
   function answer(callbackId, r) {

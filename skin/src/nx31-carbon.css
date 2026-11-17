@@ -83,3 +83,4 @@ html:root[data-nx-style="carbon"] { --nx-font: 'IBM Plex Sans', 'Helvetica Neue'
 {{C}} .list .item-divider, {{C}} .item-divider { color: var(--md-sys-color-on-surface-variant) !important; font-weight: 400 !important; letter-spacing: .32px !important; }
 /* the shape of the status sheet is a tile too */
 {{C}} .nx-shape:before { clip-path: none !important; animation: none !important; transform: none !important; }
+{{C}} .item.nx-notify-fix { color: var(--cb-link); }

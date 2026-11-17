@@ -11,6 +11,7 @@
 #   nx23-*   one test file per workstream of nx23
 #   nx30-*   the calmer accessory screen, and the start on it with one accessory
 #   nx31-*   the two other styles (Mono, Carbon) as a layer over the skin
+#   nx34-*   a notification of Android when the gate moves
 #   java     the logic of the native layer on a plain JVM, against android-all-10 (run ./get-tools.sh first)
 set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -36,7 +37,7 @@ echo "== gallery (Settings > Design)"
 node test/gallery.test.js | tail -1 || failed=1       # without jsdom it says that it is skipped
 echo "== copy (patch-21-copy.py: the English wording of the original app)"
 node test/copy.test.js | tail -1 || failed=1
-for t in test/nx23-*.test.js test/nx30-*.test.js test/nx31-*.test.js; do
+for t in test/nx23-*.test.js test/nx3[0-9]-*.test.js; do
   [ -f "$t" ] || continue
   echo "== $(basename "$t" .test.js)"
   node "$t" | tail -1 || failed=1

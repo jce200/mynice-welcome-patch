@@ -77,7 +77,7 @@ public class NxTest {
         is("routeLabel without destination and interface", "?", Nx.routeLabel(null, null));
         is("vpnRouteFor: invalid address", null, Nx.vpnRouteFor(null, new java.util.ArrayList<android.net.Network>(), "no-ip"));
         is("vpnRouteFor: no VPN networks", null, Nx.vpnRouteFor(null, new java.util.ArrayList<android.net.Network>(), "192.168.1.72"));
-        is("version", "nx-33", Nx.PATCH_VERSION);
+        is("version", "nx-34", Nx.PATCH_VERSION);
 
         // nx26: events that the app does not read go to the Debug log, without names, addresses and the signature
         String diag = "<Event id=\"7\" source=\"AA:BB:CC:DD:EE:FF\" target=\"homeuser\" gw=\"gw1\" protocolType=\"NHK\" type=\"DIAGNOSTIC\">\n<Timestamp>2026-11-10T08:00:00</Timestamp>"
@@ -202,6 +202,39 @@ public class NxTest {
         Nx.checkSucceeded();
         is("preference: cleaned up at the end of the test", false, Nx.cloudPreferenceActive());
 
+        // ---- nx34: notifications when the gate moves (NxWatch): what is told, and what is read from an event
+        is("notify: the first state that is heard of a gate tells nothing", null, NxWatch.decide(null, null, "closed", "0"));
+        is("notify: the same state again tells nothing", null, NxWatch.decide("closed", "0", "closed", "0"));
+        NxWatch.Notice n = NxWatch.decide("closed", "0", "opening", "0");
+        is("notify: a gate that starts to open is told, with a sound", "The gate is opening/true", n.text + "/" + n.alert);
+        n = NxWatch.decide("opening", "0", "open", "0");
+        is("notify: its arrival replaces that quietly", "The gate is open/false", n.text + "/" + n.alert);
+        n = NxWatch.decide("closed", "0", "open", "0");
+        is("notify: an arrival that was not announced asks for attention", "The gate is open/true", n.text + "/" + n.alert);
+        n = NxWatch.decide("open", "0", "closing", "0");
+        is("notify: closing", "The gate is closing/true", n.text + "/" + n.alert);
+        n = NxWatch.decide("closing", "0", "closed", "0");
+        is("notify: closed after closing, quietly", "The gate is closed/false", n.text + "/" + n.alert);
+        n = NxWatch.decide("opening", "0", "stopped", "0");
+        is("notify: a stop", "The gate was stopped/true", n.text + "/" + n.alert);
+        n = NxWatch.decide("closing", "0", "stopped", "1");
+        is("notify: an obstruction comes first", "Obstruction detected/true", n.text + "/" + n.alert);
+        is("notify: an obstruction that is still there is not told again", null, NxWatch.decide("stopped", "1", "stopped", "1"));
+        n = NxWatch.decide("stopped", "1", "closing", "1");
+        is("notify: ...but the movement after it is", "The gate is closing/true", n.text + "/" + n.alert);
+        is("notify: a state that is not one of the five tells nothing", null, NxWatch.decide("closed", "0", "learning", "0"));
+        is("notify: no state tells nothing", null, NxWatch.decide("closed", "0", null, "0"));
+        String ev = "<Event source=\"00:0B:6C:AA:BB:CC\" target=\"homeuser\" type=\"CHANGE\"><Devices><Device id=\"1\"><Properties><DoorStatus>opening</DoorStatus><Obstruct>0</Obstruct></Properties></Device></Devices></Event>";
+        String[] c = NxWatch.parseChange(ev);
+        is("notify: a CHANGE event gives the state, the obstruction and where it came from", "opening|0|00:0B:6C:AA:BB:CC", c[0] + "|" + c[1] + "|" + c[2]);
+        c = NxWatch.parseChange(change);
+        is("notify: an event without an obstruction flag", "open|null", c[0] + "|" + c[1]);
+        is("notify: an event of another type is not read", null, NxWatch.parseChange(diag));
+        is("notify: an event without the state of the gate is not read", null, NxWatch.parseChange("<Event type=\"CHANGE\"><Devices/></Event>"));
+        is("notify: no event", null, NxWatch.parseChange(null));
+        is("notify: a mac address is compared without its separators and case", "000b6caabbcc", NxWatch.normMac("00:0B:6C:AA:BB:CC"));
+        is("notify: no mac address", "", NxWatch.normMac(null));
+        NxWatch.fromEvent(ev); NxWatch.fromEvent(null);      // no context here: must not throw
         System.out.println(failures == 0 ? "ALL OK" : (failures + " FAILED"));
         System.exit(failures == 0 ? 0 : 1);
     }

@@ -3565,6 +3565,7 @@ html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][d
 html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .list .item-divider, html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .item-divider { color: var(--md-sys-color-on-surface-variant) !important; font-weight: 400 !important; letter-spacing: .32px !important; }
 /* the shape of the status sheet is a tile too */
 html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .nx-shape:before { clip-path: none !important; animation: none !important; transform: none !important; }
+html:root[data-nx-style="carbon"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .item.nx-notify-fix { color: var(--cb-link); }
 
 /* nx31 (a test): the style "Mono", a design of this project, as a layer over the skin. Every rule is behind data-nx-style="mono" on <html> (Settings > Appearance > Style);
    without it nothing here applies. The colors are in styles.json. The idea: black, white and hairlines. Color is kept for what the gate says (open, moving, a fault); a control
@@ -3686,3 +3687,8 @@ html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][dat
   --_bg: var(--md-sys-color-primary); --_fg: var(--md-sys-color-on-primary); --_sh: 0 0 0 0 transparent; background: var(--md-sys-color-primary) !important; color: var(--md-sys-color-on-primary) !important;
 }
 html:root[data-nx-style="mono"][data-nx-style][data-nx-style][data-nx-style][data-nx-style] body[data-ng-app][data-ng-app][data-ng-app] .popup-buttons .button.button-assertive { --_fg: var(--md-sys-color-error); --_sh: inset 0 0 0 1px var(--md-sys-color-error); color: var(--md-sys-color-error) !important; }
+
+/* nx34: the group Notifications in Settings (patch-25-notify.py): the switch, the line that says what it costs, and the rows that lead to the settings of Android */
+html:root body[data-ng-app] .item.nx-notify-row > span { white-space: normal; padding-right: 72px; }
+html:root body[data-ng-app] .item.nx-notify-note { font-size: 14px; line-height: 20px; color: var(--md-sys-color-on-surface-variant); white-space: normal; }
+html:root body[data-ng-app] .item.nx-notify-fix { color: var(--md-sys-color-primary); font-weight: 500; white-space: normal; }

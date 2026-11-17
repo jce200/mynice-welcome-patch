@@ -52,7 +52,7 @@ public final class Nx {
     private Nx() { }
 
     static final String TAG = "NX";
-    public static final String PATCH_VERSION = "nx-33";
+    public static final String PATCH_VERSION = "nx-34";
 
     /** Log channel to the LOG panel in the app (see NxPlugin 'logStream'). */
     static volatile CallbackContext logCb;
@@ -92,6 +92,7 @@ public final class Nx {
 
     /** Called by MessageParser for every event, before the app parses it (patch-22). Never throws. */
     public static void noteEvent(String xml) {
+        NxWatch.fromEvent(xml);        // nx34: a notification when the gate moves (does nothing unless that is switched on; never throws)
         try {
             String d = describeEvent(xml);
             if (d != null) { log(d); return; }

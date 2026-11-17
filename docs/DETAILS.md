@@ -1,8 +1,27 @@
 # Details and history
 
 This is the technical background to the [README.md](../README.md): why every change exists, with the diagnoses that led to them
-(nx3 through nx33: the project's build numbers). The example values (Wi-Fi `HomeWifi`, accessory `NiceIT4WIFIAABBCC`, user
+(nx3 through nx34: the project's build numbers). The example values (Wi-Fi `HomeWifi`, accessory `NiceIT4WIFIAABBCC`, user
 `homeuser`) stand in for whatever is different in your case. The data in this document comes from one phone and one IT4WIFI module.
+
+## What is new in nx34 (a notification of Android when the gate moves)
+*Settings > Notifications > Notify when the gate moves.* While it is on, Android shows a notification when the gate starts to open or close, when it is stopped and when an
+obstruction is detected; the arrival ("is open", "is closed") replaces the notification of the start without a second sound. Nothing is shown while the app itself is on the screen.
+
+The app only hears from the accessory while it runs and holds a connection, so this has a price and limits, and the settings page says so:
+
+- A foreground service (`NxWatchService`) keeps the process alive after the app left the screen. Android requires a permanent notification for that, and it costs some battery.
+- The connection is the one the app always had (local, or the Nice cloud). While the app is in the background `nx-patch.js` checks it every two minutes, so a connection that was
+  lost comes back; what happened in between is not told.
+- Android can still stop the app (battery saving, memory), and swiping the app away ends the notifications until it is opened again: the service ends itself then, because a
+  permanent notification that says "on" while nothing can be heard would be a lie. For the same reason Android does not restart it.
+- When Android blocks the notifications of the app, or does not let it run while the phone sleeps, the settings page shows a row that opens the page of Android for it.
+
+How it works: every event of the accessory passes `NxWatch.fromEvent` in the native layer (the hook of nx26), and the JS layer tells every state it learns (`gateState`: an event,
+or the answer to a request for the state). `NxWatch` remembers the last state per accessory and notifies when it changed, unless the app is on the screen (`NxPlugin` follows the
+life of the activity). `patch-05-native-hooks.py` declares the service and the permissions `FOREGROUND_SERVICE`, `POST_NOTIFICATIONS` and `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`;
+`patch-25-notify.py` adds the group to the settings page. The decision what to tell and the reading of an event are tested on a JVM; the service and the notifications themselves
+can only be tried on a phone. Where Home Assistant runs, it is the more reliable place to notify from (`homeassistant/README.md`). nx34 has version code 20201132.
 
 ## What is new in nx33 (the style Mono on the rest of the app)
 The style *Mono* (nx31) was looked at on the accessory screen, Settings and the sheets only. Now also:
@@ -953,7 +972,7 @@ is a reset of the accessory.
 ## Building and the files
 
 See [README.md](../README.md) for the steps (`./get-tools.sh`, then `./build.sh <original.apk>`). The script unpacks the original APK,
-applies `patch-01-wifi-binding.py` through `patch-24-quiet-status.py` (`patch-21-copy.py` last), builds the Java layer (`java/src/com/nice/patch`) into `classes2.dex`,
+applies `patch-01-wifi-binding.py` through `patch-25-notify.py` (`patch-21-copy.py` last), builds the Java layer (`java/src/com/nice/patch`) into `classes2.dex`,
 adds it, aligns, signs with your key in `keys/` and checks the result (`verify-apk.py`, if `androguard` and `loguru` are installed).
 Every patch checks that its anchor text occurs exactly once, so a different APK version is not silently patched wrongly.
 
@@ -978,6 +997,7 @@ Every patch checks that its anchor text occurs exactly once, so a different APK 
 | `patch-22-diagnostic.py` | nx26: the events of the accessory that the app does not read (DIAGNOSTIC) go to the Debug log |
 | `patch-23-calm.py` | nx30: the accessory screen: Activity in the header, the extra buttons behind *More commands* |
 | `patch-24-quiet-status.py` | nx32: no alert when the state request of the accessory screen itself fails |
+| `patch-25-notify.py` | nx34: the switch in Settings for a notification when the gate moves |
 | `patch-09-socket-fallback.py` | nx7: `socketFor` in `_openSocket` (EPERM fallback) and the VPN guard in both `bindNiceWifi` copies |
 | `patch-08-route-choice.py` | nx6: hooks in `ConnectionsManager`: `vetLocal` (vetting the local address), `noteRoute` (remembering the chosen route), `socketAddress` (name resolution with a fallback) |
 | `patch-07-vpn-binding.py` | nx4: skipping VPN networks in the bind loop, `Nx.wifiType`/`Nx.ctx` in the Wi-Fi receiver, the `__nxWrapVerify` hook in `app.min.js` |
