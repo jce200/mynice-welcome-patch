@@ -60,7 +60,36 @@ const MAC = '00:0B:6C:AA:BB:CC';
   ok('patch-23: all or nothing: one anchor missing and the file is not touched', r3.status !== 0 && fs.readFileSync(b.f, 'utf8') === TEMPLATE.replace('class="nx-extra-edit"', 'class="nx-extra-edit2"'), r3.stderr);
   fs.rmSync(a.dir, { recursive: true, force: true }); fs.rmSync(b.dir, { recursive: true, force: true });
   const build = read('build.sh');
-  ok('build.sh: patch-23-calm.py runs after the patches that make the accessory screen and before patch-21-copy.py', /patch-18-accessory-layout\.py[^;]*patch-23-calm\.py patch-21-copy\.py; do/.test(build));
+  ok('build.sh: patch-23-calm.py runs after the patches that make the accessory screen and before patch-21-copy.py', /patch-18-accessory-layout\.py[^;]*patch-23-calm\.py (patch-2[4-9]-[a-z-]+\.py )*patch-21-copy\.py; do/.test(build));
+}
+
+// ====================================================================================================== patch-24-quiet-status.py (nx32)
+// The app starts on the accessory screen (one accessory), and that screen asks for the state by itself: when the accessory cannot be reached no alert may come over the screen.
+{
+  const LOG = 'console.log("DeviceDetailCtrl:status ERROR "+JSON.stringify(error))';
+  const ALERT = ',null!=error.code&&"NHK_ERROR-"+error.code!="NHK_ERROR-4"&&showAlert($ionicPopup,$translate.instant("ALERT_TITLE_WARNING"),$translate.instant("NHK_ERROR-"+error.code))';
+  const branch = 'NHKPluginService.status(d).then(function(r){ok(r)},function(error){' + LOG + ALERT + '})';
+  const command = 'NHKPluginService.executePrimaryCommand(d,a,c).then(function(r){},function(error){$rootScope.hideLoadingAction(),showAlert($ionicPopup,$translate.instant("ALERT_TITLE_WARNING"),$translate.instant("NHK_ERROR-"+error.code))})';
+  const APP = 'var a=1;' + [branch, command, branch, branch, branch].join(';') + ';var z=2;';
+  const mk = (text) => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nx32-'));
+    const f = path.join(dir, 'assets', 'www', 'js', 'app.min.js');
+    fs.mkdirSync(path.dirname(f), { recursive: true });
+    fs.writeFileSync(f, text);
+    return { dir, f };
+  };
+  const run = (dir) => spawnSync('python3', ['-I', path.join(ROOT, 'patch-24-quiet-status.py'), dir], { encoding: 'utf8' });
+  const a = mk(APP), r1 = run(a.dir), out = fs.readFileSync(a.f, 'utf8');
+  ok('patch-24: the state request of the accessory screen fails without an alert (the line in the log stays), in all four places', r1.status === 0 && out.split('function(error){' + LOG + '}').length === 5 && out.indexOf(LOG + ALERT) < 0, r1.stderr || r1.stdout);
+  ok('patch-24: the alert after a command that failed is not touched, and nothing else changed', out.indexOf(command) >= 0 && out === APP.split(ALERT + '})').join('})').replace(command.slice(0, -2) + '})', command) && out.length === APP.length - 4 * ALERT.length);
+  const r2 = run(a.dir);
+  ok('patch-24: a second run refuses and leaves the file as it is', r2.status !== 0 && /already patched/.test(r2.stderr + r2.stdout) && fs.readFileSync(a.f, 'utf8') === out);
+  const three = APP.replace(branch + ';var z', 'var z');
+  const b = mk(three), r3 = run(b.dir);
+  ok('patch-24: all or nothing: another number of places and the file is not touched', r3.status !== 0 && fs.readFileSync(b.f, 'utf8') === three, r3.stderr);
+  fs.rmSync(a.dir, { recursive: true, force: true }); fs.rmSync(b.dir, { recursive: true, force: true });
+  const copy = JSON.parse(read('skin/copy/copy.json'));
+  ok('copy: error 7 of the Nice cloud ("Central is unreachable") has words of its own: what is wrong and what to check, not "check the gate"', /Nice cloud cannot reach the accessory/.test(copy['+NHK_ERROR-7']) && !/gate/.test(copy['+NHK_ERROR-7']));
 }
 
 // ====================================================================================================== the style rules

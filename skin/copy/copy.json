@@ -10,6 +10,7 @@
   "NHK_ERROR-4": "The accessory did not accept the request. If you just sent a command, it was not carried out: try again.",
   "NHK_ERROR-007": "The accessory cannot reach the gate controller. If you just sent a command, it was not carried out: check the gate, then try again.",
   "NHK_ERROR-8": "The accessory reported an error. If you just sent a command, check the gate, then try again.",
+  "+NHK_ERROR-7": "The Nice cloud cannot reach the accessory: check that it has power and is on its Wi-Fi. If you just sent a command, it was not carried out.",
   "+NHK_ERROR-11": "The accessory has reached its maximum number of users. Ask an administrator to remove one, then try again.",
   "_2_one_word_per_thing": "'Not usable' is the app's word for what the status chip calls 'not reachable' ('unknown' stays for the state of the gate). 'Waiting for confirm', 'Users management' and 'Historian of events' are calques of the Italian original; 'Go ahead' and 'Complete' are the labels of buttons.",
   "FAVORITES_DEVICE_NOT_READY": "Not reachable",

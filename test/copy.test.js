@@ -175,7 +175,7 @@ ok('two files may give the same text for a key', r.status === 0 && JSON.parse(en
   const all = fs.existsSync(folder) ? fs.readdirSync(folder).filter((f) => /\.json$/.test(f)) : [];
   const files = all.filter((f) => !/^templates/.test(f)), tplFiles = all.filter((f) => /^templates/.test(f));
   // a key written "+KEY" is a new one (the original has no text for it): only these may be new, so that a typo cannot add a key unseen
-  const NEW_KEYS = ['NHK_ERROR-11'];
+  const NEW_KEYS = ['NHK_ERROR-7', 'NHK_ERROR-11'];
   const plain = (k) => k.replace(/^\+/, '');
   const keysOf = (f) => Object.keys(JSON.parse(fs.readFileSync(path.join(folder, f), 'utf8'))).filter((k) => !k.startsWith('_'));
   const marked = files.flatMap((f) => keysOf(f).filter((k) => k.startsWith('+')).map(plain));

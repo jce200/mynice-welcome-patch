@@ -1,8 +1,16 @@
 # Details and history
 
 This is the technical background to the [README.md](../README.md): why every change exists, with the diagnoses that led to them
-(nx3 through nx31: the project's build numbers). The example values (Wi-Fi `HomeWifi`, accessory `NiceIT4WIFIAABBCC`, user
+(nx3 through nx32: the project's build numbers). The example values (Wi-Fi `HomeWifi`, accessory `NiceIT4WIFIAABBCC`, user
 `homeuser`) stand in for whatever is different in your case. The data in this document comes from one phone and one IT4WIFI module.
+
+## What is new in nx32 (no alert at the start when the accessory cannot be reached)
+Since nx30 the app starts on the accessory screen when there is one accessory. That screen asks the accessory for its state as soon as it opens, and the original shows an alert
+when that request fails. With an accessory that could not be reached (in the log that led to this: the phone could not reach it locally and the Nice cloud answered
+`{"code":"7","info":"Central is unreachable"}`) the alert "Attention: The accessory reported error 7. Check the gate." came over the screen at every start, although nobody had asked
+for anything and the screen already said what was wrong. `patch-24-quiet-status.py` takes the alert out of the failure branch of that state request (four places in `js/app.min.js`
+that share the code); the alert after a command that failed is not touched. Error 7 of the Nice cloud also has words of its own now: "The Nice cloud cannot reach the accessory:
+check that it has power and is on its Wi-Fi." nx32 has version code 20201130.
 
 ## What is new in nx31 (a test: two other styles, Mono and Carbon)
 *Settings > Appearance > Style* chooses between the skin as it is (*Expressive*) and two other looks. Both are a layer of rules over the skin, behind `data-nx-style` on `<html>`:
@@ -934,7 +942,7 @@ is a reset of the accessory.
 ## Building and the files
 
 See [README.md](../README.md) for the steps (`./get-tools.sh`, then `./build.sh <original.apk>`). The script unpacks the original APK,
-applies `patch-01-wifi-binding.py` through `patch-23-calm.py` (`patch-21-copy.py` last), builds the Java layer (`java/src/com/nice/patch`) into `classes2.dex`,
+applies `patch-01-wifi-binding.py` through `patch-24-quiet-status.py` (`patch-21-copy.py` last), builds the Java layer (`java/src/com/nice/patch`) into `classes2.dex`,
 adds it, aligns, signs with your key in `keys/` and checks the result (`verify-apk.py`, if `androguard` and `loguru` are installed).
 Every patch checks that its anchor text occurs exactly once, so a different APK version is not silently patched wrongly.
 
@@ -958,6 +966,7 @@ Every patch checks that its anchor text occurs exactly once, so a different APK 
 | `patch-21-copy.py`, `skin/copy/` | nx23: the English wording of the original app: `*.json` give new text for keys of `locale-en.json`, `templates.json` lists exact edits of templates (every `old` text must occur once); nothing is written unless everything matched |
 | `patch-22-diagnostic.py` | nx26: the events of the accessory that the app does not read (DIAGNOSTIC) go to the Debug log |
 | `patch-23-calm.py` | nx30: the accessory screen: Activity in the header, the extra buttons behind *More commands* |
+| `patch-24-quiet-status.py` | nx32: no alert when the state request of the accessory screen itself fails |
 | `patch-09-socket-fallback.py` | nx7: `socketFor` in `_openSocket` (EPERM fallback) and the VPN guard in both `bindNiceWifi` copies |
 | `patch-08-route-choice.py` | nx6: hooks in `ConnectionsManager`: `vetLocal` (vetting the local address), `noteRoute` (remembering the chosen route), `socketAddress` (name resolution with a fallback) |
 | `patch-07-vpn-binding.py` | nx4: skipping VPN networks in the bind loop, `Nx.wifiType`/`Nx.ctx` in the Wi-Fi receiver, the `__nxWrapVerify` hook in `app.min.js` |
