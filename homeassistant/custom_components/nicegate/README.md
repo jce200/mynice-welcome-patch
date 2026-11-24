@@ -1,6 +1,24 @@
-# Nice Gate 1.9.0 (local maintenance release)
+# Nice Gate 1.10.0 (local maintenance release)
 
 Home Assistant integration for the local Nice IT4WIFI NHK interface.
+
+## New in 1.10.0: a hiccup is not an outage, and the travel times stay
+
+Seen on a real module at a gate, far from the access point: twice in a quarter of an hour the module did not accept a connection for a moment. Until
+1.9.0 one missed answer made every entity unavailable at once, and the next attempt came 30 seconds later, then 60, 120 and so on. So a hiccup of a
+few seconds showed as a minute or more without the gate, a run that was under way was not timed, and a card lost the gate in the middle of its drawing.
+
+- **A missed answer is tried again within seconds.** For the first minute after contact was lost a new attempt follows every `fast_poll_interval`
+  (5 seconds by default); only after that the backoff starts (the poll interval, doubling up to `max_backoff`).
+- **The entities keep their last state for 20 seconds.** Only when there has been no contact for longer than that do they become unavailable. In the
+  meantime the status sensor says so: `contact_lost_seconds` (empty while there is contact), `consecutive_failures` and `last_error_category`.
+  The estimated position goes on during those seconds; a command still fails at once when the module cannot be reached.
+- **The travel times belong to the module.** They are kept under the MAC of the module instead of under the config entry, so removing the integration
+  and adding it again (pairing again, a new user) no longer loses them. Travel times that an older version saved are taken over once: those of the
+  same entry, or those of an entry that no longer exists when there is exactly one such store. Only the travel times are taken over, not the
+  position that was remembered then.
+
+Entity IDs, the configuration and the options are unchanged; replace the folder and restart Home Assistant.
 
 ## New in 1.9.0: the position and the obstruction as entities of their own
 
@@ -37,7 +55,7 @@ reached the gate, a state that was up to 30 seconds old, and a small module kept
 - **The module pushes changes** (Event CHANGE): the cover follows the gate at once, also when it is moved with a remote control or the Nice app. The poll
   (30 seconds by default) stays as keep-alive and safety net.
 - **A session that died is replaced by itself**: when the module ends it (about a second later), when a request finds it dead, or when the module no longer
-  accepts it. While there is no contact the entities are unavailable, as before.
+  accepts it. While there is no contact the entities are unavailable (since 1.10.0: after 20 seconds without contact, see above).
 - **A command is never written twice.** Before a command goes to a session that has been silent for more than 8 seconds, a STATUS proves that the module
   still answers on it; if not, a new session is opened first. A command that was written and not confirmed is still reported as unknown and not repeated.
 - DIAGNOSTIC events of the module (cause code, manoeuvre counter and the like, numbers only) are counted and the last one is in the diagnostics download.

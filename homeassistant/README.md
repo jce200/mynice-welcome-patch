@@ -54,7 +54,7 @@ The condition keeps a restart of Home Assistant, or a module that comes back, fr
 
 It started from [PatrikTrestik/homeassistant_nicegate](https://github.com/PatrikTrestik/homeassistant_nicegate) (Apache License 2.0, see [LICENSE](LICENSE))
 and has been rewritten since: bounded and serialized requests, error categories, options, reauthentication and diagnostics (1.6.0), and one persistent session
-with pushed status instead of a new TLS session for every request (1.7.0), and an estimated position of the gate from travel times it learns itself (1.8.0). This folder is under the Apache License 2.0 like the original; the rest of the
+with pushed status instead of a new TLS session for every request (1.7.0), an estimated position of the gate from travel times it learns itself (1.8.0), and quick new attempts with a short grace before the entities become unavailable, with the travel times kept per module (1.10.0). This folder is under the Apache License 2.0 like the original; the rest of the
 repository has its own licence.
 
 ## Tests

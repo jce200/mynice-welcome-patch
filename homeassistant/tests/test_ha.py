@@ -7,7 +7,7 @@ import asyncio
 import pytest
 from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME
 from pytest_homeassistant_custom_component.common import MockConfigEntry
-from custom_components.nicegate import nice_api
+from custom_components.nicegate import coordinator as coordinator_module, nice_api
 from .it4wifi_sim import MAC, PWD, Module
 
 @pytest.fixture(autouse=True)
@@ -25,6 +25,7 @@ async def test_integration(hass, monkeypatch):
         return await real("127.0.0.1", mod.port, **kw)
     monkeypatch.setattr(nice_api.asyncio, "open_connection", open_conn)
     monkeypatch.setattr(nice_api, "PREFLIGHT_IDLE", 0.3); monkeypatch.setattr(nice_api, "PREFLIGHT_TIMEOUT", 0.6); monkeypatch.setattr(nice_api, "RESPONSE_TIMEOUT", 1.5)
+    monkeypatch.setattr(coordinator_module, "GRACE_SECONDS", 0.6)
     entry = MockConfigEntry(domain="nicegate", unique_id=MAC, data={CONF_HOST: "192.0.2.10", "mac": MAC, CONF_USERNAME: "u", CONF_PASSWORD: PWD})
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
@@ -66,17 +67,34 @@ async def test_integration(hass, monkeypatch):
     # the diagnostics download
     from custom_components.nicegate.diagnostics import async_get_config_entry_diagnostics
     diag = await async_get_config_entry_diagnostics(hass, entry)
-    assert diag["integration_version"] == "1.9.0" and diag["connection"]["session_open"] is True and diag["connection"]["sessions_opened"] == 2
+    assert diag["integration_version"] == "1.10.0" and diag["connection"]["session_open"] is True and diag["connection"]["sessions_opened"] == 2
     assert PWD not in str(diag) and MAC not in str(diag)
-    # the module disappears: unavailable; it comes back: available again
+    # the module disappears. One missed answer is not an outage: the entities keep their last state, the status sensor says
+    # that there is no contact, and the next attempt comes within seconds instead of after the poll interval ...
     for w in list(mod.conns): w.transport.abort()
     mod.conns.clear(); mod.server.close(); await _settle(hass, 0.3)
     coordinator = hass.data["nicegate"][entry.entry_id]["coordinator"]
+    before = hass.states.get(cover).state
     await coordinator.async_refresh(); await hass.async_block_till_done()
-    assert hass.states.get(cover).state == "unavailable"
+    assert hass.states.get(cover).state == before != "unavailable"
+    attrs = hass.states.get(sensor).attributes
+    assert attrs["consecutive_failures"] >= 1 and attrs["contact_lost_seconds"] is not None and attrs["last_error_category"]
+    assert coordinator.update_interval.total_seconds() == 5
+    # ... it stays away longer than the grace: unavailable, still with quick attempts ...
+    await asyncio.sleep(0.7)
+    await coordinator.async_refresh(); await hass.async_block_till_done()
+    assert hass.states.get(cover).state == "unavailable" and coordinator.update_interval.total_seconds() == 5
+    # ... and only after the time for quick attempts the backoff starts: 30 seconds, then longer
+    monkeypatch.setattr(coordinator_module, "QUICK_RETRY_SECONDS", 0.0)
+    await coordinator.async_refresh(); await hass.async_block_till_done()
+    first = coordinator.update_interval.total_seconds()
+    await coordinator.async_refresh(); await hass.async_block_till_done()
+    assert 30 <= first < coordinator.update_interval.total_seconds() <= 300
+    # it comes back: available again, and the poll is back at its normal pace
     mod2 = Module(); await mod2.start(); mod.port = mod2.port
     await coordinator.async_refresh(); await hass.async_block_till_done()
     assert hass.states.get(cover).state == "closed" and mod2.sessions == 1
+    assert hass.states.get(sensor).attributes["contact_lost_seconds"] is None and coordinator.update_interval.total_seconds() in (5, 30)
     # unload closes the session
     assert await hass.config_entries.async_unload(entry.entry_id)
     await _settle(hass)
@@ -145,6 +163,71 @@ async def test_position(hass, monkeypatch):
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
     assert (attr("travel_time_open"), attr("travel_time_close")) == learned and pos() == 0
-    assert await hass.config_entries.async_unload(entry.entry_id)
+    # kept when the integration is removed and added again: the travel times belong to the module (its MAC), not to the entry
+    assert await hass.config_entries.async_remove(entry.entry_id)
+    await hass.async_block_till_done()
+    again = MockConfigEntry(domain="nicegate", unique_id=MAC, data={CONF_HOST: "192.0.2.10", "mac": MAC, CONF_USERNAME: "u", CONF_PASSWORD: PWD})
+    again.add_to_hass(hass)
+    assert again.entry_id != entry.entry_id and await hass.config_entries.async_setup(again.entry_id)
+    await hass.async_block_till_done()
+    cover = hass.states.async_entity_ids("cover")[0]
+    assert (attr("travel_time_open"), attr("travel_time_close")) == learned and pos() == 0
+    assert await hass.config_entries.async_unload(again.entry_id)
+    await _settle(hass)
+    mod.server.close()
+
+
+async def test_travel_times_of_an_older_version(hass, hass_storage, monkeypatch):
+    """Until 1.10.0 the travel times were kept per config entry. They are taken over: of this entry, or of the one entry that no longer exists."""
+    from custom_components.nicegate.coordinator import NiceCoordinator
+    mod = Module(); await mod.start()
+    real = asyncio.open_connection
+    async def open_conn(host, port, **kw):
+        return await real("127.0.0.1", mod.port, **kw)
+    monkeypatch.setattr(nice_api.asyncio, "open_connection", open_conn)
+    saved = lambda key, runs, **more: {"version": 1, "minor_version": 1, "key": key, "data": {"runs": runs, "status": None, "position": None, **more}}
+    module_key = "nicegate." + "".join(c for c in MAC.lower() if c.isalnum()) + ".travel"
+    attr = lambda k: hass.states.get(hass.states.async_entity_ids("cover")[0]).attributes.get(k)
+
+    # 1. an update in place: the store of this same entry
+    entry = MockConfigEntry(domain="nicegate", unique_id=MAC, data={CONF_HOST: "192.0.2.10", "mac": MAC, CONF_USERNAME: "u", CONF_PASSWORD: PWD})
+    entry.add_to_hass(hass)
+    old_key = f"nicegate.{entry.entry_id}.travel"
+    hass_storage[old_key] = saved(old_key, {"opening": [21.0, 23.0], "closing": [25.0]})
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    assert attr("travel_time_open") == 22.0 and attr("travel_time_close") == 25.0
+    assert hass_storage[module_key]["data"]["runs"] == {"opening": [21.0, 23.0], "closing": [25.0]}
+    assert await hass.config_entries.async_remove(entry.entry_id)
+    await hass.async_block_till_done()
+
+    # 2. removed and added again before the update: one store of an entry that is gone. Only its travel times count,
+    #    not the position it remembers (a gate "stopped at 40" then is not stopped at 40 now).
+    hass_storage.pop(module_key, None); hass_storage.pop(old_key, None)
+    gone = "nicegate.01HZZZZZZZZZZZZZZZZZZZZZZZ.travel"
+    hass_storage[gone] = saved(gone, {"opening": [19.0], "closing": [20.5]}, status="stopped", position=40.0)
+    monkeypatch.setattr(NiceCoordinator, "_stored_travel_keys", lambda self: [gone, module_key])
+    mod.status = "stopped"
+    again = MockConfigEntry(domain="nicegate", unique_id=MAC, data={CONF_HOST: "192.0.2.10", "mac": MAC, CONF_USERNAME: "u", CONF_PASSWORD: PWD})
+    again.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(again.entry_id)
+    await hass.async_block_till_done()
+    assert attr("travel_time_open") == 19.0 and attr("travel_time_close") == 20.5
+    assert attr("raw_status") == "stopped" and attr("current_position") is None
+    assert await hass.config_entries.async_remove(again.entry_id)
+    await hass.async_block_till_done()
+
+    # 3. two such stores are two gates: nothing is taken over
+    hass_storage.pop(module_key, None)
+    other = "nicegate.01HYYYYYYYYYYYYYYYYYYYYYYY.travel"
+    hass_storage[other] = saved(other, {"opening": [30.0], "closing": [31.0]})
+    monkeypatch.setattr(NiceCoordinator, "_stored_travel_keys", lambda self: [gone, other])
+    mod.status = "closed"
+    third = MockConfigEntry(domain="nicegate", unique_id=MAC, data={CONF_HOST: "192.0.2.10", "mac": MAC, CONF_USERNAME: "u", CONF_PASSWORD: PWD})
+    third.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(third.entry_id)
+    await hass.async_block_till_done()
+    assert attr("travel_time_open") is None and attr("travel_time_close") is None
+    assert await hass.config_entries.async_unload(third.entry_id)
     await _settle(hass)
     mod.server.close()

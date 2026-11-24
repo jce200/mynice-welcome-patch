@@ -1,9 +1,10 @@
-"""Pushed status over the persistent session, a poll as keep-alive and safety net, outage backoff."""
+"""Pushed status over the persistent session, a poll as keep-alive and safety net, quick retries and then a backoff when contact is lost."""
 from __future__ import annotations
 
 import asyncio
 import logging
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
@@ -13,12 +14,16 @@ from homeassistant.exceptions import ConfigEntryAuthFailed, HomeAssistantError
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .const import DEFAULT_NAME, DEFAULT_OPTIONS, known_t4_codes
+from .const import CONF_MAC, DEFAULT_NAME, DEFAULT_OPTIONS, DOMAIN, known_t4_codes
 from .nice_api import NiceGateApi, NiceGateApiAuthError, NiceGateApiError
-from .travel import TravelModel
+from .travel import TravelModel, choose_orphan, has_runs
 
 _LOGGER = logging.getLogger(__name__)
 RECONNECT_DELAY = 1.0   # seconds after the module ended the session before a new one is tried
+# Most outages of the module are a matter of seconds (Wi-Fi). Until 1.10.0 one missed answer made every entity unavailable and the next
+# attempt came 30 seconds later, then 60, 120, ...: a hiccup of a few seconds showed as a minute or more without the gate.
+GRACE_SECONDS = 20.0        # contact lost for less than this: the entities keep their last state
+QUICK_RETRY_SECONDS = 60.0  # after contact was lost: this long a new attempt every fast_poll_interval, only then the backoff
 
 class NiceGateCommandError(HomeAssistantError):
     """The device rejected a command or did not confirm its result."""
@@ -41,13 +46,51 @@ class NiceCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.travel = TravelModel()
         self.movement_started: str | None = None
         self._tick = None
-        self._travel_store: Store | None = Store(hass, 1, f"nicegate.{entry.entry_id}.travel") if entry else None
+        # The learned travel times belong to the module, not to this config entry: they are kept under its MAC, so that removing the
+        # integration and adding it again does not lose them (until 1.10.0 they were kept per config entry, see async_load_travel).
+        module = "".join(c for c in str(entry.data.get(CONF_MAC, "")).lower() if c.isalnum()) if entry else ""
+        self._travel_store: Store | None = Store(hass, 1, f"nicegate.{module or entry.entry_id}.travel") if entry else None
+        self._legacy_travel_key: str | None = f"nicegate.{entry.entry_id}.travel" if entry and module else None
         self._reconnecting = False
+        self._lost_at: float | None = None      # when contact was lost (loop time); None while there is contact
+        self._slow_failures = 0                 # failed attempts after the quick retries, for the backoff
         api.set_listener(self._handle_push)
 
     async def async_load_travel(self) -> None:
-        if self._travel_store:
-            self.travel.load(await self._travel_store.async_load())
+        if not self._travel_store:
+            return
+        data = await self._travel_store.async_load()
+        if not has_runs(data) and self._legacy_travel_key:
+            taken = await self._take_over_travel()
+            if taken is not None:
+                data = taken
+                await self._travel_store.async_save(taken)
+        self.travel.load(data)
+
+    def _stored_travel_keys(self) -> list[str]:
+        """The names of the travel stores in Home Assistant's own storage folder (only the names; runs in the executor)."""
+        folder = Path(self.hass.config.path(".storage"))
+        return sorted(p.name for p in folder.glob("nicegate.*.travel")) if folder.is_dir() else []
+
+    async def _take_over_travel(self) -> dict[str, Any] | None:
+        """Travel times that an older version kept per config entry: of this entry, or of an entry that no longer exists.
+
+        The second case is the integration that was removed and added again: its store stayed behind. It is only taken over when
+        there is exactly one such store with travel times in it (two would be two gates, and nothing is guessed), and only the
+        travel times: where the gate stood then says nothing about where it stands now.
+        """
+        own = await Store(self.hass, 1, self._legacy_travel_key).async_load()
+        if has_runs(own):
+            return own
+        current = {entry.entry_id for entry in self.hass.config_entries.async_entries(DOMAIN)}
+        orphans: dict[str, Any] = {}
+        for key in await self.hass.async_add_executor_job(self._stored_travel_keys):
+            if key != self._travel_store.key and key[len("nicegate."):-len(".travel")] not in current:
+                orphans[key] = await Store(self.hass, 1, key).async_load()
+        chosen = choose_orphan(orphans)
+        if chosen is not None:
+            _LOGGER.info("Nice Gate: took over the travel times of an earlier installation of this integration")
+        return chosen
 
     async def async_save_travel(self) -> None:
         if self._travel_store:
@@ -106,6 +149,7 @@ class NiceCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self.last_successful_update = datetime.now(timezone.utc).isoformat()
             self.consecutive_failures = 0
             self.last_error_category = None
+            self._lost_at, self._slow_failures = None, 0
             self._was_moving = payload["door_status"] in {"opening", "closing"}
             self._track(payload["door_status"], precise=True)
             self._interval()
@@ -129,8 +173,11 @@ class NiceCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     def _interval(self, *, failed: bool = False) -> None:
         base = self.options["poll_interval"]
-        if failed:
-            seconds = min(max(base, self.options["max_backoff"]), base * 2 ** min(self.consecutive_failures - 1, 8))
+        if failed and self._lost_at is not None and self.hass.loop.time() - self._lost_at < QUICK_RETRY_SECONDS:
+            seconds = min(base, self.options["fast_poll_interval"])      # try again soon: most outages are over in seconds
+        elif failed:
+            self._slow_failures += 1
+            seconds = min(max(base, self.options["max_backoff"]), base * 2 ** min(self._slow_failures - 1, 8))
         elif self.hass.loop.time() < self._fast_until:
             seconds = min(base, self.options["fast_poll_interval"])
         else:
@@ -151,6 +198,7 @@ class NiceCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "obstruct": (self.data or {}).get("obstruct"),
             "last_successful_update": self.last_successful_update,
             "consecutive_failures": self.consecutive_failures,
+            "contact_lost_seconds": None if self._lost_at is None else round(self.hass.loop.time() - self._lost_at),
             "last_error_category": self.last_error_category,
             "status_response_ms": self.status_response_ms,
             "current_poll_interval_seconds": self.update_interval.total_seconds(),
@@ -167,16 +215,25 @@ class NiceCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             if not status or status.get("door_status") not in {"open", "closed", "opening", "closing", "stopped"}:
                 raise NiceGateApiError("Device did not return a recognized gate status", "invalid_status")
         except (NiceGateApiError, TimeoutError, OSError) as err:
+            now = self.hass.loop.time()
+            if self._lost_at is None:
+                self._lost_at = now
             self.consecutive_failures += 1
             self.last_error_category = getattr(err, "category", "connection")
             self._interval(failed=True)
             if isinstance(err, NiceGateApiAuthError):
                 raise ConfigEntryAuthFailed("Nice user permission or credentials need attention") from err
+            if self.data is not None and now - self._lost_at < GRACE_SECONDS:
+                # One missed answer is not an outage. The entities keep their last state for a moment (the status sensor says in
+                # contact_lost_seconds and consecutive_failures that there is no contact), and the next attempt follows within seconds.
+                _LOGGER.debug("Nice status missed (%s); keeping the last state while trying again", self.last_error_category)
+                return self.data
             raise UpdateFailed(f"Local Nice status unavailable ({self.last_error_category})") from err
         self.last_successful_update = datetime.now(timezone.utc).isoformat()
         self.status_response_ms = self.api.last_response_ms
         self.consecutive_failures = 0
         self.last_error_category = None
+        self._lost_at, self._slow_failures = None, 0
         self._track(status["door_status"], precise=False)
         moving = status["door_status"] in {"opening", "closing"}
         if moving and not self._was_moving:

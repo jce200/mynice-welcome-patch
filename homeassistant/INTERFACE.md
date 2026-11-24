@@ -3,7 +3,7 @@
 This page is for whoever builds something on top of the integration: a dashboard card, an animation, an automation, another project. It is the one place
 that says which entities and attributes exist and what they mean. If you change the integration, change this page in the same commit.
 
-Applies to version **1.9.0** and later. The version is in `custom_components/nicegate/manifest.json` and in the diagnostics download.
+Applies to version **1.10.0** and later (1.9.0 is the same except where this page says *since 1.10.0*). The version is in `custom_components/nicegate/manifest.json` and in the diagnostics download.
 
 ## The device
 
@@ -22,7 +22,10 @@ written as `<device>`: look up the real ids in Home Assistant, do not assume the
 | `sensor.<device>_travel_time_close` | sensor, s (diagnostic) | seconds, or unknown | The same from open to closed. |
 | `button.<device>_…` | buttons | press | The other T4 commands (open and lock, unlock and close, partial opening, …). Which ones exist depends on the gate controller. |
 
-All of them are unavailable while the integration has no contact with the module.
+All of them are unavailable while the integration has no contact with the module. *Since 1.10.0:* only after 20 seconds without contact. A hiccup
+shorter than that leaves every entity at its last state, and the status sensor says that there is no contact: its attribute `contact_lost_seconds`
+counts the seconds (empty while there is contact), next to `consecutive_failures` and `last_error_category`. Do not treat a state as fresh without
+looking at `last_successful_update` when that matters to you.
 
 ## Attributes of the cover
 
@@ -42,6 +45,9 @@ The module reports no position, only when the gate starts, stops and arrives.
 
 - The travel time is **learned**: every run that goes from one end to the other without a stop is timed, and per direction the median of the last five
   counts. Until a direction has been measured once, the position during a run in that direction is **unknown**. Nothing is guessed.
+- A run only counts when the module itself reported its start and its arrival at that moment. A run during which the contact was lost, or that was
+  found by a poll, is not timed. So after a fresh installation: one full run in each direction, without a stop, while there is contact.
+- *Since 1.10.0* the travel times are kept per module (its MAC), not per config entry: they survive removing the integration and adding it again.
 - While the gate moves, the position is where the run started plus the share of the travel time that has passed. The entities are written **once a second**.
 - It stays between 1 and 99 while the gate moves, and becomes 0 or 100 only when the module says closed or open.
 - A stop freezes it where it was; the next run goes on from there. A gate that reverses while moving reverses where it was.
@@ -65,6 +71,8 @@ while raw_status is opening or closing:
 - On `open` or `closed`: ease to 100 or 0.
 - A new run always starts from the current position, never from an end.
 - When the position is unknown: draw the gate open or closed from the status, without inventing a movement.
+- When the position is unknown and the status is `stopped`: the gate is somewhere between its ends. Say that the position is unknown; do not show it
+  as open (which is what the state of the cover says) or as closed.
 - When the page opens while the gate is already moving: start at the position that follows from `movement_started`, not at the beginning.
 - Do not put a fixed number of seconds for the travel time in your own code.
 

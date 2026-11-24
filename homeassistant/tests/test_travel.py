@@ -50,5 +50,15 @@ m.update("closing", 9200, precise=True); mid = T(); mid.load(m.dump())
 ok("a restart in the middle of a run does not pretend to know where the gate is", mid.status is None and mid.position_at(0) is None)
 junk = T(); junk.load({"runs": {"opening": ["x", 1, 500, 20], "closing": None}, "status": "stopped", "position": 400}); junk.load(None); junk.load("x")
 ok("junk in the saved data is ignored", junk.runs == {"opening": [20.0], "closing": []} and junk.position is None)
+# ---- travel times that an earlier installation left behind (1.10.0)
+filled = {"runs": {"opening": [20.0], "closing": [24.0]}, "status": "stopped", "position": 40.0}
+ok("a saved model with a travel time has runs", travel.has_runs(filled) and not travel.has_runs({"runs": {"opening": [], "closing": []}}) and not travel.has_runs(None))
+ok("one store left behind: its travel times are taken over, not where the gate stood then",
+   travel.choose_orphan({"a": filled, "b": {"runs": {"opening": [], "closing": []}}}) == {"runs": filled["runs"]})
+ok("two stores with travel times are two gates: nothing is guessed", travel.choose_orphan({"a": filled, "b": filled}) is None)
+ok("no store, or only empty ones: nothing", travel.choose_orphan({}) is None and travel.choose_orphan({"a": None}) is None)
+m = T(); m.load(travel.choose_orphan({"a": filled}))
+ok("taken over: the travel times are known at once, the position waits for the module", m.travel_time("opening") == 20 and m.travel_time("closing") == 24 and m.status is None)
+
 print(("ALL OK (%d checks)" % len(results)) if all(results) else "%d of %d FAILED" % (results.count(False), len(results)))
 sys.exit(0 if all(results) else 1)

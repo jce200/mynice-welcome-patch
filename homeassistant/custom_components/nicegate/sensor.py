@@ -44,7 +44,7 @@ class NiceGateStatusSensor(CoordinatorEntity[NiceCoordinator], SensorEntity):
     _attr_has_entity_name = True
     _attr_translation_key = "gate_status"
     _attr_name = "Gate status"
-    _unrecorded_attributes = frozenset({"last_successful_update", "status_response_ms", "current_poll_interval_seconds", "fast_polling", "consecutive_failures", "pushed_updates"})
+    _unrecorded_attributes = frozenset({"last_successful_update", "status_response_ms", "current_poll_interval_seconds", "fast_polling", "consecutive_failures", "contact_lost_seconds", "pushed_updates"})
 
     def __init__(self, coordinator: NiceCoordinator, unique_part: str, device_info: dict[str, object]) -> None:
         super().__init__(coordinator)

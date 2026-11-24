@@ -17,6 +17,22 @@ MOVING = {"opening": 1, "closing": -1}
 END = {"open": 100.0, "closed": 0.0}
 
 
+def has_runs(data: Any) -> bool:
+    """Whether a saved model holds a travel time for at least one direction."""
+    runs = data.get("runs") if isinstance(data, dict) else None
+    return isinstance(runs, dict) and any(isinstance(runs.get(direction), list) and runs[direction] for direction in MOVING)
+
+
+def choose_orphan(stores: dict[str, Any]) -> dict[str, Any] | None:
+    """From the stores that earlier installations left behind: the travel times to take over, or None.
+
+    Only when exactly one of them holds travel times (two would be two gates, and nothing is guessed), and only the travel times: the
+    status and position in it are from then, not from now.
+    """
+    filled = [data for data in stores.values() if has_runs(data)]
+    return {"runs": filled[0]["runs"]} if len(filled) == 1 else None
+
+
 class TravelModel:
     def __init__(self) -> None:
         self.runs: dict[str, list[float]] = {"opening": [], "closing": []}
