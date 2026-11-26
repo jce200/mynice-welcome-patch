@@ -26,7 +26,10 @@
       },
       "reauth_confirm": {
         "title": "Toegang tot Nice herstellen",
-        "description": "Koppel Home Assistant opnieuw. Houd de configuratiecode van de module bij de hand; toestemming in de Nice-app kan nodig zijn."
+        "description": "Home Assistant probeert eerst de gebruiker die het al op de module heeft; meestal is dat genoeg. Vink het vakje alleen aan als dat blijft mislukken: opnieuw koppelen vraagt de configuratiecode van de module, en mogelijk een nieuwe goedkeuring in de Nice-app.",
+        "data": {
+          "pair_again": "Opnieuw koppelen met de configuratiecode"
+        }
       }
     },
     "error": {
@@ -38,7 +41,8 @@
       "unknown": "Onverwachte fout. Controleer de Home Assistant-logboeken.",
       "wrong_device": "Op dit adres staat een andere module.",
       "pair_refused": "De module weigert het koppelen. De configuratiecode klopt niet, of er bestaat op de module al een gebruiker met deze naam: ga terug en kies een andere gebruikersnaam (bijvoorbeeld HomeAssistant2), of verwijder die gebruiker eerst in de Nice-app.",
-      "pair_no_answer": "De module is bereikbaar maar gaf geen antwoord op het verzoek. Wacht een paar seconden en probeer opnieuw; blijft het zo, kies dan een andere gebruikersnaam (mogelijk bestaat er op de module al een gebruiker met deze naam)."
+      "pair_no_answer": "De module is bereikbaar maar gaf geen antwoord op het verzoek. Wacht een paar seconden en probeer opnieuw; blijft het zo, kies dan een andere gebruikersnaam (mogelijk bestaat er op de module al een gebruiker met deze naam).",
+      "stored_refused": "De module weigerde de bewaarde gebruiker. Wacht een minuut en probeer het opnieuw. Blijft de module weigeren, vink dan het vakje aan om opnieuw te koppelen."
     },
     "abort": {
       "already_configured": "Deze module is al ingesteld.",

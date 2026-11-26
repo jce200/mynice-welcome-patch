@@ -7,7 +7,7 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigE
     runtime = hass.data.get(DOMAIN, {}).get(entry.entry_id)
     result = {
         "schema_version": 1,
-        "integration_version": "1.10.0",
+        "integration_version": "1.10.1",
         "configuration": {
             "connection": "local", "host": "**REDACTED**", "mac": "**REDACTED**",
             "username": "**REDACTED**", "password": "**REDACTED**",

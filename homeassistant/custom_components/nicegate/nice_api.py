@@ -552,7 +552,8 @@ class NiceGateApi:
         if auth is None and xml.tag == "Authentication":
             auth = xml
         if auth is None:
-            raise NiceGateApiAuthError("Authentication element missing in device response")
+            code = self._extract_error_code(message)
+            raise NiceGateApiAuthError("The module answered the sign-in with error %s" % code if code is not None else "The module answered the sign-in without an authentication")
         return {key: value for key, value in auth.attrib.items()}
 
     def _find_session_id(self, message: str) -> None:

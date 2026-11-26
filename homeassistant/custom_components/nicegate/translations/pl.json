@@ -26,7 +26,10 @@
       },
       "reauth_confirm": {
         "title": "Restore Nice access",
-        "description": "Re-pair Home Assistant with the module. Have the module configuration code ready; approval in the Nice app may be needed."
+        "description": "Home Assistant first tries the user it already has on the module; usually that is all it takes. Tick the box only when that keeps failing: pairing again needs the configuration code of the module, and maybe a new approval in the Nice app.",
+        "data": {
+          "pair_again": "Pair again with the configuration code"
+        }
       }
     },
     "error": {
@@ -38,7 +41,8 @@
       "unknown": "Wystąpił nieoczekiwany błąd. Sprawdź log Home Assistanta.",
       "wrong_device": "This address belongs to a different module.",
       "pair_refused": "The module refused the pairing. Either the configuration code is wrong, or a user with this name already exists on the module: go back and choose another user name (for example HomeAssistant2), or delete that user in the Nice app first.",
-      "pair_no_answer": "The module is reachable but did not answer the request. Wait a few seconds and try again; if it keeps happening, choose another user name (a user with this name may already exist on the module)."
+      "pair_no_answer": "The module is reachable but did not answer the request. Wait a few seconds and try again; if it keeps happening, choose another user name (a user with this name may already exist on the module).",
+      "stored_refused": "The module refused the stored user. Wait a minute and try again. If it keeps refusing, tick the box to pair again."
     },
     "abort": {
       "already_configured": "To urządzenie jest już skonfigurowane.",

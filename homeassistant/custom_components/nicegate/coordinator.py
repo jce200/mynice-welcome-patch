@@ -24,6 +24,11 @@ RECONNECT_DELAY = 1.0   # seconds after the module ended the session before a ne
 # attempt came 30 seconds later, then 60, 120, ...: a hiccup of a few seconds showed as a minute or more without the gate.
 GRACE_SECONDS = 20.0        # contact lost for less than this: the entities keep their last state
 QUICK_RETRY_SECONDS = 60.0  # after contact was lost: this long a new attempt every fast_poll_interval, only then the backoff
+# A module that refuses the sign-in once has not forgotten its user: it answers like that while it restarts, while it is busy and now and then for no reason that
+# shows. Asking the owner to pair again stops the integration until they do, so that is only done when the refusals lasted this long and were seen this often,
+# with no good answer in between. Until then a refusal is a hiccup like any other (above), and the next poll tries again.
+AUTH_GRACE_SECONDS = 900
+AUTH_GRACE_FAILURES = 3
 
 class NiceGateCommandError(HomeAssistantError):
     """The device rejected a command or did not confirm its result."""
@@ -54,6 +59,8 @@ class NiceCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._reconnecting = False
         self._lost_at: float | None = None      # when contact was lost (loop time); None while there is contact
         self._slow_failures = 0                 # failed attempts after the quick retries, for the backoff
+        self.auth_refusals = 0
+        self.last_auth_refusal: str | None = None
         api.set_listener(self._handle_push)
 
     async def async_load_travel(self) -> None:
@@ -171,6 +178,27 @@ class NiceCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def _begin_fast_polling(self) -> None:
         self._fast_until = self.hass.loop.time() + self.options["fast_poll_seconds"]
 
+    # ---- a sign-in that the module refused: counted per entry in hass.data, because a failed first refresh makes Home Assistant build this coordinator anew
+    def _entry_key(self) -> str:
+        return self.config_entry.entry_id if self.config_entry else "none"
+
+    def _refusals(self) -> dict[str, dict[str, Any]]:
+        return self.hass.data.setdefault(DOMAIN, {}).setdefault("_refused", {})
+
+    def _refusal_persists(self, err: Exception) -> bool:
+        now = self.hass.loop.time()
+        seen = self._refusals().setdefault(self._entry_key(), {"since": now, "count": 0})
+        seen["count"] += 1
+        self.auth_refusals = seen["count"]
+        self.last_auth_refusal = f"{err} (while {self.api.last_error_phase or self.api.phase})"
+        if seen["count"] == 1:
+            _LOGGER.warning("The Nice module refused the sign-in: %s. This is usually temporary; trying again.", self.last_auth_refusal)
+        lasted = now - seen["since"]
+        if seen["count"] >= AUTH_GRACE_FAILURES and lasted >= AUTH_GRACE_SECONDS:
+            _LOGGER.error("The Nice module has refused the sign-in %s times in %s minutes (%s): asking to restore access.", seen["count"], round(lasted / 60), self.last_auth_refusal)
+            return True
+        return False
+
     def _interval(self, *, failed: bool = False) -> None:
         base = self.options["poll_interval"]
         if failed and self._lost_at is not None and self.hass.loop.time() - self._lost_at < QUICK_RETRY_SECONDS:
@@ -204,6 +232,8 @@ class NiceCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "current_poll_interval_seconds": self.update_interval.total_seconds(),
             "fast_polling": self.hass.loop.time() < self._fast_until and not self.consecutive_failures,
             "session_open": self.api.session_open,
+            "sign_in_refusals": self.auth_refusals,
+            "last_sign_in_refusal": self.last_auth_refusal,
             "pushed_updates": self.pushed_updates,
             "travel_time_open": self.travel.travel_time("opening"),
             "travel_time_close": self.travel.travel_time("closing"),
@@ -222,13 +252,18 @@ class NiceCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self.last_error_category = getattr(err, "category", "connection")
             self._interval(failed=True)
             if isinstance(err, NiceGateApiAuthError):
-                raise ConfigEntryAuthFailed("Nice user permission or credentials need attention") from err
+                # 1.10.1: one refused sign-in is not a lost pairing; only refusals that last ask the owner to restore access
+                if self._refusal_persists(err):
+                    raise ConfigEntryAuthFailed("Nice user permission or credentials need attention") from err
             if self.data is not None and now - self._lost_at < GRACE_SECONDS:
                 # One missed answer is not an outage. The entities keep their last state for a moment (the status sensor says in
                 # contact_lost_seconds and consecutive_failures that there is no contact), and the next attempt follows within seconds.
                 _LOGGER.debug("Nice status missed (%s); keeping the last state while trying again", self.last_error_category)
                 return self.data
+            if isinstance(err, NiceGateApiAuthError):
+                raise UpdateFailed(f"The module refused the sign-in ({err}); trying again") from err
             raise UpdateFailed(f"Local Nice status unavailable ({self.last_error_category})") from err
+        self._refusals().pop(self._entry_key(), None)
         self.last_successful_update = datetime.now(timezone.utc).isoformat()
         self.status_response_ms = self.api.last_response_ms
         self.consecutive_failures = 0

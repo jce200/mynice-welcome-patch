@@ -50,6 +50,13 @@ actions:
 
 The condition keeps a restart of Home Assistant, or a module that comes back, from sending one. Take `opening` and `closing` out of the list for a notification on arrival only.
 
+## "Authentication expired"
+
+Before 1.10.1 one refused sign-in was enough for Home Assistant to stop the integration and ask to pair again, and a module refuses the sign-in now and then: while it restarts,
+while it is busy. Since 1.10.1 a refusal is a hiccup like any other (the entities keep their state for a moment, then are unavailable until the module answers); Home Assistant asks to restore access when the refusals lasted a quarter of an hour
+(and were seen three times, with no good answer in between). *Restore access* then first tries the user it already has, without the configuration code; pairing again is a box you
+tick. The reason of a refusal is in the log (a warning, once) and in the diagnostics download (`last_sign_in_refusal`).
+
 ## Where it comes from
 
 It started from [PatrikTrestik/homeassistant_nicegate](https://github.com/PatrikTrestik/homeassistant_nicegate) (Apache License 2.0, see [LICENSE](LICENSE))

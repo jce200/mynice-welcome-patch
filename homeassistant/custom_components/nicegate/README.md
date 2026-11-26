@@ -1,6 +1,15 @@
-# Nice Gate 1.10.0 (local maintenance release)
+# Nice Gate 1.10.1 (local maintenance release)
 
 Home Assistant integration for the local Nice IT4WIFI NHK interface.
+
+## New in 1.10.1: "Authentication expired" only when it is
+
+A module refuses the sign-in now and then: while it restarts, while it is busy. One such answer made Home Assistant stop the integration with *Authentication expired*, and
+restoring access threw the stored password away and asked for the configuration code.
+
+- A refused sign-in is a hiccup like any other. Home Assistant asks to restore access only when the refusals lasted a quarter of an hour (three times, no good answer in between).
+- *Restore access* first tries the user that Home Assistant already has, without the configuration code. Pairing again is a box you tick.
+- The reason of a refusal is logged once (a warning) and is in the diagnostics (`last_sign_in_refusal`).
 
 ## New in 1.10.0: a hiccup is not an outage, and the travel times stay
 

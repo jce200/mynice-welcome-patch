@@ -19,6 +19,7 @@ MODEL = "IT4WIFI"
 
 CONF_MAC = "mac"
 CONF_SETUP_CODE = "setup_code"
+CONF_PAIR_AGAIN = "pair_again"
 
 BASE_T4_CODES: tuple[str, ...] = ("MDAx", "MDAy", "MDAz", "MDA0")
 CONTROL_T4_CODES: tuple[str, ...] = ("MDBk", "MDFh")

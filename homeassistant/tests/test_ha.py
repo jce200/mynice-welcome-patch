@@ -67,7 +67,7 @@ async def test_integration(hass, monkeypatch):
     # the diagnostics download
     from custom_components.nicegate.diagnostics import async_get_config_entry_diagnostics
     diag = await async_get_config_entry_diagnostics(hass, entry)
-    assert diag["integration_version"] == "1.10.0" and diag["connection"]["session_open"] is True and diag["connection"]["sessions_opened"] == 2
+    assert diag["integration_version"] == "1.10.1" and diag["connection"]["session_open"] is True and diag["connection"]["sessions_opened"] == 2
     assert PWD not in str(diag) and MAC not in str(diag)
     # the module disappears. One missed answer is not an outage: the entities keep their last state, the status sensor says
     # that there is no contact, and the next attempt comes within seconds instead of after the poll interval ...
@@ -230,4 +230,92 @@ async def test_travel_times_of_an_older_version(hass, hass_storage, monkeypatch)
     assert attr("travel_time_open") is None and attr("travel_time_close") is None
     assert await hass.config_entries.async_unload(third.entry_id)
     await _settle(hass)
+    mod.server.close()
+
+
+async def test_refused_sign_in(hass, monkeypatch):
+    """A module that refuses the sign-in for a while has not forgotten its user: no request to pair again until the refusals last, and restoring access
+    first tries the user that Home Assistant already has (1.10.1)."""
+    from custom_components.nicegate import coordinator as coord_mod
+    mod = Module(); await mod.start()
+    real = asyncio.open_connection
+    async def open_conn(host, port, **kw):
+        return await real("127.0.0.1", mod.port, **kw)
+    monkeypatch.setattr(nice_api.asyncio, "open_connection", open_conn)
+    monkeypatch.setattr(nice_api, "PREFLIGHT_IDLE", 0.3); monkeypatch.setattr(nice_api, "PREFLIGHT_TIMEOUT", 0.6); monkeypatch.setattr(nice_api, "RESPONSE_TIMEOUT", 1.5)
+    monkeypatch.setattr(coord_mod, "RECONNECT_DELAY", 30)          # this test asks for every refresh itself
+    monkeypatch.setattr(coord_mod, "GRACE_SECONDS", 0)             # ...and looks at what a refusal does once the moment of grace is over
+    entry = MockConfigEntry(domain="nicegate", unique_id=MAC, data={CONF_HOST: "192.0.2.10", "mac": MAC, CONF_USERNAME: "u", CONF_PASSWORD: PWD})
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    cover = hass.states.async_entity_ids("cover")[0]
+    coord = hass.data["nicegate"][entry.entry_id]["coordinator"]
+    reauths = lambda: [f for f in hass.config_entries.flow.async_progress() if f["context"].get("source") == "reauth"]
+    assert hass.states.get(cover).state == "closed" and not reauths()
+
+    # the module restarts: the session is gone and the sign-in is answered with an error, twice
+    mod.verify_error = 5
+    await mod.kill_all()
+    await coord.async_refresh(); await hass.async_block_till_done()
+    await coord.async_refresh(); await hass.async_block_till_done()
+    assert hass.states.get(cover).state == "unavailable"
+    assert not reauths(), "one or two refusals must not ask the owner to pair again"
+    assert entry.state.value == "loaded" and coord.auth_refusals == 2 and "error 5" in coord.last_auth_refusal
+    # ...and answers again: everything is back by itself, and the count starts anew
+    mod.verify_error = 0
+    await coord.async_refresh(); await hass.async_block_till_done()
+    assert hass.states.get(cover).state == "closed" and not reauths()
+    assert entry.entry_id not in hass.data["nicegate"]["_refused"]
+
+    # refusals that last: often enough but not long enough is still no request
+    mod.verify_error = 5
+    await mod.kill_all()
+    for _ in range(4):
+        await coord.async_refresh(); await hass.async_block_till_done()
+    assert not reauths(), "four refusals within a minute are not yet a lost pairing"
+    # long enough too: now Home Assistant asks to restore access
+    monkeypatch.setattr(coord_mod, "AUTH_GRACE_SECONDS", 0)
+    await coord.async_refresh(); await hass.async_block_till_done()
+    flows = reauths()
+    assert len(flows) == 1, flows
+    flow_id = flows[0]["flow_id"]
+
+    # restoring access while the module still refuses: said so, and nothing is paired
+    res = await hass.config_entries.flow.async_configure(flow_id, {})
+    assert res["type"] == "form" and res["step_id"] == "reauth_confirm" and res["errors"] == {"base": "stored_refused"}, res
+    assert mod.pairs == 0
+    # the module answers again: the stored user does it, without the configuration code
+    mod.verify_error = 0
+    res = await hass.config_entries.flow.async_configure(flow_id, {})
+    await hass.async_block_till_done()
+    assert res["type"] == "abort" and res["reason"] == "reauth_successful", res
+    assert mod.pairs == 0 and entry.data[CONF_PASSWORD] == PWD, "the password that works is kept"
+    await _settle(hass, 0.3)
+    assert hass.states.get(hass.states.async_entity_ids("cover")[0]).state == "closed"
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
+    mod.server.close()
+
+
+async def test_reauth_pair_again(hass, monkeypatch):
+    """Pairing again is the owner's choice: the box leads to the step with the configuration code."""
+    mod = Module(); await mod.start()
+    real = asyncio.open_connection
+    async def open_conn(host, port, **kw):
+        return await real("127.0.0.1", mod.port, **kw)
+    monkeypatch.setattr(nice_api.asyncio, "open_connection", open_conn)
+    entry = MockConfigEntry(domain="nicegate", unique_id=MAC, data={CONF_HOST: "192.0.2.10", "mac": MAC, CONF_USERNAME: "u", CONF_PASSWORD: "b2xk"})
+    entry.add_to_hass(hass)
+    res = await entry.start_reauth_flow(hass)
+    assert res["type"] == "form" and res["step_id"] == "reauth_confirm"
+    res = await hass.config_entries.flow.async_configure(res["flow_id"], {"pair_again": True})
+    assert res["type"] == "form" and res["step_id"] == "pair" and mod.pairs == 0
+    res = await hass.config_entries.flow.async_configure(res["flow_id"], {"setup_code": "1234"})
+    await hass.async_block_till_done()
+    assert res["type"] == "abort" and res["reason"] == "reauth_successful", res
+    assert mod.pairs == 1 and entry.data[CONF_PASSWORD] == PWD
+    if entry.state.value == "loaded":
+        assert await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
     mod.server.close()

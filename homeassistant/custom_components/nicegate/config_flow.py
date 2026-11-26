@@ -12,7 +12,7 @@ from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers.device_registry import format_mac
 
-from .const import CONF_MAC, CONF_SETUP_CODE, DEFAULT_NAME, DEFAULT_OPTIONS, DEFAULT_USERNAME, DOMAIN
+from .const import CONF_MAC, CONF_PAIR_AGAIN, CONF_SETUP_CODE, DEFAULT_NAME, DEFAULT_OPTIONS, DEFAULT_USERNAME, DOMAIN
 import logging
 
 from .nice_api import NiceGateApi, NiceGateApiAuthError, NiceGateApiError
@@ -97,13 +97,29 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_reauth(self, entry_data: dict[str, Any]) -> FlowResult:
         self._repair_entry = self._get_reauth_entry()
         self._data = dict(self._repair_entry.data)
-        self._data.pop(CONF_PASSWORD, None)
         return await self.async_step_reauth_confirm()
 
     async def async_step_reauth_confirm(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+        """Restore access. First with the user that Home Assistant already has: a module that refused the sign-in for a while has usually not forgotten it.
+        Pairing again (the configuration code, and maybe a new approval in the app) is only done when the owner asks for it."""
+        errors = {}
         if user_input is not None:
-            return await self.async_step_pair()
-        return self.async_show_form(step_id="reauth_confirm", data_schema=vol.Schema({}))
+            if user_input.get(CONF_PAIR_AGAIN) or not self._data.get(CONF_PASSWORD):
+                self._data.pop(CONF_PASSWORD, None)
+                return await self.async_step_pair()
+            api = NiceGateApi(self._data[CONF_HOST], self._data[CONF_MAC], self._data[CONF_USERNAME], self._data[CONF_PASSWORD])
+            try:
+                await api.async_get_status()          # a signed request: it proves the user and its password
+                return self.async_update_reload_and_abort(self._repair_entry, data_updates=self._data, reason="reauth_successful")
+            except NiceGateApiAuthError as err:
+                _LOGGER.warning("Nice: the stored user was refused (%s)", err)
+                errors["base"] = "stored_refused"
+            except (NiceGateApiError, TimeoutError, OSError) as err:
+                _LOGGER.warning("Nice: restoring access failed (%s)", getattr(err, "category", "connection"))
+                errors["base"] = "cannot_connect"
+            finally:
+                await api.disconnect()
+        return self.async_show_form(step_id="reauth_confirm", data_schema=vol.Schema({vol.Optional(CONF_PAIR_AGAIN, default=False): bool}), errors=errors)
 
     async def async_step_reconfigure(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         entry = self._get_reconfigure_entry()

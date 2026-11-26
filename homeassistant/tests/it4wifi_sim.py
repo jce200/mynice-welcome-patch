@@ -20,6 +20,7 @@ class Module:
     def __init__(self):
         self.sessions = 0; self.commands = []; self.status = "closed"; self.conns = []; self.silent = False
         self.pair_error = 0; self.reject = None; self.swallow_change = False; self.bad_sign = 0; self.perm = "user"
+        self.verify_error = 0; self.pairs = 0     # verify_error: the module answers the sign-in with this error code (a module that restarts, or is busy, does)
     async def start(self):
         ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER); ctx.load_cert_chain(*certificate())
         self.server = await asyncio.start_server(self.handle, "127.0.0.1", 0, ssl=ctx)
@@ -44,9 +45,12 @@ class Module:
                 m = re.search(r'<Request id="(\d+)" source="([^"]*)" target="([^"]*)"[^>]*type="(\w+)">', raw); rid, src, _, kind = m.groups()
                 head = f'<Response id="{rid}" source="{MAC}" target="{src}" protocolType="NHK" protocolVersion="1.0" type="{kind}">'
                 if kind == "PAIR" and not self.pair_error:
+                    self.pairs += 1
                     body = f'<Authentication id="7" username="u" pwd="{PWD}"/>'
                 elif kind == "PAIR":
                     head = head.replace('type="PAIR"', 'type="ERROR"'); body = "<Error><Code>%d</Code></Error>" % self.pair_error
+                elif kind == "VERIFY" and self.verify_error:
+                    head = head.replace('type="VERIFY"', 'type="ERROR"'); body = "<Error><Code>%d</Code></Error>" % self.verify_error
                 elif kind == "VERIFY":
                     body = f'<Authentication id="7" username="u" perm="{self.perm}"/>'
                 elif kind == "CONNECT":
